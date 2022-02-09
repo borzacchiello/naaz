@@ -13,9 +13,11 @@ link_directories ( ${CMAKE_SOURCE_DIR}/third_party/pugixml/build )
 set ( CMAKE_CXX_STANDARD 20 )
 
 set ( naaz_src
+    util/ioutil.cpp
     arch/Arch.cpp
     lifter/PCodeLifter.cpp
-    loader/AddressSpace.cpp )
+    loader/AddressSpace.cpp
+    loader/BFDLoader.cpp )
 
 add_library ( objLibNaaz OBJECT ${naaz_src} )
 
@@ -26,6 +28,9 @@ add_library ( libnaaz_shared SHARED $<TARGET_OBJECTS:objLibNaaz> )
 
 set_target_properties ( libnaaz_static PROPERTIES OUTPUT_NAME naaz )
 set_target_properties ( libnaaz_shared PROPERTIES OUTPUT_NAME naaz )
+
+target_link_libraries ( libnaaz_shared LINK_PUBLIC bfd )
+target_link_libraries ( libnaaz_static LINK_PUBLIC bfd )
 
 target_link_libraries ( libnaaz_shared LINK_PUBLIC csleigh )
 target_link_libraries ( libnaaz_static LINK_PUBLIC csleigh )

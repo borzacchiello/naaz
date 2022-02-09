@@ -48,8 +48,8 @@ const PCodeBlock& PCodeLifter::lift(uint64_t addr)
     if (m_blocks.contains(addr))
         return m_blocks.at(addr);
 
-    const uint8_t* buf;
-    size_t         size;
+    uint8_t* buf;
+    size_t   size;
     if (!m_as.get_ref(addr, &buf, &size)) {
         abort();
     }
