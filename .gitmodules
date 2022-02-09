@@ -1,3 +1,6 @@
 [submodule "third_party/sleigh"]
 	path = third_party/sleigh
 	url = https://github.com/borzacchiello/csleigh
+[submodule "third_party/pugixml"]
+	path = third_party/pugixml
+	url = https://github.com/zeux/pugixml

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <pugixml.hpp>
 
 #include "PCodeLifter.hpp"
 
@@ -20,6 +21,24 @@ PCodeLifter::PCodeLifter(const Arch& arch, loader::AddressSpace& as)
     : m_arch(arch), m_as(as)
 {
     m_ctx = csleigh_createContext(arch.getSleighSLA().c_str());
+
+    pugi::xml_document     doc;
+    pugi::xml_parse_result result =
+        doc.load_file(arch.getSleighPSPEC().c_str());
+    if (!result) {
+        abort();
+    }
+
+    for (pugi::xml_node tool : doc.child("processor_spec")
+                                   .child("context_data")
+                                   .child("context_set")
+                                   .children("set")) {
+
+        std::string name = tool.attribute("name").as_string();
+        int         val  = tool.attribute("val").as_int();
+
+        csleigh_setVariableDefault(m_ctx, name.c_str(), val);
+    }
 }
 
 PCodeLifter::~PCodeLifter() { csleigh_destroyContext(m_ctx); }

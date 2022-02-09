@@ -2,9 +2,13 @@ cmake_minimum_required ( VERSION 3.18 )
 
 project ( NAAZ )
 
-# libSleigh
+# libcsleigh
 include_directories ( ${CMAKE_SOURCE_DIR}/third_party/sleigh )
 link_directories ( ${CMAKE_SOURCE_DIR}/third_party/sleigh/build )
+
+# libpugixml
+include_directories ( ${CMAKE_SOURCE_DIR}/third_party/pugixml/src )
+link_directories ( ${CMAKE_SOURCE_DIR}/third_party/pugixml/build )
 
 set ( CMAKE_CXX_STANDARD 20 )
 
@@ -25,6 +29,9 @@ set_target_properties ( libnaaz_shared PROPERTIES OUTPUT_NAME naaz )
 
 target_link_libraries ( libnaaz_shared LINK_PUBLIC csleigh )
 target_link_libraries ( libnaaz_static LINK_PUBLIC csleigh )
+
+target_link_libraries ( libnaaz_shared LINK_PUBLIC pugixml )
+target_link_libraries ( libnaaz_static LINK_PUBLIC pugixml )
 
 set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined" )
 set ( CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined" )

@@ -22,5 +22,11 @@ std::filesystem::path x86_64::getSleighSLA() const
            std::filesystem::path("x86/data/languages/x86-64.sla");
 }
 
+std::filesystem::path x86_64::getSleighPSPEC() const
+{
+    return getSleighProcessorDir() /
+           std::filesystem::path("x86/data/languages/x86-64.pspec");
+}
+
 } // namespace arch
 } // namespace naaz
