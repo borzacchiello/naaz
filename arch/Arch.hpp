@@ -17,6 +17,8 @@ class Arch
     virtual std::filesystem::path getSleighSLA() const   = 0;
     virtual std::filesystem::path getSleighPSPEC() const = 0;
     virtual Endianess             endianess() const      = 0;
+
+    virtual const std::string& description() const = 0;
 };
 
 namespace arch
@@ -31,6 +33,8 @@ class x86_64 : public naaz::Arch
     virtual std::filesystem::path getSleighSLA() const;
     virtual std::filesystem::path getSleighPSPEC() const;
     virtual Endianess endianess() const { return Endianess::LITTLE; }
+
+    virtual const std::string& description() const;
 
     static const x86_64& The()
     {

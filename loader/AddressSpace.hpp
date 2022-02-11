@@ -38,6 +38,7 @@ class Segment
     uint8_t     m_perm;
 
   public:
+    Segment(Segment&& other);
     Segment(const std::string& name, uint64_t addr, const uint8_t* data,
             size_t size, uint8_t perm);
     Segment(const std::string& name, uint64_t addr, size_t size, uint8_t perm);
@@ -46,6 +47,10 @@ class Segment
     bool                   contains(uint64_t addr) const;
     std::optional<uint8_t> read(uint64_t addr) const;
     bool get_ref(uint64_t addr, uint8_t** o_data, size_t* o_size) const;
+
+    const std::string& name() const { return m_name; }
+    uint64_t           addr() const { return m_addr; }
+    size_t             size() const { return m_size; }
 };
 
 class AddressSpace
@@ -78,6 +83,7 @@ class AddressSpace
                          Symbol::Type type);
     std::optional<const Symbol*>      symbol_at(uint64_t addr) const;
     const std::map<uint64_t, Symbol>& symbols() const { return m_symbols; }
+    const std::vector<Segment>&       segments() const { return m_segments; }
 };
 
 } // namespace naaz::loader

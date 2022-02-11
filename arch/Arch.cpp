@@ -28,5 +28,11 @@ std::filesystem::path x86_64::getSleighPSPEC() const
            std::filesystem::path("x86/data/languages/x86-64.pspec");
 }
 
+const std::string& x86_64::description() const
+{
+    static std::string descr = "x86_64 : 64-bit : LE";
+    return descr;
+}
+
 } // namespace arch
 } // namespace naaz

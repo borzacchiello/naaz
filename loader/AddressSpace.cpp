@@ -6,11 +6,18 @@
 namespace naaz::loader
 {
 
+Segment::Segment(Segment&& other)
+    : m_name(other.m_name), m_addr(other.m_addr), m_size(other.m_size),
+      m_data(other.m_data), m_perm(other.m_perm)
+{
+    other.m_data = nullptr;
+}
+
 Segment::Segment(const std::string& name, uint64_t addr, const uint8_t* data,
                  size_t size, uint8_t perm)
     : m_name(name), m_addr(addr), m_size(size), m_perm(perm)
 {
-    m_data = (uint8_t*)malloc(size);
+    uint8_t* m_data = (uint8_t*)malloc(size);
     memcpy(m_data, data, size);
 }
 
