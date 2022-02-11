@@ -2,6 +2,7 @@
 #include <pugixml.hpp>
 
 #include "PCodeLifter.hpp"
+#include "../util/ioutil.hpp"
 
 namespace naaz::lifter
 {
@@ -17,8 +18,7 @@ void PCodeBlock::pp() const
     }
 }
 
-PCodeLifter::PCodeLifter(const Arch& arch, loader::AddressSpace& as)
-    : m_arch(arch), m_as(as)
+PCodeLifter::PCodeLifter(const Arch& arch) : m_arch(arch)
 {
     m_ctx = csleigh_createContext(arch.getSleighSLA().c_str());
 
@@ -29,6 +29,7 @@ PCodeLifter::PCodeLifter(const Arch& arch, loader::AddressSpace& as)
         abort();
     }
 
+    // FIXME: maybe this thing should be done in csleigh lib
     for (pugi::xml_node tool : doc.child("processor_spec")
                                    .child("context_data")
                                    .child("context_set")
@@ -43,19 +44,18 @@ PCodeLifter::PCodeLifter(const Arch& arch, loader::AddressSpace& as)
 
 PCodeLifter::~PCodeLifter() { csleigh_destroyContext(m_ctx); }
 
-const PCodeBlock& PCodeLifter::lift(uint64_t addr)
+const PCodeBlock& PCodeLifter::lift(uint64_t addr, const uint8_t* data,
+                                    size_t data_size)
 {
     if (m_blocks.contains(addr))
         return m_blocks.at(addr);
 
-    uint8_t* buf;
-    size_t   size;
-    if (!m_as.get_ref(addr, &buf, &size)) {
-        abort();
-    }
-
     csleigh_TranslationResult* r =
-        csleigh_translate(m_ctx, buf, size, addr, 0, true);
+        csleigh_translate(m_ctx, data, data_size, addr, 0, true);
+    if (!r) {
+        err("PCodeLifter") << "Unable to lift block" << std::endl;
+        exit_fail();
+    }
     m_blocks.emplace(addr, r);
 
     return m_blocks.at(addr);

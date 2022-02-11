@@ -2,7 +2,6 @@
 
 #include <map>
 #include "../arch/Arch.hpp"
-#include "../loader/AddressSpace.hpp"
 #include "../third_party/sleigh/csleigh.h"
 
 namespace naaz::lifter
@@ -31,14 +30,14 @@ class PCodeLifter
   private:
     csleigh_Context                m_ctx;
     const Arch&                    m_arch;
-    loader::AddressSpace&          m_as;
     std::map<uint64_t, PCodeBlock> m_blocks;
 
   public:
-    PCodeLifter(const Arch& arch, loader::AddressSpace& as);
+    PCodeLifter(const Arch& arch);
     ~PCodeLifter();
 
-    const PCodeBlock& lift(uint64_t addr);
+    const PCodeBlock& lift(uint64_t addr, const uint8_t* data,
+                           size_t data_size);
 };
 
 } // namespace naaz::lifter
