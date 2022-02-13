@@ -7,3 +7,8 @@ add_executable ( bininfo
     bininfo.cpp )
 
 target_link_libraries ( bininfo LINK_PUBLIC libnaaz_shared )
+
+add_executable ( loader_demo
+loader_demo.cpp )
+
+target_link_libraries ( loader_demo LINK_PUBLIC libnaaz_shared )
