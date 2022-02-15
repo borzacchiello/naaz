@@ -15,4 +15,9 @@ std::ostream& info(const char* module)
     return std::cerr << "!INFO [" << module << "] ";
 }
 
+std::ostream& pp_stream()
+{
+    return std::cout;
+}
+
 void exit_fail() { exit(-1); }

@@ -14,6 +14,8 @@ set ( CMAKE_CXX_STANDARD 20 )
 
 set ( naaz_src
     util/ioutil.cpp
+    expr/Expr.cpp
+    expr/ExprBuilder.cpp
     arch/Arch.cpp
     lifter/PCodeLifter.cpp
     loader/AddressSpace.cpp
@@ -42,3 +44,4 @@ set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -f
 set ( CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined" )
 
 add_subdirectory ( tools )
+add_subdirectory ( tests )
