@@ -26,16 +26,21 @@ class Symbol
 
   public:
     Symbol(uint64_t addr, const std::string& name, Type type);
+    uint64_t           addr() const { return m_addr; }
+    Type               type() const { return m_type; }
+    const std::string& name() const { return m_name; }
+
+    static const std::string& type_to_string(Type t);
 };
 
 class Segment
 {
   private:
-    std::string m_name;
-    uint64_t    m_addr;
-    uint8_t*    m_data;
-    size_t      m_size;
-    uint8_t     m_perm;
+    std::string                m_name;
+    uint64_t                   m_addr;
+    std::unique_ptr<uint8_t[]> m_data;
+    size_t                     m_size;
+    uint8_t                    m_perm;
 
   public:
     Segment(Segment&& other);
@@ -56,8 +61,8 @@ class Segment
 class AddressSpace
 {
   private:
-    std::vector<Segment>       m_segments;
-    std::map<uint64_t, Symbol> m_symbols;
+    std::vector<Segment>                    m_segments;
+    std::map<uint64_t, std::vector<Symbol>> m_symbols;
 
   public:
     AddressSpace() {}
@@ -81,9 +86,12 @@ class AddressSpace
 
     void register_symbol(uint64_t addr, const std::string& name,
                          Symbol::Type type);
-    std::optional<const Symbol*>      symbol_at(uint64_t addr) const;
-    const std::map<uint64_t, Symbol>& symbols() const { return m_symbols; }
-    const std::vector<Segment>&       segments() const { return m_segments; }
+    std::optional<const Symbol*> ext_function_symbol_at(uint64_t addr) const;
+    const std::map<uint64_t, std::vector<Symbol>>& symbols() const
+    {
+        return m_symbols;
+    }
+    const std::vector<Segment>& segments() const { return m_segments; }
 };
 
 } // namespace naaz::loader

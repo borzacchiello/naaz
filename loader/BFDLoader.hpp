@@ -23,7 +23,7 @@ class BFDLoader : public Loader
 
     void load_sections();
 
-    void process_symtable(asymbol* symtab[]);
+    void process_symtable(asymbol* symtab[], size_t number_of_symbols);
     void load_symtab();
     void load_dyn_symtab();
     void load_dyn_relocs();

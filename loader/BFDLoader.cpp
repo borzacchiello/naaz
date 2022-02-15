@@ -26,8 +26,9 @@ BFDLoader::BFDLoader(const std::filesystem::path& filename)
             m_arch = &arch::x86_64::The();
             break;
         default:
-            err("BFDLoader") << "unsupported architecture "
-                             << bfd_arch_info->printable_name << std::endl;
+            err("BFDLoader")
+                << "unsupported architecture " << bfd_arch_info->printable_name
+                << " (" << bfd_arch_info->mach << ")" << std::endl;
             exit_fail();
     }
 
@@ -45,8 +46,8 @@ BFDLoader::BFDLoader(const std::filesystem::path& filename)
             m_bin_type = BinaryType::PE;
             break;
         default:
-            err("BFDLoader")
-                << "unsupported binary type " << m_obj->xvec->name << std::endl;
+            err("BFDLoader") << "unsupported binary type " << m_obj->xvec->name
+                             << " (" << flavor << ")" << std::endl;
             exit_fail();
     }
 
@@ -86,14 +87,9 @@ void BFDLoader::load_sections()
     }
 }
 
-void BFDLoader::process_symtable(asymbol* symbol_table[])
+void BFDLoader::process_symtable(asymbol* symbol_table[],
+                                 size_t   number_of_symbols)
 {
-    long number_of_symbols = bfd_canonicalize_symtab(m_obj, symbol_table);
-    if (number_of_symbols < 0) {
-        err("BFDLoader") << "bfd_canonicalize_symtab failed." << std::endl;
-        exit_fail();
-    }
-
     symbol_info symbolinfo;
     for (int i = 0; i < number_of_symbols; i++) {
         asymbol* symbol = symbol_table[i];
@@ -127,7 +123,12 @@ void BFDLoader::load_symtab()
     }
 
     asymbol* symbol_table[storage_needed];
-    process_symtable(symbol_table);
+    long     number_of_symbols = bfd_canonicalize_symtab(m_obj, symbol_table);
+    if (number_of_symbols < 0) {
+        err("BFDLoader") << "bfd_canonicalize_symtab failed." << std::endl;
+        exit_fail();
+    }
+    process_symtable(symbol_table, number_of_symbols);
 }
 
 void BFDLoader::load_dyn_symtab()
@@ -143,7 +144,14 @@ void BFDLoader::load_dyn_symtab()
     }
 
     asymbol* symbol_table[storage_needed];
-    process_symtable(symbol_table);
+    long     number_of_symbols =
+        bfd_canonicalize_dynamic_symtab(m_obj, symbol_table);
+    if (number_of_symbols < 0) {
+        err("BFDLoader") << "bfd_canonicalize_dynamic_symtab failed."
+                         << std::endl;
+        exit_fail();
+    }
+    process_symtable(symbol_table, number_of_symbols);
 }
 
 void BFDLoader::load_dyn_relocs()

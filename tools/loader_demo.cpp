@@ -65,6 +65,23 @@ static void dump_segments(naaz::loader::AddressSpace& as)
     printf("\n");
 }
 
+static void dump_symbols(naaz::loader::AddressSpace& as)
+{
+    printf("\nSymbols\n");
+    printf("------------------------------------------------------\n");
+    printf("  address             type          name              \n");
+    printf("------------------------------------------------------\n");
+
+    for (auto const& [addr, syms] : as.symbols()) {
+        for (auto const& sym : syms) {
+            printf("  0x%016lx  %s  %s\n", sym.addr(),
+                   naaz::loader::Symbol::type_to_string(sym.type()).c_str(),
+                   sym.name().c_str());
+        }
+    }
+    printf("\n");
+}
+
 int main(int argc, char const* argv[])
 {
     if (argc < 2)
@@ -103,10 +120,21 @@ int main(int argc, char const* argv[])
                 case 'S':
                     dump_segments(as);
                     break;
+                case 's':
+                    dump_symbols(as);
+                    break;
                 default:
                     printf("!Err: unknown command %s", line);
                     break;
             }
+        } else if (strcmp(line, "h\n") == 0 || strcmp(line, "help\n") == 0) {
+            printf("\n"
+                   "s <addr>: seek to address\n"
+                   "d <n>:    dump <n> bytes\n"
+                   "iS:       print segments\n"
+                   "is:       print symbols\n"
+                   "h(elp):   print help\n"
+                   "\n");
         } else if (strcmp(line, "\n") == 0) {
             continue;
         } else {

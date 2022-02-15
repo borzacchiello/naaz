@@ -6,29 +6,60 @@
 namespace naaz::loader
 {
 
+const std::string& Symbol::type_to_string(Type t)
+{
+    switch (t) {
+        case Type::FUNCTION: {
+            static const std::string name = "function    ";
+            return name;
+        }
+        case Type::EXT_FUNCTION: {
+            static const std::string name = "ext_function";
+            return name;
+        }
+        case Type::LOCAL: {
+            static const std::string name = "local       ";
+            return name;
+        }
+        case Type::GLOBAL: {
+            static const std::string name = "global      ";
+            return name;
+        }
+        default:
+            break;
+    }
+    static const std::string name = "unknown     ";
+    return name;
+}
+
 Segment::Segment(Segment&& other)
     : m_name(other.m_name), m_addr(other.m_addr), m_size(other.m_size),
-      m_data(other.m_data), m_perm(other.m_perm)
+      m_data(std::move(other.m_data)), m_perm(other.m_perm)
 {
-    other.m_data = nullptr;
 }
 
 Segment::Segment(const std::string& name, uint64_t addr, const uint8_t* data,
                  size_t size, uint8_t perm)
     : m_name(name), m_addr(addr), m_size(size), m_perm(perm)
 {
-    uint8_t* m_data = (uint8_t*)malloc(size);
-    memcpy(m_data, data, size);
+    m_data = std::unique_ptr<uint8_t[]>{
+        new uint8_t[size]() // parenthesis are crucial to zero-initialize the
+                            // buffer
+    };
+    memcpy(m_data.get(), data, size);
 }
 
 Segment::Segment(const std::string& name, uint64_t addr, size_t size,
                  uint8_t perm)
     : m_name(name), m_addr(addr), m_size(size), m_perm(perm)
 {
-    m_data = (uint8_t*)calloc(size, 1);
+    m_data = std::unique_ptr<uint8_t[]>{
+        new uint8_t[size]() // parenthesis are crucial to zero-initialize the
+                            // buffer
+    };
 }
 
-Segment::~Segment() { free(m_data); }
+Segment::~Segment() {}
 
 bool Segment::contains(uint64_t addr) const
 {
@@ -52,7 +83,7 @@ bool Segment::get_ref(uint64_t addr, uint8_t** o_data, size_t* o_size) const
     if (!contains(addr))
         return false;
 
-    *o_data = m_data + (addr - m_addr);
+    *o_data = m_data.get() + (addr - m_addr);
     *o_size = (m_size - (addr - m_addr));
     return true;
 }
@@ -140,20 +171,25 @@ void AddressSpace::register_symbol(uint64_t addr, const std::string& name,
                                    Symbol::Type type)
 {
     if (m_symbols.contains(addr)) {
-        err("AddressSpace") << "symbol already registered at address 0x"
-                            << std::hex << addr << std::endl;
-        exit_fail();
+        m_symbols.at(addr).emplace_back(addr, name, type);
     }
 
-    m_symbols.emplace(std::piecewise_construct, std::forward_as_tuple(addr),
-                      std::forward_as_tuple(addr, name, type));
+    std::vector<Symbol> syms;
+    syms.emplace_back(addr, name, type);
+    m_symbols.emplace(addr, syms);
 }
 
-std::optional<const Symbol*> AddressSpace::symbol_at(uint64_t addr) const
+std::optional<const Symbol*>
+AddressSpace::ext_function_symbol_at(uint64_t addr) const
 {
     if (!m_symbols.contains(addr))
         return {};
-    return &m_symbols.at(addr);
+
+    for (auto& sym : m_symbols.at(addr)) {
+        if (sym.type() == Symbol::Type::EXT_FUNCTION)
+            return &sym;
+    }
+    return {};
 }
 
 } // namespace naaz::loader
