@@ -1,3 +1,5 @@
+#include "../util/ioutil.hpp"
+
 #include "ExprBuilder.hpp"
 
 namespace naaz::expr
@@ -42,6 +44,15 @@ void ExprBuilder::collect_garbage()
     }
 }
 
+static void check_size_or_fail(const std::string& op_name, ExprPtr lhs,
+                               ExprPtr rhs)
+{
+    if (lhs->size() != rhs->size()) {
+        err("ExprBuilder") << "different sizes in " << op_name << std::endl;
+        exit_fail();
+    }
+}
+
 SymExprPtr ExprBuilder::mk_sym(const std::string& name, size_t size)
 {
     SymExpr e(name, size);
@@ -54,14 +65,32 @@ ConstExprPtr ExprBuilder::mk_const(__uint128_t val, size_t size)
     return std::static_pointer_cast<const ConstExpr>(get_or_create(e));
 }
 
-AddExprPtr ExprBuilder::mk_add(ExprPtr lhs, ExprPtr rhs)
+ExprPtr ExprBuilder::mk_add(ExprPtr lhs, ExprPtr rhs)
 {
+    check_size_or_fail("add", lhs, rhs);
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        return mk_const(lhs_->val() + rhs_->val(), lhs->size());
+    }
+
     AddExpr e(lhs, rhs);
     return std::static_pointer_cast<const AddExpr>(get_or_create(e));
 }
 
-SubExprPtr ExprBuilder::mk_sub(ExprPtr lhs, ExprPtr rhs)
+ExprPtr ExprBuilder::mk_sub(ExprPtr lhs, ExprPtr rhs)
 {
+    check_size_or_fail("sub", lhs, rhs);
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        return mk_const(lhs_->val() - rhs_->val(), lhs->size());
+    }
+
     SubExpr e(lhs, rhs);
     return std::static_pointer_cast<const SubExpr>(get_or_create(e));
 }

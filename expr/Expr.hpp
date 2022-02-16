@@ -82,6 +82,8 @@ class ConstExpr : public Expr
     virtual bool     eq(ExprPtr other) const;
     virtual void     pp() const;
 
+    __uint128_t val() const { return m_val; }
+
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const ConstExpr> ConstExprPtr;

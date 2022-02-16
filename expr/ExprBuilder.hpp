@@ -26,8 +26,8 @@ class ExprBuilder
 
     SymExprPtr   mk_sym(const std::string& name, size_t size);
     ConstExprPtr mk_const(__uint128_t val, size_t size);
-    AddExprPtr   mk_add(ExprPtr lhs, ExprPtr rhs);
-    SubExprPtr   mk_sub(ExprPtr lhs, ExprPtr rhs);
+    ExprPtr      mk_add(ExprPtr lhs, ExprPtr rhs);
+    ExprPtr      mk_sub(ExprPtr lhs, ExprPtr rhs);
 };
 
 } // namespace naaz::expr
