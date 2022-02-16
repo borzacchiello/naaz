@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cerrno>
+#include <cstring>
 
 #include "../loader/BFDLoader.hpp"
 
