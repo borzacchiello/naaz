@@ -66,6 +66,6 @@ function fetch_and_build_libbfd {
     popd
 }
 
-# build_sleigh
-# build_pugixml
+build_sleigh
+build_pugixml
 fetch_and_build_libbfd

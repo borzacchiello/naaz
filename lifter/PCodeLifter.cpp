@@ -15,6 +15,8 @@ std::string PCodeBlock::varnode_to_string(csleigh_Varnode varnode) const
     const char* space_name = csleigh_AddrSpace_getName(varnode.space);
     if (strcmp(space_name, "const") == 0) {
         return string_format("0x%lx", varnode.offset);
+    } else if (strcmp(space_name, "unique") == 0) {
+        return string_format("TMP_%u:%u", varnode.offset, varnode.size);
     } else if (strcmp(space_name, "register") == 0) {
         return m_lifter.register_name(varnode);
     }
