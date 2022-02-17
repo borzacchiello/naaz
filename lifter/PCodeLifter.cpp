@@ -1,6 +1,7 @@
-#include <stdio.h>
 #include <string.h>
 #include <pugixml.hpp>
+#include <iostream>
+#include <iomanip>
 
 #include "PCodeLifter.hpp"
 #include "../util/ioutil.hpp"
@@ -9,32 +10,43 @@
 namespace naaz::lifter
 {
 
-std::string PCodeBlock::varnode_to_string(csleigh_Varnode varnode)
+std::string PCodeBlock::varnode_to_string(csleigh_Varnode varnode) const
 {
     const char* space_name = csleigh_AddrSpace_getName(varnode.space);
     if (strcmp(space_name, "const") == 0) {
-        return string_format("0x%08lx", varnode.offset);
+        return string_format("0x%lx", varnode.offset);
     } else if (strcmp(space_name, "register") == 0) {
         return m_lifter.register_name(varnode);
     }
-    return string_format("%s[%08lx:%ld]", space_name, varnode.offset,
+    return string_format("%s[0x%lx:%ld]", space_name, varnode.offset,
                          varnode.size);
 }
 
-std::string PCodeBlock::opcode_to_string(csleigh_OpCode op) { return ""; }
-
 void PCodeBlock::pp() const
 {
-    printf("PCodeBlock:\n");
-    printf("===========\n");
+    pp_stream() << "PCodeBlock:" << std::endl;
+    pp_stream() << "===========" << std::endl;
     for (uint32_t i = 0; i < m_translation->instructions_count; ++i) {
         csleigh_Translation* inst = &m_translation->instructions[i];
-        printf("0x%08lxh : %s %s\n", inst->address.offset, inst->asm_mnem,
-               inst->asm_body);
-        printf("----\n");
+        pp_stream() << string_format("0x%08lxh : %s %s", inst->address.offset,
+                                     inst->asm_mnem, inst->asm_body)
+                    << std::endl;
+        pp_stream() << "--- PCODE ---" << std::endl;
         for (uint32_t j = 0; j < inst->ops_count; ++j) {
             csleigh_PcodeOp op = inst->ops[j];
+            pp_stream() << "            | ";
+            pp_stream() << std::left << std::setw(15) << std::setfill(' ')
+                        << csleigh_OpCodeName(op.opcode);
+            if (op.output)
+                pp_stream() << varnode_to_string(*op.output) << " <- ";
+            if (op.inputs_count > 0) {
+                pp_stream() << varnode_to_string(op.inputs[0]);
+                for (uint32_t k = 1; k < op.inputs_count; ++k)
+                    pp_stream() << ", " << varnode_to_string(op.inputs[k]);
+            }
+            pp_stream() << std::endl;
         }
+        pp_stream() << "-------------" << std::endl;
     }
 }
 
@@ -64,11 +76,11 @@ PCodeLifter::PCodeLifter(const Arch& arch) : m_arch(arch)
 
 PCodeLifter::~PCodeLifter() { csleigh_destroyContext(m_ctx); }
 
-const PCodeBlock& PCodeLifter::lift(uint64_t addr, const uint8_t* data,
+const PCodeBlock* PCodeLifter::lift(uint64_t addr, const uint8_t* data,
                                     size_t data_size)
 {
     if (m_blocks.contains(addr))
-        return m_blocks.at(addr);
+        return m_blocks.at(addr).get();
 
     csleigh_TranslationResult* r =
         csleigh_translate(m_ctx, data, data_size, addr, 0, true);
@@ -76,10 +88,9 @@ const PCodeBlock& PCodeLifter::lift(uint64_t addr, const uint8_t* data,
         err("PCodeLifter") << "Unable to lift block" << std::endl;
         exit_fail();
     }
-    PCodeBlock block(*this, r);
-    m_blocks.emplace(addr, block);
+    m_blocks[addr] = std::make_unique<PCodeBlock>(*this, r);
 
-    return m_blocks.at(addr);
+    return m_blocks.at(addr).get();
 }
 
 std::string PCodeLifter::register_name(csleigh_Varnode v) const

@@ -9,6 +9,6 @@ int main(int argc, const char* argv[])
         "\x00\x48\x39\xD8\x74\x00\xC3";
     size_t code_size = sizeof(code);
 
-    lifter.lift(0x400000, code, code_size).pp();
+    lifter.lift(0x400000, code, code_size)->pp();
     return 0;
 }
