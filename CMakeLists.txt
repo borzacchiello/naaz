@@ -10,10 +10,15 @@ link_directories ( ${CMAKE_SOURCE_DIR}/third_party/sleigh/build )
 include_directories ( ${CMAKE_SOURCE_DIR}/third_party/pugixml/src )
 link_directories ( ${CMAKE_SOURCE_DIR}/third_party/pugixml/build )
 
+# libbfd
+include_directories ( ${CMAKE_SOURCE_DIR}/third_party/binutils/bfd )
+link_directories ( ${CMAKE_SOURCE_DIR}/third_party/binutils/build )
+
 set ( CMAKE_CXX_STANDARD 20 )
 
 set ( naaz_src
     util/ioutil.cpp
+    util/str_utils.cpp
     expr/Expr.cpp
     expr/ExprBuilder.cpp
     arch/Arch.cpp
@@ -33,6 +38,10 @@ set_target_properties ( libnaaz_shared PROPERTIES OUTPUT_NAME naaz )
 
 target_link_libraries ( libnaaz_shared LINK_PUBLIC bfd )
 target_link_libraries ( libnaaz_static LINK_PUBLIC bfd )
+target_link_libraries ( libnaaz_shared LINK_PUBLIC iberty )
+target_link_libraries ( libnaaz_static LINK_PUBLIC iberty )
+target_link_libraries ( libnaaz_shared LINK_PUBLIC z )
+target_link_libraries ( libnaaz_static LINK_PUBLIC z )
 
 target_link_libraries ( libnaaz_shared LINK_PUBLIC csleigh )
 target_link_libraries ( libnaaz_static LINK_PUBLIC csleigh )
