@@ -15,7 +15,7 @@ class ExprBuilder;
 class Expr
 {
   public:
-    enum Kind { SYM, CONST, ADD, SUB };
+    enum Kind { SYM, CONST, EXTRACT, CONCAT, ADD, SUB };
 
     virtual const Kind kind() const = 0;
     virtual size_t     size() const = 0;
@@ -87,6 +87,75 @@ class ConstExpr : public Expr
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const ConstExpr> ConstExprPtr;
+
+class ExtractExpr : public Expr
+{
+  private:
+    static const Kind ekind = Kind::EXTRACT;
+
+    ExprPtr  m_expr;
+    uint32_t m_high;
+    uint32_t m_low;
+
+  protected:
+    ExtractExpr(ExprPtr expr, uint32_t high, uint32_t low)
+        : m_expr(expr), m_high(high), m_low(low)
+    {
+    }
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return m_high - m_low + 1; };
+    virtual ExprPtr    clone() const
+    {
+        return ExprPtr(new ExtractExpr(m_expr, m_high, m_low));
+    }
+
+    virtual uint64_t hash() const;
+    virtual bool     eq(ExprPtr other) const;
+    virtual void     pp() const;
+
+    ExprPtr  expr() const { return m_expr; }
+    uint32_t high() const { return m_high; }
+    uint32_t low() const { return m_low; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const ExtractExpr> ExtractExprPtr;
+
+class ConcatExpr : public Expr
+{
+  private:
+    static const Kind ekind = Kind::CONCAT;
+
+    ExprPtr m_lhs;
+    ExprPtr m_rhs;
+    size_t  m_size;
+
+  protected:
+    ConcatExpr(ExprPtr lhs, ExprPtr rhs)
+        : m_lhs(lhs), m_rhs(rhs), m_size(lhs->size() + rhs->size())
+    {
+    }
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return m_size; };
+    virtual ExprPtr    clone() const
+    {
+        return ExprPtr(new ConcatExpr(m_lhs, m_rhs));
+    }
+
+    virtual uint64_t hash() const;
+    virtual bool     eq(ExprPtr other) const;
+    virtual void     pp() const;
+
+    ExprPtr lhs() const { return m_lhs; }
+    ExprPtr rhs() const { return m_rhs; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const ConcatExpr> ConcatExprPtr;
 
 class AddExpr : public Expr
 {

@@ -26,6 +26,8 @@ class ExprBuilder
 
     SymExprPtr   mk_sym(const std::string& name, size_t size);
     ConstExprPtr mk_const(__uint128_t val, size_t size);
+    ExprPtr      mk_extract(ExprPtr expr, uint32_t high, uint32_t low);
+    ExprPtr      mk_concat(ExprPtr left, ExprPtr right);
     ExprPtr      mk_add(ExprPtr lhs, ExprPtr rhs);
     ExprPtr      mk_sub(ExprPtr lhs, ExprPtr rhs);
 };

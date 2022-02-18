@@ -21,6 +21,7 @@ set ( naaz_src
     util/strutil.cpp
     expr/Expr.cpp
     expr/ExprBuilder.cpp
+    state/MapMemory.cpp
     arch/Arch.cpp
     lifter/PCodeLifter.cpp
     loader/AddressSpace.cpp

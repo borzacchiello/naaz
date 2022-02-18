@@ -52,6 +52,62 @@ void ConstExpr::pp() const
     pp_stream() << (uint64_t)m_val;
 }
 
+uint64_t ExtractExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, &m_high, sizeof(m_high));
+    XXH64_update(&state, &m_low, sizeof(m_low));
+    void* raw_expr = (void*)m_expr.get();
+    XXH64_update(&state, raw_expr, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool ExtractExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const ExtractExpr>(other);
+    return m_high == other_->m_high && m_low == other_->m_low &&
+           m_expr.get() == other_->m_expr.get();
+}
+
+void ExtractExpr::pp() const
+{
+    m_expr->pp();
+    pp_stream() << "[" << m_high << ":" << m_low << "]";
+}
+
+uint64_t ConcatExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, &m_size, sizeof(m_size));
+    void* raw_lhs = (void*)m_lhs.get();
+    void* raw_rhs = (void*)m_rhs.get();
+    XXH64_update(&state, raw_lhs, sizeof(void*));
+    XXH64_update(&state, raw_rhs, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool ConcatExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const ConcatExpr>(other);
+    return m_size == other_->m_size && m_lhs.get() == other_->m_lhs.get() &&
+           m_rhs.get() == other_->m_rhs.get();
+}
+
+void ConcatExpr::pp() const
+{
+    m_lhs->pp();
+    pp_stream() << " + ";
+    m_rhs->pp();
+}
+
 uint64_t AddExpr::hash() const
 {
     XXH64_state_t state;
@@ -69,8 +125,7 @@ bool AddExpr::eq(ExprPtr other) const
     if (other->kind() != ekind)
         return false;
 
-    std::shared_ptr<const AddExpr> other_ =
-        std::static_pointer_cast<const AddExpr>(other);
+    auto other_ = std::static_pointer_cast<const AddExpr>(other);
     return m_size == other_->m_size && m_lhs.get() == other_->m_lhs.get() &&
            m_rhs.get() == other_->m_rhs.get();
 }
@@ -99,8 +154,7 @@ bool SubExpr::eq(ExprPtr other) const
     if (other->kind() != ekind)
         return false;
 
-    std::shared_ptr<const SubExpr> other_ =
-        std::static_pointer_cast<const SubExpr>(other);
+    auto other_ = std::static_pointer_cast<const SubExpr>(other);
     return m_size == other_->m_size && m_lhs.get() == other_->m_lhs.get() &&
            m_rhs.get() == other_->m_rhs.get();
 }
