@@ -42,7 +42,9 @@ class PCodeLifter
 
     const PCodeBlock* lift(uint64_t addr, const uint8_t* data,
                            size_t data_size);
-    std::string       register_name(csleigh_Varnode v) const;
+    std::string       reg_name(csleigh_Varnode v) const;
+    csleigh_Varnode   reg(const std::string& name) const;
+    const Arch&       arch() const { return m_arch; }
 };
 
 } // namespace naaz::lifter

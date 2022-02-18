@@ -63,6 +63,10 @@ static inline __uint128_t bitmask(uint32_t n)
     return ((__uint128_t)2 << (__uint128_t)(n - 1)) - (__uint128_t)1;
 }
 
+ConstExprPtr ExprBuilder::mk_true() { return mk_const(1, 1); }
+
+ConstExprPtr ExprBuilder::mk_false() { return mk_const(0, 1); }
+
 SymExprPtr ExprBuilder::mk_sym(const std::string& name, size_t size)
 {
     if (size > 128) {

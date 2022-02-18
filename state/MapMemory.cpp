@@ -4,7 +4,7 @@
 #include "../util/ioutil.hpp"
 #include "../util/strutil.hpp"
 
-namespace naaz::memory
+namespace naaz::state
 {
 
 using namespace naaz::expr;
@@ -26,6 +26,16 @@ ExprPtr MapMemory::read(ExprPtr addr, size_t len, Endianess end)
 ExprPtr MapMemory::read_byte(uint64_t addr)
 {
     if (!m_memory.contains(addr)) {
+        if (m_as) {
+            auto b = m_as->read_byte(addr);
+            if (b.has_value()) {
+                // The value is in the AddressSpace
+                ExprPtr c = expr::ExprBuilder::The().mk_const(b.value(), 8);
+                write_byte(addr, c);
+                return c;
+            }
+        }
+
         SymExprPtr sym =
             ExprBuilder::The().mk_sym(string_format("mem_0x%lx", addr), 8);
         write_byte(addr, sym);
@@ -89,12 +99,18 @@ void MapMemory::write(uint64_t addr, ExprPtr value, Endianess end)
 
     len = len / 8UL;
     for (size_t i = 0; i < len; ++i) {
-        ExprPtr e = end == Endianess::LITTLE
-                        ? ExprBuilder::The().mk_extract(
-                              value, (len - i - 1) * 8 + 7, (len - i - 1) * 8)
-                        : ExprBuilder::The().mk_extract(value, i * 8 + 7, 0);
+        ExprPtr e =
+            end == Endianess::LITTLE
+                ? ExprBuilder::The().mk_extract(value, (len - i - 1) * 8 + 7,
+                                                (len - i - 1) * 8)
+                : ExprBuilder::The().mk_extract(value, i * 8 + 7, i * 8);
         write_byte(addr + i, e);
     }
 }
 
-} // namespace naaz::memory
+std::unique_ptr<MapMemory> MapMemory::clone()
+{
+    return std::unique_ptr<MapMemory>(new MapMemory(*this));
+}
+
+} // namespace naaz::state

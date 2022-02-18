@@ -24,6 +24,9 @@ class ExprBuilder
 
     void collect_garbage();
 
+    ConstExprPtr mk_true();
+    ConstExprPtr mk_false();
+
     SymExprPtr   mk_sym(const std::string& name, size_t size);
     ConstExprPtr mk_const(__uint128_t val, size_t size);
     ExprPtr      mk_extract(ExprPtr expr, uint32_t high, uint32_t low);
