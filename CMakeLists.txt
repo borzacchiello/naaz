@@ -18,7 +18,7 @@ set ( CMAKE_CXX_STANDARD 20 )
 
 set ( naaz_src
     util/ioutil.cpp
-    util/str_utils.cpp
+    util/strutil.cpp
     expr/Expr.cpp
     expr/ExprBuilder.cpp
     arch/Arch.cpp

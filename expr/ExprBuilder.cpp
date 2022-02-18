@@ -44,8 +44,8 @@ void ExprBuilder::collect_garbage()
     }
 }
 
-static void check_size_or_fail(const std::string& op_name, ExprPtr lhs,
-                               ExprPtr rhs)
+static inline void check_size_or_fail(const std::string& op_name, ExprPtr lhs,
+                                      ExprPtr rhs)
 {
     if (lhs->size() != rhs->size()) {
         err("ExprBuilder") << "different sizes in " << op_name << std::endl;
@@ -77,7 +77,7 @@ ExprPtr ExprBuilder::mk_add(ExprPtr lhs, ExprPtr rhs)
     }
 
     AddExpr e(lhs, rhs);
-    return std::static_pointer_cast<const AddExpr>(get_or_create(e));
+    return get_or_create(e);
 }
 
 ExprPtr ExprBuilder::mk_sub(ExprPtr lhs, ExprPtr rhs)
@@ -92,7 +92,7 @@ ExprPtr ExprBuilder::mk_sub(ExprPtr lhs, ExprPtr rhs)
     }
 
     SubExpr e(lhs, rhs);
-    return std::static_pointer_cast<const SubExpr>(get_or_create(e));
+    return get_or_create(e);
 }
 
 } // namespace naaz::expr

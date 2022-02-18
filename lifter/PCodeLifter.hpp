@@ -26,7 +26,7 @@ class PCodeBlock
     ~PCodeBlock() { csleigh_freeResult(m_translation); }
 
     void                             pp() const;
-    const csleigh_TranslationResult& transl() const { return *m_translation; }
+    const csleigh_TranslationResult* transl() const { return m_translation; }
 };
 
 class PCodeLifter

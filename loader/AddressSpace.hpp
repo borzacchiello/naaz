@@ -51,7 +51,7 @@ class Segment
 
     bool                   contains(uint64_t addr) const;
     std::optional<uint8_t> read(uint64_t addr) const;
-    bool get_ref(uint64_t addr, uint8_t** o_data, size_t* o_size) const;
+    bool get_ref(uint64_t addr, uint8_t** o_data, size_t* o_size);
 
     const std::string& name() const { return m_name; }
     uint64_t           addr() const { return m_addr; }

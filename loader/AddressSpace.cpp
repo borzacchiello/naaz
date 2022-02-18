@@ -78,7 +78,7 @@ std::optional<uint8_t> Segment::read(uint64_t addr) const
     return m_data[addr - m_addr];
 }
 
-bool Segment::get_ref(uint64_t addr, uint8_t** o_data, size_t* o_size) const
+bool Segment::get_ref(uint64_t addr, uint8_t** o_data, size_t* o_size)
 {
     if (!contains(addr))
         return false;

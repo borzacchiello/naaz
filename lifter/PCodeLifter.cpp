@@ -5,7 +5,7 @@
 
 #include "PCodeLifter.hpp"
 #include "../util/ioutil.hpp"
-#include "../util/str_utils.hpp"
+#include "../util/strutil.hpp"
 
 namespace naaz::lifter
 {
