@@ -11,6 +11,12 @@ State::State(const State& other)
     m_regs = other.m_regs->clone();
 }
 
+bool State::get_code_at(uint64_t addr, uint8_t** o_data, uint64_t* o_size)
+{
+    // FIXME: This should be changed... It's wrong too many ways
+    return m_as->get_ref(addr, o_data, o_size);
+}
+
 expr::ExprPtr State::read(expr::ExprPtr addr, size_t len)
 {
     return m_ram->read(addr, len, arch().endianess());

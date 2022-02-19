@@ -26,12 +26,12 @@ static std::shared_ptr<PCodeLifter> get_x86_64_lifter()
     return lifter;
 }
 
-TEST_CASE("State Read/Write Mem 1", "[expr]")
+TEST_CASE("State Read/Write Mem 1", "[state]")
 {
     auto lifter = get_x86_64_lifter();
     auto as     = std::make_shared<AddressSpace>();
 
-    State s(as, lifter);
+    State s(as, lifter, 0);
 
     ExprPtr sym = exprBuilder.mk_sym("sym", 32);
     s.write(0xaabbcc, sym);
@@ -40,12 +40,12 @@ TEST_CASE("State Read/Write Mem 1", "[expr]")
     REQUIRE(expr == sym);
 }
 
-TEST_CASE("State Read/Write Mem 2", "[expr]")
+TEST_CASE("State Read/Write Mem 2", "[state]")
 {
     auto lifter = get_x86_64_lifter();
     auto as     = std::make_shared<AddressSpace>();
 
-    State s(as, lifter);
+    State s(as, lifter, 0);
 
     ExprPtr sym = exprBuilder.mk_sym("sym", 32);
     s.write(0xaabbcc, sym);
@@ -54,12 +54,12 @@ TEST_CASE("State Read/Write Mem 2", "[expr]")
     REQUIRE(expr == exprBuilder.mk_extract(sym, 31, 24));
 }
 
-TEST_CASE("State Read/Write Reg 1", "[expr]")
+TEST_CASE("State Read/Write Reg 1", "[state]")
 {
     auto lifter = get_x86_64_lifter();
     auto as     = std::make_shared<AddressSpace>();
 
-    State s(as, lifter);
+    State s(as, lifter, 0);
 
     ExprPtr sym = exprBuilder.mk_sym("sym", 32);
     s.reg_write("EAX", sym);

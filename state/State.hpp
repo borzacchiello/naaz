@@ -15,6 +15,8 @@ class State;
 typedef std::shared_ptr<State> StatePtr;
 class State
 {
+    uint64_t m_pc;
+
     std::unique_ptr<MapMemory> m_regs;
     std::unique_ptr<MapMemory> m_ram;
 
@@ -25,8 +27,8 @@ class State
 
   public:
     State(std::shared_ptr<loader::AddressSpace> as,
-          std::shared_ptr<lifter::PCodeLifter>  lifter)
-        : m_as(as), m_lifter(lifter)
+          std::shared_ptr<lifter::PCodeLifter> lifter, uint64_t pc)
+        : m_as(as), m_lifter(lifter), m_pc(pc)
     {
         m_regs = std::unique_ptr<MapMemory>(new MapMemory());
         m_ram  = std::unique_ptr<MapMemory>(new MapMemory(as.get()));
@@ -36,6 +38,8 @@ class State
     ~State() {}
 
     const Arch& arch() const { return m_lifter->arch(); }
+
+    bool get_code_at(uint64_t addr, uint8_t** o_data, uint64_t* o_size);
 
     expr::ExprPtr read(expr::ExprPtr addr, size_t len);
     expr::ExprPtr read(uint64_t addr, size_t len);
@@ -49,6 +53,9 @@ class State
 
     void                           add_constraint(expr::ExprPtr c);
     const std::set<expr::ExprPtr>& pi() const { return m_constraints; }
+
+    void     set_pc(uint64_t pc) { m_pc = pc; }
+    uint64_t pc() const { return m_pc; }
 
     StatePtr clone() const { return std::shared_ptr<State>(new State(*this)); }
 };

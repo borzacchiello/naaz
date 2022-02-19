@@ -20,4 +20,4 @@ std::ostream& pp_stream()
     return std::cout;
 }
 
-void exit_fail() { exit(-1); }
+[[ noreturn ]] void exit_fail() { exit(-1); }

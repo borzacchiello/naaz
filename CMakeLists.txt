@@ -26,7 +26,8 @@ set ( naaz_src
     arch/Arch.cpp
     lifter/PCodeLifter.cpp
     loader/AddressSpace.cpp
-    loader/BFDLoader.cpp )
+    loader/BFDLoader.cpp
+    executor/PCodeExecutor.cpp )
 
 add_library ( objLibNaaz OBJECT ${naaz_src} )
 

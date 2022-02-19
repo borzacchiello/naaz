@@ -45,6 +45,11 @@ class PCodeLifter
     std::string       reg_name(csleigh_Varnode v) const;
     csleigh_Varnode   reg(const std::string& name) const;
     const Arch&       arch() const { return m_arch; }
+
+    uint32_t ram_space_id() const;
+    uint32_t regs_space_id() const;
+    uint32_t const_space_id() const;
+    uint32_t tmp_space_id() const;
 };
 
 } // namespace naaz::lifter

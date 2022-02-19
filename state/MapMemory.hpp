@@ -12,6 +12,11 @@ namespace naaz::state
 
 class MapMemory
 {
+  public:
+    enum UninitReadBehavior { RET_SYM, RET_ZERO, THROW_ERR };
+
+  private:
+    UninitReadBehavior                m_uninit_behavior;
     loader::AddressSpace*             m_as;
     std::map<uint64_t, expr::ExprPtr> m_memory;
 
@@ -19,8 +24,15 @@ class MapMemory
     void          write_byte(uint64_t addr, expr::ExprPtr value);
 
   public:
-    MapMemory() : m_as(nullptr) {}
-    MapMemory(loader::AddressSpace* as) : m_as(as) {}
+    MapMemory(UninitReadBehavior b = UninitReadBehavior::RET_SYM)
+        : m_as(nullptr), m_uninit_behavior(b)
+    {
+    }
+    MapMemory(loader::AddressSpace* as,
+              UninitReadBehavior    b = UninitReadBehavior::RET_SYM)
+        : m_as(as), m_uninit_behavior(b)
+    {
+    }
     MapMemory(const MapMemory& other)
         : m_memory(other.m_memory), m_as(other.m_as)
     {

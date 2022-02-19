@@ -114,4 +114,28 @@ csleigh_Varnode PCodeLifter::reg(const std::string& name) const
     return csleigh_Sleigh_getRegister(m_ctx, name.c_str());
 }
 
+uint32_t PCodeLifter::ram_space_id() const
+{
+    auto space = csleigh_Sleigh_getSpaceByName(m_ctx, "ram");
+    return csleigh_AddrSpace_getId(space);
+}
+
+uint32_t PCodeLifter::regs_space_id() const
+{
+    auto space = csleigh_Sleigh_getSpaceByName(m_ctx, "register");
+    return csleigh_AddrSpace_getId(space);
+}
+
+uint32_t PCodeLifter::const_space_id() const
+{
+    auto space = csleigh_Sleigh_getSpaceByName(m_ctx, "const");
+    return csleigh_AddrSpace_getId(space);
+}
+
+uint32_t PCodeLifter::tmp_space_id() const
+{
+    auto space = csleigh_Sleigh_getSpaceByName(m_ctx, "unique");
+    return csleigh_AddrSpace_getId(space);
+}
+
 } // namespace naaz::lifter

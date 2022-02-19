@@ -67,5 +67,5 @@ function fetch_and_build_libbfd {
 }
 
 build_sleigh
-# build_pugixml
-# fetch_and_build_libbfd
+build_pugixml
+fetch_and_build_libbfd

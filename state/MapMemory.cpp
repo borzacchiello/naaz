@@ -36,10 +36,24 @@ ExprPtr MapMemory::read_byte(uint64_t addr)
             }
         }
 
-        SymExprPtr sym =
-            ExprBuilder::The().mk_sym(string_format("mem_0x%lx", addr), 8);
-        write_byte(addr, sym);
-        return sym;
+        switch (m_uninit_behavior) {
+            case UninitReadBehavior::RET_SYM: {
+                SymExprPtr sym = ExprBuilder::The().mk_sym(
+                    string_format("mem_0x%lx", addr), 8);
+                write_byte(addr, sym);
+                return sym;
+            }
+            case UninitReadBehavior::RET_ZERO: {
+                ConstExprPtr c = ExprBuilder::The().mk_const(0, 8);
+                write_byte(addr, c);
+                return c;
+            }
+            case UninitReadBehavior::THROW_ERR: {
+                err("MapMemory") << "read_byte(): address 0x" << std::hex
+                                 << addr << " was not initialized" << std::endl;
+                exit_fail();
+            }
+        }
     }
 
     return m_memory[addr];
