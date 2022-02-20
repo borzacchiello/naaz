@@ -38,9 +38,7 @@ class SymExpr : public Expr
     size_t      m_size;
 
   protected:
-    SymExpr(const std::string& name, size_t bits) : m_name(name), m_size(bits)
-    {
-    }
+    SymExpr(const std::string& name, size_t bits);
 
   public:
     virtual const Kind kind() const { return ekind; }
@@ -69,7 +67,7 @@ class ConstExpr : public Expr
     size_t      m_size;
 
   protected:
-    ConstExpr(__uint128_t val, size_t size) : m_val(val), m_size(size) {}
+    ConstExpr(__uint128_t val, size_t size);
 
   public:
     virtual const Kind kind() const { return ekind; };
@@ -84,6 +82,7 @@ class ConstExpr : public Expr
     virtual void     pp() const;
 
     __uint128_t val() const { return m_val; }
+    __int128_t  sval() const;
 
     friend class ExprBuilder;
 };

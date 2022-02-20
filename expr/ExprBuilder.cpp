@@ -87,7 +87,7 @@ ConstExprPtr ExprBuilder::mk_const(__uint128_t val, size_t size)
         exit_fail();
     }
 
-    ConstExpr e(val, size);
+    ConstExpr e(val & bitmask(size), size);
     return std::static_pointer_cast<const ConstExpr>(get_or_create(e));
 }
 
@@ -159,7 +159,7 @@ ExprPtr ExprBuilder::mk_neg(ExprPtr expr)
     // constant propagation
     if (expr->kind() == Expr::Kind::CONST) {
         ConstExprPtr expr_ = std::static_pointer_cast<const ConstExpr>(expr);
-        return mk_const(-expr_->val(), expr_->size());
+        return mk_const((__uint128_t)-expr_->sval(), expr_->size());
     }
 
     NegExpr e(expr);

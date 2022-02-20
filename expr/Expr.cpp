@@ -6,6 +6,15 @@
 namespace naaz::expr
 {
 
+SymExpr::SymExpr(const std::string& name, size_t bits)
+    : m_name(name), m_size(bits)
+{
+    if (m_size == 0) {
+        err("SymExpr") << "invalid size (zero)" << std::endl;
+        exit_fail();
+    }
+}
+
 uint64_t SymExpr::hash() const
 {
     XXH64_state_t state;
@@ -26,6 +35,22 @@ bool SymExpr::eq(ExprPtr other) const
 }
 
 void SymExpr::pp() const { pp_stream() << m_name; }
+
+ConstExpr::ConstExpr(__uint128_t val, size_t size) : m_val(val), m_size(size)
+{
+    if (m_size == 0) {
+        err("ConstExpr") << "invalid size (zero)" << std::endl;
+        exit_fail();
+    }
+}
+
+__int128_t ConstExpr::sval() const
+{
+    __int128_t res = (__int128_t)m_val;
+    if (res & ((__uint128_t)1 << (m_size - 1)))
+        res |= (((__uint128_t)2 << (128 - m_size)) - (__uint128_t)1) << m_size;
+    return res;
+}
 
 uint64_t ConstExpr::hash() const
 {

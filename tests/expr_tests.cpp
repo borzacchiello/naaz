@@ -15,6 +15,30 @@ TEST_CASE("SymExpr 1", "[expr]")
     REQUIRE(e->name().compare("sym") == 0);
 }
 
+TEST_CASE("NegExpr 1", "[expr]")
+{
+    ExprPtr c = exprBuilder.mk_const(1, 8);
+    c         = exprBuilder.mk_neg(c);
+
+    REQUIRE(c->kind() == Expr::Kind::CONST);
+    auto c_ = std::static_pointer_cast<const ConstExpr>(c);
+
+    REQUIRE(c_->sval() == -1);
+    REQUIRE(c_->val() == 255);
+}
+
+TEST_CASE("NegExpr 2", "[expr]")
+{
+    ExprPtr c =
+        exprBuilder.mk_add(exprBuilder.mk_const(42, 8),
+                           exprBuilder.mk_neg(exprBuilder.mk_const(1, 8)));
+
+    REQUIRE(c->kind() == Expr::Kind::CONST);
+    auto c_ = std::static_pointer_cast<const ConstExpr>(c);
+
+    REQUIRE(c_->val() == 41);
+}
+
 TEST_CASE("AddExpr 1", "[expr]")
 {
     ExprPtr    s = exprBuilder.mk_sym("sym", 32);
