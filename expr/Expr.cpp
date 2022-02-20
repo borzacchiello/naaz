@@ -34,7 +34,7 @@ bool SymExpr::eq(ExprPtr other) const
     return m_name.compare(other_->m_name) == 0;
 }
 
-void SymExpr::pp() const { pp_stream() << m_name; }
+std::string SymExpr::to_string() const { return m_name; }
 
 ConstExpr::ConstExpr(__uint128_t val, size_t size) : m_val(val), m_size(size)
 {
@@ -71,10 +71,10 @@ bool ConstExpr::eq(ExprPtr other) const
     return m_size == other_->m_size && m_val == other_->m_val;
 }
 
-void ConstExpr::pp() const
+std::string ConstExpr::to_string() const
 {
     // FIXME: print the number correctly
-    pp_stream() << (uint64_t)m_val;
+    return std::to_string((uint64_t)m_val);
 }
 
 uint64_t ExtractExpr::hash() const
@@ -98,10 +98,10 @@ bool ExtractExpr::eq(ExprPtr other) const
            m_expr.get() == other_->m_expr.get();
 }
 
-void ExtractExpr::pp() const
+std::string ExtractExpr::to_string() const
 {
-    m_expr->pp();
-    pp_stream() << "[" << m_high << ":" << m_low << "]";
+    return m_expr->to_string() + "[" + std::to_string(m_high) + ":" +
+           std::to_string(m_low) + "]";
 }
 
 uint64_t ConcatExpr::hash() const
@@ -126,12 +126,39 @@ bool ConcatExpr::eq(ExprPtr other) const
            m_rhs.get() == other_->m_rhs.get();
 }
 
-void ConcatExpr::pp() const
+std::string ConcatExpr::to_string() const
 {
-    m_lhs->pp();
-    pp_stream() << " + ";
-    m_rhs->pp();
+    return m_lhs->to_string() + " # " + m_rhs->to_string();
 }
+
+ZextExpr::ZextExpr(ExprPtr e, size_t s) : m_expr(e), m_size(s)
+{
+    if (s < e->size()) {
+        err("ZextExpr") << "invalid size" << std::endl;
+        exit_fail();
+    }
+}
+
+uint64_t ZextExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, &m_size, sizeof(m_size));
+    void* raw_expr = (void*)m_expr.get();
+    XXH64_update(&state, raw_expr, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool ZextExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const ZextExpr>(other);
+    return m_size == other_->m_size && m_expr.get() == other_->m_expr.get();
+}
+
+std::string ZextExpr::to_string() const { return m_expr->to_string(); }
 
 uint64_t NegExpr::hash() const
 {
@@ -152,10 +179,9 @@ bool NegExpr::eq(ExprPtr other) const
     return m_size == other_->m_size && m_expr.get() == other_->m_expr.get();
 }
 
-void NegExpr::pp() const
+std::string NegExpr::to_string() const
 {
-    pp_stream() << "-";
-    m_expr->pp();
+    return std::string("( - (") + m_expr->to_string() + "))";
 }
 
 uint64_t AddExpr::hash() const
@@ -187,13 +213,78 @@ bool AddExpr::eq(ExprPtr other) const
     return true;
 }
 
-void AddExpr::pp() const
+std::string AddExpr::to_string() const
 {
-    m_children.at(0)->pp();
+    std::string res = m_children.at(0)->to_string();
     for (uint64_t i = 1; i < m_children.size(); ++i) {
-        pp_stream() << " + ";
-        m_children.at(i)->pp();
+        res += " + ";
+        res += m_children.at(i)->to_string();
+    }
+    return res;
+}
+
+NotExpr::NotExpr(ExprPtr expr) : m_expr(expr)
+{
+    if (expr->size() != 1) {
+        err("NotExpr") << "the expression is not bool" << std::endl;
+        exit_fail();
     }
 }
+
+uint64_t NotExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    void* raw_expr = (void*)m_expr.get();
+    XXH64_update(&state, raw_expr, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool NotExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const NotExpr>(other);
+    return m_expr == other_->m_expr;
+}
+
+std::string NotExpr::to_string() const
+{
+    return std::string("not (") + m_expr->to_string() + ")";
+}
+
+#define GEN_BINARY_LOGICAL_EXPR_IMPL(NAME, OP_STR)                             \
+    uint64_t NAME::hash() const                                                \
+    {                                                                          \
+        XXH64_state_t state;                                                   \
+        XXH64_reset(&state, 0);                                                \
+        void* raw_lhs = (void*)m_lhs.get();                                    \
+        XXH64_update(&state, raw_lhs, sizeof(void*));                          \
+        void* raw_rhs = (void*)m_rhs.get();                                    \
+        XXH64_update(&state, raw_rhs, sizeof(void*));                          \
+        return XXH64_digest(&state);                                           \
+    }                                                                          \
+    bool NAME::eq(ExprPtr other) const                                         \
+    {                                                                          \
+        if (other->kind() != ekind)                                            \
+            return false;                                                      \
+        auto other_ = std::static_pointer_cast<const NAME>(other);             \
+        return m_lhs == other_->m_lhs && m_rhs == other_->m_rhs;               \
+    }                                                                          \
+    std::string NAME::to_string() const                                        \
+    {                                                                          \
+        return m_lhs->to_string() + OP_STR + m_rhs->to_string();               \
+    }
+
+GEN_BINARY_LOGICAL_EXPR_IMPL(UltExpr, " u< ")
+GEN_BINARY_LOGICAL_EXPR_IMPL(UleExpr, " u<= ")
+GEN_BINARY_LOGICAL_EXPR_IMPL(UgtExpr, " u> ")
+GEN_BINARY_LOGICAL_EXPR_IMPL(UgeExpr, " u>= ")
+GEN_BINARY_LOGICAL_EXPR_IMPL(SltExpr, " s< ")
+GEN_BINARY_LOGICAL_EXPR_IMPL(SleExpr, " s<= ")
+GEN_BINARY_LOGICAL_EXPR_IMPL(SgtExpr, " s> ")
+GEN_BINARY_LOGICAL_EXPR_IMPL(SgeExpr, " s>= ")
+GEN_BINARY_LOGICAL_EXPR_IMPL(EqExpr, " == ")
 
 } // namespace naaz::expr

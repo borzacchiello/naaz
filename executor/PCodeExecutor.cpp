@@ -50,6 +50,11 @@ void PCodeExecutor::write_to_varnode(ExecutionContext& ctx,
         exit_fail();
     }
 
+    if (node.size == 1) {
+        // extend bools to byte
+        value = exprBuilder.mk_zext(value, 8);
+    }
+
     uint32_t space_id = csleigh_AddrSpace_getId(node.space);
     if (space_id == m_ram_space_id) {
         ctx.state->write(node.offset, value);
@@ -73,6 +78,24 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             assert(op.inputs_count == 1 && "CPUI_COPY: inputs_count != 1");
             write_to_varnode(ctx, *op.output,
                              resolve_varnode(ctx, op.inputs[0]));
+            break;
+        }
+        case csleigh_CPUI_INT_LESS: {
+            assert(op.output != nullptr && "CPUI_INT_LESS: output is NULL");
+            assert(op.inputs_count == 2 && "CPUI_INT_LESS: inputs_count != 1");
+            expr::ExprPtr expr =
+                exprBuilder.mk_ult(resolve_varnode(ctx, op.inputs[0]),
+                                   resolve_varnode(ctx, op.inputs[1]));
+            write_to_varnode(ctx, *op.output, expr);
+            break;
+        }
+        case csleigh_CPUI_INT_SLESS: {
+            assert(op.output != nullptr && "CPUI_INT_SLESS: output is NULL");
+            assert(op.inputs_count == 2 && "CPUI_INT_SLESS: inputs_count != 1");
+            expr::ExprPtr expr =
+                exprBuilder.mk_slt(resolve_varnode(ctx, op.inputs[0]),
+                                   resolve_varnode(ctx, op.inputs[1]));
+            write_to_varnode(ctx, *op.output, expr);
             break;
         }
         default:

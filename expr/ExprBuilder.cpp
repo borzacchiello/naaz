@@ -53,6 +53,14 @@ static inline void check_size_or_fail(const std::string& op_name, ExprPtr lhs,
     }
 }
 
+static inline void check_bool_or_fail(const std::string& op_name, ExprPtr e)
+{
+    if (e->size() != 1) {
+        err("ExprBuilder") << "not a bool in " << op_name << std::endl;
+        exit_fail();
+    }
+}
+
 static inline __uint128_t bitmask(uint32_t n)
 {
     if (n > 128) {
@@ -127,6 +135,27 @@ ExprPtr ExprBuilder::mk_extract(ExprPtr expr, uint32_t high, uint32_t low)
 
     ExtractExpr e(expr, high, low);
     return get_or_create(e);
+}
+
+ExprPtr ExprBuilder::mk_zext(ExprPtr e, uint32_t n)
+{
+    if (n < e->size()) {
+        err("ExprBuilder") << "mk_zext(): invalid size" << std::endl;
+        exit_fail();
+    }
+
+    // unnecessary zext
+    if (n == e->size())
+        return e;
+
+    // constant propagation
+    if (e->kind() == Expr::Kind::CONST) {
+        auto e_ = std::static_pointer_cast<const ConstExpr>(e);
+        return mk_const(e_->val(), n);
+    }
+
+    ZextExpr r(e, n);
+    return get_or_create(r);
 }
 
 ExprPtr ExprBuilder::mk_concat(ExprPtr left, ExprPtr right)
@@ -227,6 +256,155 @@ ExprPtr ExprBuilder::mk_sub(ExprPtr lhs, ExprPtr rhs)
     }
 
     return mk_add(lhs, mk_neg(rhs));
+}
+
+ExprPtr ExprBuilder::mk_not(ExprPtr expr)
+{
+    check_bool_or_fail("not", expr);
+
+    // constant propagation
+    if (expr->kind() == Expr::Kind::CONST) {
+        auto expr_ = std::static_pointer_cast<const ConstExpr>(expr);
+        return mk_const(expr_->val() ? 0 : 1, 1);
+    }
+
+    NotExpr e(expr);
+    return get_or_create(e);
+}
+
+ExprPtr ExprBuilder::mk_ult(ExprPtr lhs, ExprPtr rhs)
+{
+    check_size_or_fail("ult", lhs, rhs);
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        return mk_const(lhs_->val() < rhs_->val() ? 1 : 0, 1);
+    }
+
+    UltExpr e(lhs, rhs);
+    return get_or_create(e);
+}
+
+ExprPtr ExprBuilder::mk_ule(ExprPtr lhs, ExprPtr rhs)
+{
+    check_size_or_fail("ule", lhs, rhs);
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        return mk_const(lhs_->val() <= rhs_->val() ? 1 : 0, 1);
+    }
+
+    UleExpr e(lhs, rhs);
+    return get_or_create(e);
+}
+
+ExprPtr ExprBuilder::mk_ugt(ExprPtr lhs, ExprPtr rhs)
+{
+    check_size_or_fail("ugt", lhs, rhs);
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        return mk_const(lhs_->val() > rhs_->val() ? 1 : 0, 1);
+    }
+
+    UgtExpr e(lhs, rhs);
+    return get_or_create(e);
+}
+
+ExprPtr ExprBuilder::mk_uge(ExprPtr lhs, ExprPtr rhs)
+{
+    check_size_or_fail("uge", lhs, rhs);
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        return mk_const(lhs_->val() >= rhs_->val() ? 1 : 0, 1);
+    }
+
+    UgeExpr e(lhs, rhs);
+    return get_or_create(e);
+}
+
+ExprPtr ExprBuilder::mk_slt(ExprPtr lhs, ExprPtr rhs)
+{
+    check_size_or_fail("slt", lhs, rhs);
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        return mk_const(lhs_->sval() < rhs_->sval() ? 1 : 0, 1);
+    }
+
+    SltExpr e(lhs, rhs);
+    return get_or_create(e);
+}
+
+ExprPtr ExprBuilder::mk_sle(ExprPtr lhs, ExprPtr rhs)
+{
+    check_size_or_fail("sle", lhs, rhs);
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        return mk_const(lhs_->sval() <= rhs_->sval() ? 1 : 0, 1);
+    }
+
+    SleExpr e(lhs, rhs);
+    return get_or_create(e);
+}
+
+ExprPtr ExprBuilder::mk_sgt(ExprPtr lhs, ExprPtr rhs)
+{
+    check_size_or_fail("sgt", lhs, rhs);
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        return mk_const(lhs_->sval() > rhs_->sval() ? 1 : 0, 1);
+    }
+
+    SgtExpr e(lhs, rhs);
+    return get_or_create(e);
+}
+
+ExprPtr ExprBuilder::mk_sge(ExprPtr lhs, ExprPtr rhs)
+{
+    check_size_or_fail("sge", lhs, rhs);
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        return mk_const(lhs_->sval() >= rhs_->sval() ? 1 : 0, 1);
+    }
+
+    SgeExpr e(lhs, rhs);
+    return get_or_create(e);
+}
+
+ExprPtr ExprBuilder::mk_eq(ExprPtr lhs, ExprPtr rhs)
+{
+    check_size_or_fail("eq", lhs, rhs);
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        return mk_const(lhs_->val() == rhs_->val() ? 1 : 0, 1);
+    }
+
+    EqExpr e(lhs, rhs);
+    return get_or_create(e);
 }
 
 } // namespace naaz::expr

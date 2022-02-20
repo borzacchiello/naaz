@@ -121,3 +121,10 @@ TEST_CASE("Equality 1", "[expr]")
 
     REQUIRE(e1 == e2);
 }
+
+TEST_CASE("Sgt 1", "[expr]")
+{
+    ExprPtr e = exprBuilder.mk_sgt(exprBuilder.mk_const(-10, 8),
+                                   exprBuilder.mk_const(0, 8));
+    REQUIRE(e == exprBuilder.mk_false());
+}

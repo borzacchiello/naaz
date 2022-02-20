@@ -26,8 +26,6 @@ std::string PCodeBlock::varnode_to_string(csleigh_Varnode varnode) const
 
 void PCodeBlock::pp() const
 {
-    pp_stream() << "PCodeBlock:" << std::endl;
-    pp_stream() << "===========" << std::endl;
     for (uint32_t i = 0; i < m_translation->instructions_count; ++i) {
         csleigh_Translation* inst = &m_translation->instructions[i];
         pp_stream() << string_format("0x%08lxh : %s %s", inst->address.offset,

@@ -16,15 +16,37 @@ class ExprBuilder;
 class Expr
 {
   public:
-    enum Kind { SYM, CONST, EXTRACT, CONCAT, NEG, ADD };
+    enum Kind {
+        SYM,
+        CONST,
+        EXTRACT,
+        CONCAT,
+        ZEXT,
+
+        // arithmetic
+        NEG,
+        ADD,
+
+        // logical
+        NOT,
+        ULT,
+        ULE,
+        UGT,
+        UGE,
+        SLT,
+        SLE,
+        SGT,
+        SGE,
+        EQ
+    };
 
     virtual const Kind kind() const = 0;
     virtual size_t     size() const = 0;
 
-    virtual uint64_t hash() const            = 0;
-    virtual bool     eq(ExprPtr other) const = 0;
-    virtual void     pp() const              = 0;
-    virtual ExprPtr  clone() const           = 0;
+    virtual uint64_t    hash() const            = 0;
+    virtual bool        eq(ExprPtr other) const = 0;
+    virtual ExprPtr     clone() const           = 0;
+    virtual std::string to_string() const       = 0;
 
     friend class ExprBuilder;
 };
@@ -48,9 +70,9 @@ class SymExpr : public Expr
         return ExprPtr(new SymExpr(m_name, m_size));
     }
 
-    virtual uint64_t hash() const;
-    virtual bool     eq(ExprPtr other) const;
-    virtual void     pp() const;
+    virtual uint64_t    hash() const;
+    virtual bool        eq(ExprPtr other) const;
+    virtual std::string to_string() const;
 
     const std::string& name() const { return m_name; }
 
@@ -77,9 +99,9 @@ class ConstExpr : public Expr
         return ExprPtr(new ConstExpr(m_val, m_size));
     }
 
-    virtual uint64_t hash() const;
-    virtual bool     eq(ExprPtr other) const;
-    virtual void     pp() const;
+    virtual uint64_t    hash() const;
+    virtual bool        eq(ExprPtr other) const;
+    virtual std::string to_string() const;
 
     __uint128_t val() const { return m_val; }
     __int128_t  sval() const;
@@ -111,9 +133,9 @@ class ExtractExpr : public Expr
         return ExprPtr(new ExtractExpr(m_expr, m_high, m_low));
     }
 
-    virtual uint64_t hash() const;
-    virtual bool     eq(ExprPtr other) const;
-    virtual void     pp() const;
+    virtual uint64_t    hash() const;
+    virtual bool        eq(ExprPtr other) const;
+    virtual std::string to_string() const;
 
     ExprPtr  expr() const { return m_expr; }
     uint32_t high() const { return m_high; }
@@ -146,9 +168,9 @@ class ConcatExpr : public Expr
         return ExprPtr(new ConcatExpr(m_lhs, m_rhs));
     }
 
-    virtual uint64_t hash() const;
-    virtual bool     eq(ExprPtr other) const;
-    virtual void     pp() const;
+    virtual uint64_t    hash() const;
+    virtual bool        eq(ExprPtr other) const;
+    virtual std::string to_string() const;
 
     ExprPtr lhs() const { return m_lhs; }
     ExprPtr rhs() const { return m_rhs; }
@@ -156,6 +178,35 @@ class ConcatExpr : public Expr
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const ConcatExpr> ConcatExprPtr;
+
+class ZextExpr : public Expr
+{
+  private:
+    static const Kind ekind = Kind::ZEXT;
+
+    ExprPtr m_expr;
+    size_t  m_size;
+
+  protected:
+    ZextExpr(ExprPtr expr, size_t size);
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return m_size; };
+    virtual ExprPtr    clone() const
+    {
+        return ExprPtr(new ZextExpr(m_expr, m_size));
+    }
+
+    virtual uint64_t    hash() const;
+    virtual bool        eq(ExprPtr other) const;
+    virtual std::string to_string() const;
+
+    ExprPtr expr() const { return m_expr; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const ZextExpr> ZextExprPtr;
 
 class NegExpr : public Expr
 {
@@ -173,9 +224,9 @@ class NegExpr : public Expr
     virtual size_t     size() const { return m_size; };
     virtual ExprPtr    clone() const { return ExprPtr(new NegExpr(m_expr)); }
 
-    virtual uint64_t hash() const;
-    virtual bool     eq(ExprPtr other) const;
-    virtual void     pp() const;
+    virtual uint64_t    hash() const;
+    virtual bool        eq(ExprPtr other) const;
+    virtual std::string to_string() const;
 
     ExprPtr expr() const { return m_expr; }
 
@@ -202,14 +253,76 @@ class AddExpr : public Expr
     virtual size_t     size() const { return m_size; };
     virtual ExprPtr clone() const { return ExprPtr(new AddExpr(m_children)); }
 
-    virtual uint64_t hash() const;
-    virtual bool     eq(ExprPtr other) const;
-    virtual void     pp() const;
+    virtual uint64_t    hash() const;
+    virtual bool        eq(ExprPtr other) const;
+    virtual std::string to_string() const;
 
     const std::vector<ExprPtr>& children() const { return m_children; }
 
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const AddExpr> AddExprPtr;
+
+class NotExpr : public Expr
+{
+  private:
+    static const Kind ekind = Kind::NOT;
+
+    ExprPtr m_expr;
+
+  protected:
+    NotExpr(ExprPtr expr);
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return 1; };
+    virtual ExprPtr    clone() const { return ExprPtr(new NotExpr(m_expr)); }
+
+    virtual uint64_t    hash() const;
+    virtual bool        eq(ExprPtr other) const;
+    virtual std::string to_string() const;
+
+    ExprPtr expr() const { return m_expr; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const NotExpr> NotExprPtr;
+
+#define GEN_BINARY_LOGICAL_EXPR_CLASS(NAME, NAME_SHARED, KIND)                 \
+    class NAME : public Expr                                                   \
+    {                                                                          \
+      private:                                                                 \
+        static const Kind ekind = KIND;                                        \
+        ExprPtr           m_lhs;                                               \
+        ExprPtr           m_rhs;                                               \
+                                                                               \
+      protected:                                                               \
+        NAME(ExprPtr lhs, ExprPtr rhs) : m_lhs(lhs), m_rhs(rhs) {}             \
+                                                                               \
+      public:                                                                  \
+        virtual const Kind kind() const { return ekind; };                     \
+        virtual size_t     size() const { return 1; };                         \
+        virtual ExprPtr    clone() const                                       \
+        {                                                                      \
+            return ExprPtr(new NAME(m_lhs, m_rhs));                            \
+        }                                                                      \
+        virtual uint64_t    hash() const;                                      \
+        virtual bool        eq(ExprPtr other) const;                           \
+        virtual std::string to_string() const;                                 \
+        ExprPtr             lhs() const { return m_lhs; }                      \
+        ExprPtr             rhs() const { return m_rhs; }                      \
+        friend class ExprBuilder;                                              \
+    };                                                                         \
+    typedef std::shared_ptr<const NAME> NAME_SHARED;
+
+GEN_BINARY_LOGICAL_EXPR_CLASS(UltExpr, UltExprPtr, Kind::ULT)
+GEN_BINARY_LOGICAL_EXPR_CLASS(UleExpr, UleExprPtr, Kind::ULE)
+GEN_BINARY_LOGICAL_EXPR_CLASS(UgtExpr, UgtExprPtr, Kind::UGT)
+GEN_BINARY_LOGICAL_EXPR_CLASS(UgeExpr, UgeExprPtr, Kind::UGE)
+GEN_BINARY_LOGICAL_EXPR_CLASS(SltExpr, SltExprPtr, Kind::SLT)
+GEN_BINARY_LOGICAL_EXPR_CLASS(SleExpr, SleExprPtr, Kind::SLE)
+GEN_BINARY_LOGICAL_EXPR_CLASS(SgtExpr, SgtExprPtr, Kind::SGT)
+GEN_BINARY_LOGICAL_EXPR_CLASS(SgeExpr, SgeExprPtr, Kind::SGE)
+GEN_BINARY_LOGICAL_EXPR_CLASS(EqExpr, EqExprPtr, Kind::EQ)
 
 } // namespace naaz::expr

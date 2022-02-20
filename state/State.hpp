@@ -20,14 +20,14 @@ class State
     std::unique_ptr<MapMemory> m_regs;
     std::unique_ptr<MapMemory> m_ram;
 
-    std::shared_ptr<loader::AddressSpace> m_as;
-    std::shared_ptr<lifter::PCodeLifter>  m_lifter;
+    std::shared_ptr<loader::AddressSpace>      m_as;
+    const std::shared_ptr<lifter::PCodeLifter> m_lifter;
 
     std::set<expr::ExprPtr> m_constraints;
 
   public:
-    State(std::shared_ptr<loader::AddressSpace> as,
-          std::shared_ptr<lifter::PCodeLifter> lifter, uint64_t pc)
+    State(std::shared_ptr<loader::AddressSpace>      as,
+          const std::shared_ptr<lifter::PCodeLifter> lifter, uint64_t pc)
         : m_as(as), m_lifter(lifter), m_pc(pc)
     {
         m_regs = std::unique_ptr<MapMemory>(new MapMemory());
