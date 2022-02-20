@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include "../util/ioutil.hpp"
 #include "../expr/Expr.hpp"
 #include "../expr/ExprBuilder.hpp"
 
@@ -21,8 +22,15 @@ TEST_CASE("AddExpr 1", "[expr]")
     AddExprPtr e =
         std::static_pointer_cast<const AddExpr>(exprBuilder.mk_add(s, c));
 
-    REQUIRE(e->lhs().get() == s.get());
-    REQUIRE(e->rhs().get() == c.get());
+    const auto& c1 = e->children().at(0);
+    const auto& c2 = e->children().at(1);
+
+    if (c1 == s) {
+        REQUIRE(c2 == c);
+    } else {
+        REQUIRE(c1 == c);
+        REQUIRE(c2 == s);
+    }
 }
 
 TEST_CASE("AddExpr 2", "[expr]")

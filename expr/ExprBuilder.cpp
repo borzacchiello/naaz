@@ -154,25 +154,64 @@ ExprPtr ExprBuilder::mk_concat(ExprPtr left, ExprPtr right)
     return get_or_create(e);
 }
 
+ExprPtr ExprBuilder::mk_neg(ExprPtr expr)
+{
+    // constant propagation
+    if (expr->kind() == Expr::Kind::CONST) {
+        ConstExprPtr expr_ = std::static_pointer_cast<const ConstExpr>(expr);
+        return mk_const(-expr_->val(), expr_->size());
+    }
+
+    NegExpr e(expr);
+    return get_or_create(e);
+}
+
 ExprPtr ExprBuilder::mk_add(ExprPtr lhs, ExprPtr rhs)
 {
     check_size_or_fail("add", lhs, rhs);
 
-    // FIXME: this should be smarter
+    std::vector<ExprPtr> addends;
+
+    // flatten args
+    if (lhs->kind() == Expr::Kind::ADD) {
+        auto lhs_ = std::static_pointer_cast<const AddExpr>(lhs);
+        for (const auto& child : lhs_->children())
+            addends.push_back(child);
+    } else {
+        addends.push_back(lhs);
+    }
+
+    if (rhs->kind() == Expr::Kind::ADD) {
+        auto rhs_ = std::static_pointer_cast<const AddExpr>(rhs);
+        for (const auto& child : rhs_->children())
+            addends.push_back(child);
+    } else {
+        addends.push_back(rhs);
+    }
+
+    std::vector<ExprPtr> children;
+
     // constant propagation
-    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
-        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
-        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
-        return mk_const(lhs_->val() + rhs_->val(), lhs->size());
+    __uint128_t concrete_val = 0;
+    for (const auto& addend : addends) {
+        if (addend->kind() == Expr::Kind::CONST) {
+            auto addend_ = std::static_pointer_cast<const ConstExpr>(addend);
+            concrete_val += addend_->val();
+        } else {
+            children.push_back(addend);
+        }
     }
 
-    // keep constants to the right
-    if (lhs->kind() == Expr::Kind::CONST) {
-        AddExpr e(rhs, lhs);
-        return get_or_create(e);
-    }
+    if (children.size() == 0)
+        return mk_const(concrete_val, lhs->size());
 
-    AddExpr e(lhs, rhs);
+    if (concrete_val > 0)
+        children.push_back(mk_const(concrete_val, lhs->size()));
+
+    // sort children by address
+    std::sort(children.begin(), children.end());
+
+    AddExpr e(children);
     return get_or_create(e);
 }
 
@@ -187,8 +226,7 @@ ExprPtr ExprBuilder::mk_sub(ExprPtr lhs, ExprPtr rhs)
         return mk_const(lhs_->val() - rhs_->val(), lhs->size());
     }
 
-    SubExpr e(lhs, rhs);
-    return get_or_create(e);
+    return mk_add(lhs, mk_neg(rhs));
 }
 
 } // namespace naaz::expr

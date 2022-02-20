@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace naaz::expr
 {
@@ -15,7 +16,7 @@ class ExprBuilder;
 class Expr
 {
   public:
-    enum Kind { SYM, CONST, EXTRACT, CONCAT, ADD, SUB };
+    enum Kind { SYM, CONST, EXTRACT, CONCAT, NEG, ADD };
 
     virtual const Kind kind() const = 0;
     virtual size_t     size() const = 0;
@@ -157,66 +158,59 @@ class ConcatExpr : public Expr
 };
 typedef std::shared_ptr<const ConcatExpr> ConcatExprPtr;
 
+class NegExpr : public Expr
+{
+  private:
+    static const Kind ekind = Kind::NEG;
+
+    ExprPtr m_expr;
+    size_t  m_size;
+
+  protected:
+    NegExpr(ExprPtr expr) : m_expr(expr), m_size(m_expr->size()) {}
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return m_size; };
+    virtual ExprPtr    clone() const { return ExprPtr(new NegExpr(m_expr)); }
+
+    virtual uint64_t hash() const;
+    virtual bool     eq(ExprPtr other) const;
+    virtual void     pp() const;
+
+    ExprPtr expr() const { return m_expr; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const NegExpr> NegExprPtr;
+
 class AddExpr : public Expr
 {
   private:
     static const Kind ekind = Kind::ADD;
 
-    ExprPtr m_lhs;
-    ExprPtr m_rhs;
-    size_t  m_size;
+    std::vector<ExprPtr> m_children;
+    size_t               m_size;
 
   protected:
-    AddExpr(ExprPtr lhs, ExprPtr rhs)
-        : m_lhs(lhs), m_rhs(rhs), m_size(lhs->size())
+    AddExpr(std::vector<ExprPtr> children)
+        : m_children(children), m_size(children.at(0)->size())
     {
     }
 
   public:
     virtual const Kind kind() const { return ekind; };
     virtual size_t     size() const { return m_size; };
-    virtual ExprPtr clone() const { return ExprPtr(new AddExpr(m_lhs, m_rhs)); }
+    virtual ExprPtr clone() const { return ExprPtr(new AddExpr(m_children)); }
 
     virtual uint64_t hash() const;
     virtual bool     eq(ExprPtr other) const;
     virtual void     pp() const;
 
-    ExprPtr lhs() const { return m_lhs; }
-    ExprPtr rhs() const { return m_rhs; }
+    const std::vector<ExprPtr>& children() const { return m_children; }
 
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const AddExpr> AddExprPtr;
-
-class SubExpr : public Expr
-{
-  private:
-    static const Kind ekind = Kind::SUB;
-
-    ExprPtr m_lhs;
-    ExprPtr m_rhs;
-    size_t  m_size;
-
-  protected:
-    SubExpr(ExprPtr lhs, ExprPtr rhs)
-        : m_lhs(lhs), m_rhs(rhs), m_size(lhs->size())
-    {
-    }
-
-  public:
-    virtual const Kind kind() const { return ekind; };
-    virtual size_t     size() const { return m_size; };
-    virtual ExprPtr clone() const { return ExprPtr(new SubExpr(m_lhs, m_rhs)); }
-
-    virtual uint64_t hash() const;
-    virtual bool     eq(ExprPtr other) const;
-    virtual void     pp() const;
-
-    ExprPtr lhs() const { return m_lhs; }
-    ExprPtr rhs() const { return m_rhs; }
-
-    friend class ExprBuilder;
-};
-typedef std::shared_ptr<const SubExpr> SubExprPtr;
 
 } // namespace naaz::expr

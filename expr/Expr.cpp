@@ -108,15 +108,40 @@ void ConcatExpr::pp() const
     m_rhs->pp();
 }
 
-uint64_t AddExpr::hash() const
+uint64_t NegExpr::hash() const
 {
     XXH64_state_t state;
     XXH64_reset(&state, 0);
     XXH64_update(&state, &m_size, sizeof(m_size));
-    void* raw_lhs = (void*)m_lhs.get();
-    void* raw_rhs = (void*)m_rhs.get();
-    XXH64_update(&state, raw_lhs, sizeof(void*));
-    XXH64_update(&state, raw_rhs, sizeof(void*));
+    void* raw_expr = (void*)m_expr.get();
+    XXH64_update(&state, raw_expr, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool NegExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const NegExpr>(other);
+    return m_size == other_->m_size && m_expr.get() == other_->m_expr.get();
+}
+
+void NegExpr::pp() const
+{
+    pp_stream() << "-";
+    m_expr->pp();
+}
+
+uint64_t AddExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, (void*)&m_size, sizeof(m_size));
+    for (const auto& child : m_children) {
+        void* raw_child = (void*)child.get();
+        XXH64_update(&state, raw_child, sizeof(void*));
+    }
     return XXH64_digest(&state);
 }
 
@@ -126,44 +151,24 @@ bool AddExpr::eq(ExprPtr other) const
         return false;
 
     auto other_ = std::static_pointer_cast<const AddExpr>(other);
-    return m_size == other_->m_size && m_lhs.get() == other_->m_lhs.get() &&
-           m_rhs.get() == other_->m_rhs.get();
+    if (m_size != other_->m_size)
+        return false;
+    if (m_children.size() != other_->m_children.size())
+        return false;
+
+    for (uint64_t i = 0; i < m_children.size(); ++i)
+        if (m_children.at(i) != other_->m_children.at(i))
+            return false;
+    return true;
 }
 
 void AddExpr::pp() const
 {
-    m_lhs->pp();
-    pp_stream() << " + ";
-    m_rhs->pp();
-}
-
-uint64_t SubExpr::hash() const
-{
-    XXH64_state_t state;
-    XXH64_reset(&state, 0);
-    XXH64_update(&state, &m_size, sizeof(m_size));
-    void* raw_lhs = (void*)m_lhs.get();
-    void* raw_rhs = (void*)m_rhs.get();
-    XXH64_update(&state, raw_lhs, sizeof(void*));
-    XXH64_update(&state, raw_rhs, sizeof(void*));
-    return XXH64_digest(&state);
-}
-
-bool SubExpr::eq(ExprPtr other) const
-{
-    if (other->kind() != ekind)
-        return false;
-
-    auto other_ = std::static_pointer_cast<const SubExpr>(other);
-    return m_size == other_->m_size && m_lhs.get() == other_->m_lhs.get() &&
-           m_rhs.get() == other_->m_rhs.get();
-}
-
-void SubExpr::pp() const
-{
-    m_lhs->pp();
-    pp_stream() << " - ";
-    m_rhs->pp();
+    m_children.at(0)->pp();
+    for (uint64_t i = 1; i < m_children.size(); ++i) {
+        pp_stream() << " + ";
+        m_children.at(i)->pp();
+    }
 }
 
 } // namespace naaz::expr
