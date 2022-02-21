@@ -16,6 +16,8 @@ class PCodeBlock
     csleigh_TranslationResult* m_translation;
 
     std::string varnode_to_string(csleigh_Varnode varnode) const;
+    std::string load_to_string(csleigh_PcodeOp op) const;
+    std::string store_to_string(csleigh_PcodeOp op) const;
 
   public:
     PCodeBlock(const PCodeLifter&         lifter,

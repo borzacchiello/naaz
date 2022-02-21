@@ -1,3 +1,4 @@
+#include "../util/ioutil.hpp"
 #include "../lifter/PCodeLifter.hpp"
 
 int main(int argc, const char* argv[])
@@ -7,8 +8,19 @@ int main(int argc, const char* argv[])
     const uint8_t code[] =
         "\x48\xC7\xC0\x0A\x00\x00\x00\x48\xC7\xC3\x0A\x00\x00"
         "\x00\x48\x39\xD8\x74\x00\xC3";
-    size_t code_size = sizeof(code);
 
-    lifter.lift(0x400000, code, code_size)->pp();
+    lifter.lift(0x400000, code, sizeof(code))->pp();
+
+    pp_stream() << "*************************" << std::endl;
+    pp_stream() << "*************************" << std::endl;
+
+    const uint8_t code2[42] = {
+        0x0f, 0x6f, 0x00, 0x0f, 0x29, 0x45, 0x80, 0x66, 0x0f, 0x6f, 0x85,
+        0x70, 0xff, 0xff, 0xff, 0x0f, 0x29, 0x45, 0xc0, 0x66, 0x0f, 0x6f,
+        0x45, 0x80, 0x0f, 0x29, 0x45, 0xd0, 0x66, 0x0f, 0x6f, 0x4d, 0xc0,
+        0x66, 0x0f, 0x6f, 0x45, 0xd0, 0x66, 0x0f, 0x74, 0xc1};
+
+    lifter.lift(0x400100, code2, sizeof(code2))->pp();
+
     return 0;
 }

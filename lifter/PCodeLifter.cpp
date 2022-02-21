@@ -1,5 +1,6 @@
 #include <string.h>
 #include <pugixml.hpp>
+#include <cassert>
 #include <iostream>
 #include <iomanip>
 
@@ -24,6 +25,32 @@ std::string PCodeBlock::varnode_to_string(csleigh_Varnode varnode) const
                          varnode.size);
 }
 
+std::string PCodeBlock::load_to_string(csleigh_PcodeOp op) const
+{
+    assert(op.opcode == csleigh_CPUI_LOAD &&
+           "PCodeBlock::load_to_string(): invalid PcodeOp");
+    csleigh_Address   addr = {.space  = op.inputs[0].space,
+                              .offset = op.inputs[0].offset};
+    csleigh_AddrSpace as   = csleigh_Addr_getSpaceFromConst(&addr);
+
+    return varnode_to_string(*op.output) + " <- " +
+           string_format("%s[", csleigh_AddrSpace_getName(as)) +
+           varnode_to_string(op.inputs[1]) + "]";
+}
+
+std::string PCodeBlock::store_to_string(csleigh_PcodeOp op) const
+{
+    assert(op.opcode == csleigh_CPUI_STORE &&
+           "PCodeBlock::store_to_string(): invalid PcodeOp");
+    csleigh_Address   addr = {.space  = op.inputs[0].space,
+                              .offset = op.inputs[0].offset};
+    csleigh_AddrSpace as   = csleigh_Addr_getSpaceFromConst(&addr);
+
+    return string_format("%s[", csleigh_AddrSpace_getName(as)) +
+           varnode_to_string(op.inputs[1]) + "] <- " +
+           varnode_to_string(op.inputs[2]);
+}
+
 void PCodeBlock::pp() const
 {
     for (uint32_t i = 0; i < m_translation->instructions_count; ++i) {
@@ -37,14 +64,28 @@ void PCodeBlock::pp() const
             pp_stream() << "            | ";
             pp_stream() << std::left << std::setw(15) << std::setfill(' ')
                         << csleigh_OpCodeName(op.opcode);
-            if (op.output)
-                pp_stream() << varnode_to_string(*op.output) << " <- ";
-            if (op.inputs_count > 0) {
-                pp_stream() << varnode_to_string(op.inputs[0]);
-                for (uint32_t k = 1; k < op.inputs_count; ++k)
-                    pp_stream() << ", " << varnode_to_string(op.inputs[k]);
+            switch (op.opcode) {
+                case csleigh_CPUI_LOAD: {
+                    pp_stream() << load_to_string(op) << std::endl;
+                    break;
+                }
+                case csleigh_CPUI_STORE: {
+                    pp_stream() << store_to_string(op) << std::endl;
+                    break;
+                }
+                default: {
+                    if (op.output)
+                        pp_stream() << varnode_to_string(*op.output) << " <- ";
+                    if (op.inputs_count > 0) {
+                        pp_stream() << varnode_to_string(op.inputs[0]);
+                        for (uint32_t k = 1; k < op.inputs_count; ++k)
+                            pp_stream()
+                                << ", " << varnode_to_string(op.inputs[k]);
+                    }
+                    pp_stream() << std::endl;
+                    break;
+                }
             }
-            pp_stream() << std::endl;
         }
         pp_stream() << "-------------" << std::endl;
     }

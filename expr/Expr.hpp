@@ -51,7 +51,7 @@ class Expr
     friend class ExprBuilder;
 };
 
-class SymExpr : public Expr
+class SymExpr final : public Expr
 {
   private:
     static const Kind ekind = Kind::SYM;
@@ -80,7 +80,7 @@ class SymExpr : public Expr
 };
 typedef std::shared_ptr<const SymExpr> SymExprPtr;
 
-class ConstExpr : public Expr
+class ConstExpr final : public Expr
 {
   private:
     static const Kind ekind = Kind::CONST;
@@ -110,7 +110,7 @@ class ConstExpr : public Expr
 };
 typedef std::shared_ptr<const ConstExpr> ConstExprPtr;
 
-class ExtractExpr : public Expr
+class ExtractExpr final : public Expr
 {
   private:
     static const Kind ekind = Kind::EXTRACT;
@@ -145,7 +145,7 @@ class ExtractExpr : public Expr
 };
 typedef std::shared_ptr<const ExtractExpr> ExtractExprPtr;
 
-class ConcatExpr : public Expr
+class ConcatExpr final : public Expr
 {
   private:
     static const Kind ekind = Kind::CONCAT;
@@ -179,7 +179,7 @@ class ConcatExpr : public Expr
 };
 typedef std::shared_ptr<const ConcatExpr> ConcatExprPtr;
 
-class ZextExpr : public Expr
+class ZextExpr final : public Expr
 {
   private:
     static const Kind ekind = Kind::ZEXT;
@@ -208,7 +208,7 @@ class ZextExpr : public Expr
 };
 typedef std::shared_ptr<const ZextExpr> ZextExprPtr;
 
-class NegExpr : public Expr
+class NegExpr final : public Expr
 {
   private:
     static const Kind ekind = Kind::NEG;
@@ -234,7 +234,7 @@ class NegExpr : public Expr
 };
 typedef std::shared_ptr<const NegExpr> NegExprPtr;
 
-class AddExpr : public Expr
+class AddExpr final : public Expr
 {
   private:
     static const Kind ekind = Kind::ADD;
@@ -263,7 +263,7 @@ class AddExpr : public Expr
 };
 typedef std::shared_ptr<const AddExpr> AddExprPtr;
 
-class NotExpr : public Expr
+class NotExpr final : public Expr
 {
   private:
     static const Kind ekind = Kind::NOT;
@@ -289,7 +289,7 @@ class NotExpr : public Expr
 typedef std::shared_ptr<const NotExpr> NotExprPtr;
 
 #define GEN_BINARY_LOGICAL_EXPR_CLASS(NAME, NAME_SHARED, KIND)                 \
-    class NAME : public Expr                                                   \
+    class NAME final : public Expr                                             \
     {                                                                          \
       private:                                                                 \
         static const Kind ekind = KIND;                                        \
