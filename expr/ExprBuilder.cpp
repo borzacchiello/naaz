@@ -65,14 +65,12 @@ static inline __uint128_t bitmask(uint32_t n)
 
 BoolConstPtr ExprBuilder::mk_true()
 {
-    static const BoolConstPtr e = std::make_shared<const BoolConst>(1);
-    return e;
+    return BoolConst::true_expr();
 }
 
 BoolConstPtr ExprBuilder::mk_false()
 {
-    static const BoolConstPtr e = std::make_shared<const BoolConst>(0);
-    return e;
+    return BoolConst::false_expr();
 }
 
 SymExprPtr ExprBuilder::mk_sym(const std::string& name, size_t size)

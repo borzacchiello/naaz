@@ -320,10 +320,22 @@ class BoolConst final : public BoolExpr
 
     bool m_is_true;
 
-  public:
     BoolConst(bool is_true) : m_is_true(is_true) {}
-    BoolConst(BoolConst& other) : m_is_true(other.m_is_true) {}
 
+  protected:
+    static std::shared_ptr<const BoolConst> true_expr()
+    {
+        static auto v = std::shared_ptr<const BoolConst>(new BoolConst(1));
+        return v;
+    }
+
+    static std::shared_ptr<const BoolConst> false_expr()
+    {
+        static auto v = std::shared_ptr<const BoolConst>(new BoolConst(0));
+        return v;
+    }
+
+  public:
     virtual const Kind kind() const { return ekind; };
     virtual ExprPtr clone() const { return ExprPtr(new BoolConst(m_is_true)); }
 
