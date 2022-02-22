@@ -16,12 +16,12 @@ class MapMemory
     enum UninitReadBehavior { RET_SYM, RET_ZERO, THROW_ERR };
 
   private:
-    UninitReadBehavior                m_uninit_behavior;
-    loader::AddressSpace*             m_as;
-    std::map<uint64_t, expr::ExprPtr> m_memory;
+    UninitReadBehavior                  m_uninit_behavior;
+    loader::AddressSpace*               m_as;
+    std::map<uint64_t, expr::BVExprPtr> m_memory;
 
-    expr::ExprPtr read_byte(uint64_t addr);
-    void          write_byte(uint64_t addr, expr::ExprPtr value);
+    expr::BVExprPtr read_byte(uint64_t addr);
+    void            write_byte(uint64_t addr, expr::BVExprPtr value);
 
   public:
     MapMemory(UninitReadBehavior b = UninitReadBehavior::RET_SYM)
@@ -38,14 +38,14 @@ class MapMemory
     {
     }
 
-    expr::ExprPtr read(expr::ExprPtr addr, size_t len,
-                       Endianess end = Endianess::LITTLE);
-    expr::ExprPtr read(uint64_t addr, size_t len,
-                       Endianess end = Endianess::LITTLE);
-    void          write(expr::ExprPtr addr, expr::ExprPtr value,
-                        Endianess end = Endianess::LITTLE);
-    void          write(uint64_t addr, expr::ExprPtr value,
-                        Endianess end = Endianess::LITTLE);
+    expr::BVExprPtr read(expr::BVExprPtr addr, size_t len,
+                         Endianess end = Endianess::LITTLE);
+    expr::BVExprPtr read(uint64_t addr, size_t len,
+                         Endianess end = Endianess::LITTLE);
+    void            write(expr::BVExprPtr addr, expr::BVExprPtr value,
+                          Endianess end = Endianess::LITTLE);
+    void            write(uint64_t addr, expr::BVExprPtr value,
+                          Endianess end = Endianess::LITTLE);
 
     std::unique_ptr<MapMemory> clone();
 };

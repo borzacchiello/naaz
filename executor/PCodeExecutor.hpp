@@ -32,10 +32,11 @@ class PCodeExecutor
         }
     };
 
-    expr::ExprPtr resolve_varnode(ExecutionContext& ctx, csleigh_Varnode node);
-    void          write_to_varnode(ExecutionContext& ctx, csleigh_Varnode node,
-                                   expr::ExprPtr value);
-    void          execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op);
+    expr::BVExprPtr resolve_varnode(ExecutionContext& ctx,
+                                    csleigh_Varnode   node);
+    void write_to_varnode(ExecutionContext& ctx, csleigh_Varnode node,
+                          expr::BVExprPtr value);
+    void execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op);
     void execute_instruction(state::StatePtr state, csleigh_Translation t,
                              std::vector<state::StatePtr>& o_successors);
 

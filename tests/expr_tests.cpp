@@ -17,8 +17,8 @@ TEST_CASE("SymExpr 1", "[expr]")
 
 TEST_CASE("NegExpr 1", "[expr]")
 {
-    ExprPtr c = exprBuilder.mk_const(1, 8);
-    c         = exprBuilder.mk_neg(c);
+    BVExprPtr c = exprBuilder.mk_const(1, 8);
+    c           = exprBuilder.mk_neg(c);
 
     REQUIRE(c->kind() == Expr::Kind::CONST);
     auto c_ = std::static_pointer_cast<const ConstExpr>(c);
@@ -41,8 +41,8 @@ TEST_CASE("NegExpr 2", "[expr]")
 
 TEST_CASE("AddExpr 1", "[expr]")
 {
-    ExprPtr    s = exprBuilder.mk_sym("sym", 32);
-    ExprPtr    c = exprBuilder.mk_const(42, 32);
+    BVExprPtr  s = exprBuilder.mk_sym("sym", 32);
+    BVExprPtr  c = exprBuilder.mk_const(42, 32);
     AddExprPtr e =
         std::static_pointer_cast<const AddExpr>(exprBuilder.mk_add(s, c));
 
@@ -59,16 +59,16 @@ TEST_CASE("AddExpr 1", "[expr]")
 
 TEST_CASE("AddExpr 2", "[expr]")
 {
-    ExprPtr e = exprBuilder.mk_const(42, 32);
-    e         = exprBuilder.mk_add(e, exprBuilder.mk_const(38, 32));
+    BVExprPtr e = exprBuilder.mk_const(42, 32);
+    e           = exprBuilder.mk_add(e, exprBuilder.mk_const(38, 32));
 
     REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val() == 80);
 }
 
 TEST_CASE("ConcatExpr 1", "[expr]")
 {
-    ExprPtr s1 = exprBuilder.mk_sym("sym1", 32);
-    ExprPtr s2 = exprBuilder.mk_sym("sym2", 32);
+    BVExprPtr s1 = exprBuilder.mk_sym("sym1", 32);
+    BVExprPtr s2 = exprBuilder.mk_sym("sym2", 32);
 
     ExprPtr c = exprBuilder.mk_concat(s1, s2);
     REQUIRE(c->kind() == Expr::Kind::CONCAT);
@@ -80,8 +80,8 @@ TEST_CASE("ConcatExpr 1", "[expr]")
 
 TEST_CASE("ExtractExpr 1", "[expr]")
 {
-    ExprPtr s = exprBuilder.mk_sym("sym", 32);
-    ExprPtr e = exprBuilder.mk_extract(s, 7, 0);
+    BVExprPtr s = exprBuilder.mk_sym("sym", 32);
+    BVExprPtr e = exprBuilder.mk_extract(s, 7, 0);
 
     auto e_ = std::static_pointer_cast<const ExtractExpr>(e);
     REQUIRE(e_->expr() == s);
@@ -91,8 +91,8 @@ TEST_CASE("ExtractExpr 1", "[expr]")
 
 TEST_CASE("ExtractExpr 2", "[expr]")
 {
-    ExprPtr c = exprBuilder.mk_const(0xaabb, 32);
-    ExprPtr e = exprBuilder.mk_extract(c, 7, 0);
+    BVExprPtr c = exprBuilder.mk_const(0xaabb, 32);
+    BVExprPtr e = exprBuilder.mk_extract(c, 7, 0);
 
     REQUIRE(e->kind() == Expr::Kind::CONST);
     auto e_ = std::static_pointer_cast<const ConstExpr>(e);
@@ -101,8 +101,8 @@ TEST_CASE("ExtractExpr 2", "[expr]")
 
 TEST_CASE("ExtractExpr 3", "[expr]")
 {
-    ExprPtr c = exprBuilder.mk_const(0xaabb, 32);
-    ExprPtr e = exprBuilder.mk_extract(c, 11, 4);
+    BVExprPtr c = exprBuilder.mk_const(0xaabb, 32);
+    BVExprPtr e = exprBuilder.mk_extract(c, 11, 4);
 
     REQUIRE(e->kind() == Expr::Kind::CONST);
     auto e_ = std::static_pointer_cast<const ConstExpr>(e);
@@ -111,20 +111,20 @@ TEST_CASE("ExtractExpr 3", "[expr]")
 
 TEST_CASE("Equality 1", "[expr]")
 {
-    ExprPtr e1 = exprBuilder.mk_sym("sym", 32);
-    e1         = exprBuilder.mk_add(e1, exprBuilder.mk_sym("sym1", 32));
-    e1         = exprBuilder.mk_sub(e1, exprBuilder.mk_const(42, 32));
+    BVExprPtr e1 = exprBuilder.mk_sym("sym", 32);
+    e1           = exprBuilder.mk_add(e1, exprBuilder.mk_sym("sym1", 32));
+    e1           = exprBuilder.mk_sub(e1, exprBuilder.mk_const(42, 32));
 
-    ExprPtr e2 = exprBuilder.mk_sym("sym", 32);
-    e2         = exprBuilder.mk_add(e2, exprBuilder.mk_sym("sym1", 32));
-    e2         = exprBuilder.mk_sub(e2, exprBuilder.mk_const(42, 32));
+    BVExprPtr e2 = exprBuilder.mk_sym("sym", 32);
+    e2           = exprBuilder.mk_add(e2, exprBuilder.mk_sym("sym1", 32));
+    e2           = exprBuilder.mk_sub(e2, exprBuilder.mk_const(42, 32));
 
     REQUIRE(e1 == e2);
 }
 
 TEST_CASE("Sgt 1", "[expr]")
 {
-    ExprPtr e = exprBuilder.mk_sgt(exprBuilder.mk_const(-10, 8),
-                                   exprBuilder.mk_const(0, 8));
+    BoolExprPtr e = exprBuilder.mk_sgt(exprBuilder.mk_const(-10, 8),
+                                       exprBuilder.mk_const(0, 8));
     REQUIRE(e == exprBuilder.mk_false());
 }

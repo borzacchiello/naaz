@@ -24,31 +24,36 @@ class ExprBuilder
 
     void collect_garbage();
 
-    ConstExprPtr mk_true();
-    ConstExprPtr mk_false();
+    BoolConstPtr mk_true();
+    BoolConstPtr mk_false();
 
     SymExprPtr   mk_sym(const std::string& name, size_t size);
     ConstExprPtr mk_const(__uint128_t val, size_t size);
-    ExprPtr      mk_extract(ExprPtr expr, uint32_t high, uint32_t low);
-    ExprPtr      mk_concat(ExprPtr left, ExprPtr right);
-    ExprPtr      mk_zext(ExprPtr e, uint32_t n);
+    BVExprPtr    mk_extract(BVExprPtr expr, uint32_t high, uint32_t low);
+    BVExprPtr    mk_concat(BVExprPtr left, BVExprPtr right);
+    BVExprPtr    mk_zext(BVExprPtr e, uint32_t n);
+    BVExprPtr    mk_ite(BoolExprPtr guard, BVExprPtr iftrue, BVExprPtr iffalse);
 
     // arithmetic
-    ExprPtr mk_neg(ExprPtr expr);
-    ExprPtr mk_add(ExprPtr lhs, ExprPtr rhs);
-    ExprPtr mk_sub(ExprPtr lhs, ExprPtr rhs);
+    BVExprPtr mk_neg(BVExprPtr expr);
+    BVExprPtr mk_add(BVExprPtr lhs, BVExprPtr rhs);
+    BVExprPtr mk_sub(BVExprPtr lhs, BVExprPtr rhs);
 
     // logical
-    ExprPtr mk_not(ExprPtr expr);
-    ExprPtr mk_ult(ExprPtr lhs, ExprPtr rhs);
-    ExprPtr mk_ule(ExprPtr lhs, ExprPtr rhs);
-    ExprPtr mk_ugt(ExprPtr lhs, ExprPtr rhs);
-    ExprPtr mk_uge(ExprPtr lhs, ExprPtr rhs);
-    ExprPtr mk_slt(ExprPtr lhs, ExprPtr rhs);
-    ExprPtr mk_sle(ExprPtr lhs, ExprPtr rhs);
-    ExprPtr mk_sgt(ExprPtr lhs, ExprPtr rhs);
-    ExprPtr mk_sge(ExprPtr lhs, ExprPtr rhs);
-    ExprPtr mk_eq(ExprPtr lhs, ExprPtr rhs);
+    BoolExprPtr mk_not(BoolExprPtr expr);
+    BoolExprPtr mk_ult(BVExprPtr lhs, BVExprPtr rhs);
+    BoolExprPtr mk_ule(BVExprPtr lhs, BVExprPtr rhs);
+    BoolExprPtr mk_ugt(BVExprPtr lhs, BVExprPtr rhs);
+    BoolExprPtr mk_uge(BVExprPtr lhs, BVExprPtr rhs);
+    BoolExprPtr mk_slt(BVExprPtr lhs, BVExprPtr rhs);
+    BoolExprPtr mk_sle(BVExprPtr lhs, BVExprPtr rhs);
+    BoolExprPtr mk_sgt(BVExprPtr lhs, BVExprPtr rhs);
+    BoolExprPtr mk_sge(BVExprPtr lhs, BVExprPtr rhs);
+    BoolExprPtr mk_eq(BVExprPtr lhs, BVExprPtr rhs);
+
+    // util
+    BVExprPtr sign_bit(BVExprPtr expr);
+    BVExprPtr bool_to_bv(BoolExprPtr expr);
 };
 
 } // namespace naaz::expr

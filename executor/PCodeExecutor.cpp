@@ -19,8 +19,8 @@ PCodeExecutor::PCodeExecutor(std::shared_ptr<lifter::PCodeLifter> lifter)
     m_tmp_space_id   = lifter->tmp_space_id();
 }
 
-expr::ExprPtr PCodeExecutor::resolve_varnode(ExecutionContext& ctx,
-                                             csleigh_Varnode   node)
+expr::BVExprPtr PCodeExecutor::resolve_varnode(ExecutionContext& ctx,
+                                               csleigh_Varnode   node)
 {
     uint32_t space_id = csleigh_AddrSpace_getId(node.space);
     if (space_id == m_ram_space_id) {
@@ -40,7 +40,8 @@ expr::ExprPtr PCodeExecutor::resolve_varnode(ExecutionContext& ctx,
 }
 
 void PCodeExecutor::write_to_varnode(ExecutionContext& ctx,
-                                     csleigh_Varnode node, expr::ExprPtr value)
+                                     csleigh_Varnode   node,
+                                     expr::BVExprPtr   value)
 {
     if (node.size != value->size()) {
         err("PCodeExecutor")
@@ -83,19 +84,19 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
         case csleigh_CPUI_INT_LESS: {
             assert(op.output != nullptr && "CPUI_INT_LESS: output is NULL");
             assert(op.inputs_count == 2 && "CPUI_INT_LESS: inputs_count != 1");
-            expr::ExprPtr expr =
+            expr::BoolExprPtr expr =
                 exprBuilder.mk_ult(resolve_varnode(ctx, op.inputs[0]),
                                    resolve_varnode(ctx, op.inputs[1]));
-            write_to_varnode(ctx, *op.output, expr);
+            write_to_varnode(ctx, *op.output, exprBuilder.bool_to_bv(expr));
             break;
         }
         case csleigh_CPUI_INT_SLESS: {
             assert(op.output != nullptr && "CPUI_INT_SLESS: output is NULL");
             assert(op.inputs_count == 2 && "CPUI_INT_SLESS: inputs_count != 1");
-            expr::ExprPtr expr =
+            expr::BoolExprPtr expr =
                 exprBuilder.mk_slt(resolve_varnode(ctx, op.inputs[0]),
                                    resolve_varnode(ctx, op.inputs[1]));
-            write_to_varnode(ctx, *op.output, expr);
+            write_to_varnode(ctx, *op.output, exprBuilder.bool_to_bv(expr));
             break;
         }
         default:

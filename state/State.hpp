@@ -23,7 +23,7 @@ class State
     std::shared_ptr<loader::AddressSpace>      m_as;
     const std::shared_ptr<lifter::PCodeLifter> m_lifter;
 
-    std::set<expr::ExprPtr> m_constraints;
+    std::set<expr::BoolExprPtr> m_constraints;
 
   public:
     State(std::shared_ptr<loader::AddressSpace>      as,
@@ -41,18 +41,18 @@ class State
 
     bool get_code_at(uint64_t addr, uint8_t** o_data, uint64_t* o_size);
 
-    expr::ExprPtr read(expr::ExprPtr addr, size_t len);
-    expr::ExprPtr read(uint64_t addr, size_t len);
-    void          write(expr::ExprPtr addr, expr::ExprPtr data);
-    void          write(uint64_t addr, expr::ExprPtr data);
+    expr::BVExprPtr read(expr::BVExprPtr addr, size_t len);
+    expr::BVExprPtr read(uint64_t addr, size_t len);
+    void            write(expr::BVExprPtr addr, expr::BVExprPtr data);
+    void            write(uint64_t addr, expr::BVExprPtr data);
 
-    expr::ExprPtr reg_read(const std::string& name);
-    expr::ExprPtr reg_read(uint64_t offset, size_t size);
-    void          reg_write(const std::string& name, expr::ExprPtr data);
-    void          reg_write(uint64_t offset, expr::ExprPtr data);
+    expr::BVExprPtr reg_read(const std::string& name);
+    expr::BVExprPtr reg_read(uint64_t offset, size_t size);
+    void            reg_write(const std::string& name, expr::BVExprPtr data);
+    void            reg_write(uint64_t offset, expr::BVExprPtr data);
 
-    void                           add_constraint(expr::ExprPtr c);
-    const std::set<expr::ExprPtr>& pi() const { return m_constraints; }
+    void                               add_constraint(expr::BoolExprPtr c);
+    const std::set<expr::BoolExprPtr>& pi() const { return m_constraints; }
 
     void     set_pc(uint64_t pc) { m_pc = pc; }
     uint64_t pc() const { return m_pc; }

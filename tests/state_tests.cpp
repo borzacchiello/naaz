@@ -33,7 +33,7 @@ TEST_CASE("State Read/Write Mem 1", "[state]")
 
     State s(as, lifter, 0);
 
-    ExprPtr sym = exprBuilder.mk_sym("sym", 32);
+    BVExprPtr sym = exprBuilder.mk_sym("sym", 32);
     s.write(0xaabbcc, sym);
     ExprPtr expr = s.read(0xaabbcc, 4);
 
@@ -47,7 +47,7 @@ TEST_CASE("State Read/Write Mem 2", "[state]")
 
     State s(as, lifter, 0);
 
-    ExprPtr sym = exprBuilder.mk_sym("sym", 32);
+    BVExprPtr sym = exprBuilder.mk_sym("sym", 32);
     s.write(0xaabbcc, sym);
     ExprPtr expr = s.read(0xaabbcc, 1);
 
@@ -61,7 +61,7 @@ TEST_CASE("State Read/Write Reg 1", "[state]")
 
     State s(as, lifter, 0);
 
-    ExprPtr sym = exprBuilder.mk_sym("sym", 32);
+    BVExprPtr sym = exprBuilder.mk_sym("sym", 32);
     s.reg_write("EAX", sym);
     ExprPtr expr = s.reg_read("AL");
 

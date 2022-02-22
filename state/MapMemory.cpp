@@ -9,7 +9,7 @@ namespace naaz::state
 
 using namespace naaz::expr;
 
-ExprPtr MapMemory::read(ExprPtr addr, size_t len, Endianess end)
+BVExprPtr MapMemory::read(BVExprPtr addr, size_t len, Endianess end)
 {
     if (addr->kind() != Expr::Kind::CONST) {
         // FIXME: implement this
@@ -23,14 +23,14 @@ ExprPtr MapMemory::read(ExprPtr addr, size_t len, Endianess end)
     return read(addr_->val(), len, end);
 }
 
-ExprPtr MapMemory::read_byte(uint64_t addr)
+BVExprPtr MapMemory::read_byte(uint64_t addr)
 {
     if (!m_memory.contains(addr)) {
         if (m_as) {
             auto b = m_as->read_byte(addr);
             if (b.has_value()) {
                 // The value is in the AddressSpace
-                ExprPtr c = expr::ExprBuilder::The().mk_const(b.value(), 8);
+                BVExprPtr c = expr::ExprBuilder::The().mk_const(b.value(), 8);
                 write_byte(addr, c);
                 return c;
             }
@@ -59,14 +59,14 @@ ExprPtr MapMemory::read_byte(uint64_t addr)
     return m_memory[addr];
 }
 
-ExprPtr MapMemory::read(uint64_t addr, size_t len, Endianess end)
+BVExprPtr MapMemory::read(uint64_t addr, size_t len, Endianess end)
 {
     if (len == 0) {
         err("MapMemory") << "read(): zero len" << std::endl;
         exit_fail();
     }
 
-    ExprPtr res = read_byte(addr);
+    BVExprPtr res = read_byte(addr);
     for (size_t i = 1; i < len; ++i) {
         if (end == Endianess::LITTLE)
             res = ExprBuilder::The().mk_concat(res, read_byte(addr + i));
@@ -76,7 +76,7 @@ ExprPtr MapMemory::read(uint64_t addr, size_t len, Endianess end)
     return res;
 }
 
-void MapMemory::write(ExprPtr addr, ExprPtr value, Endianess end)
+void MapMemory::write(BVExprPtr addr, BVExprPtr value, Endianess end)
 {
     if (addr->kind() != Expr::Kind::CONST) {
         // FIXME: implement this
@@ -90,7 +90,7 @@ void MapMemory::write(ExprPtr addr, ExprPtr value, Endianess end)
     return write(addr_->val(), value, end);
 }
 
-void MapMemory::write_byte(uint64_t addr, ExprPtr value)
+void MapMemory::write_byte(uint64_t addr, BVExprPtr value)
 {
     if (value->size() != 8) {
         err("MapMemory")
@@ -102,7 +102,7 @@ void MapMemory::write_byte(uint64_t addr, ExprPtr value)
     m_memory[addr] = value;
 }
 
-void MapMemory::write(uint64_t addr, ExprPtr value, Endianess end)
+void MapMemory::write(uint64_t addr, BVExprPtr value, Endianess end)
 {
     size_t len = value->size();
     if (len % 8 != 0) {
@@ -113,7 +113,7 @@ void MapMemory::write(uint64_t addr, ExprPtr value, Endianess end)
 
     len = len / 8UL;
     for (size_t i = 0; i < len; ++i) {
-        ExprPtr e =
+        BVExprPtr e =
             end == Endianess::LITTLE
                 ? ExprBuilder::The().mk_extract(value, (len - i - 1) * 8 + 7,
                                                 (len - i - 1) * 8)

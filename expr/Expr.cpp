@@ -77,6 +77,36 @@ std::string ConstExpr::to_string() const
     return std::to_string((uint64_t)m_val);
 }
 
+uint64_t ITEExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, &m_size, sizeof(m_size));
+    void* raw_guard   = (void*)m_guard.get();
+    void* raw_iftrue  = (void*)m_iftrue.get();
+    void* raw_iffalse = (void*)m_iffalse.get();
+    XXH64_update(&state, raw_guard, sizeof(void*));
+    XXH64_update(&state, raw_iftrue, sizeof(void*));
+    XXH64_update(&state, raw_iffalse, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool ITEExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const ITEExpr>(other);
+    return m_size == other_->m_size && m_guard == other_->m_guard &&
+           m_iftrue == other_->m_iftrue && m_iffalse == other_->m_iffalse;
+}
+
+std::string ITEExpr::to_string() const
+{
+    return "ITE(" + m_guard->to_string() + ", " + m_iftrue->to_string() + ", " +
+           m_iffalse->to_string() + ")";
+}
+
 uint64_t ExtractExpr::hash() const
 {
     XXH64_state_t state;
@@ -131,7 +161,7 @@ std::string ConcatExpr::to_string() const
     return m_lhs->to_string() + " # " + m_rhs->to_string();
 }
 
-ZextExpr::ZextExpr(ExprPtr e, size_t s) : m_expr(e), m_size(s)
+ZextExpr::ZextExpr(BVExprPtr e, size_t s) : m_expr(e), m_size(s)
 {
     if (s < e->size()) {
         err("ZextExpr") << "invalid size" << std::endl;
@@ -223,12 +253,26 @@ std::string AddExpr::to_string() const
     return res;
 }
 
-NotExpr::NotExpr(ExprPtr expr) : m_expr(expr)
+uint64_t BoolConst::hash() const
 {
-    if (expr->size() != 1) {
-        err("NotExpr") << "the expression is not bool" << std::endl;
-        exit_fail();
-    }
+    if (m_is_true)
+        return 1;
+    return 0;
+}
+
+bool BoolConst::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+    auto other_ = std::static_pointer_cast<const BoolConst>(other);
+    return m_is_true == other_->m_is_true;
+}
+
+std::string BoolConst::to_string() const
+{
+    if (m_is_true)
+        return "true";
+    return "false";
 }
 
 uint64_t NotExpr::hash() const

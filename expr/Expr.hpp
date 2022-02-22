@@ -19,9 +19,11 @@ class Expr
     enum Kind {
         SYM,
         CONST,
+        BOOL_CONST,
         EXTRACT,
         CONCAT,
         ZEXT,
+        ITE,
 
         // arithmetic
         NEG,
@@ -41,7 +43,6 @@ class Expr
     };
 
     virtual const Kind kind() const = 0;
-    virtual size_t     size() const = 0;
 
     virtual uint64_t    hash() const            = 0;
     virtual bool        eq(ExprPtr other) const = 0;
@@ -51,7 +52,19 @@ class Expr
     friend class ExprBuilder;
 };
 
-class SymExpr final : public Expr
+class BVExpr : public Expr
+{
+  public:
+    virtual size_t size() const = 0;
+};
+typedef std::shared_ptr<const BVExpr> BVExprPtr;
+
+class BoolExpr : public Expr
+{
+};
+typedef std::shared_ptr<const BoolExpr> BoolExprPtr;
+
+class SymExpr final : public BVExpr
 {
   private:
     static const Kind ekind = Kind::SYM;
@@ -80,7 +93,7 @@ class SymExpr final : public Expr
 };
 typedef std::shared_ptr<const SymExpr> SymExprPtr;
 
-class ConstExpr final : public Expr
+class ConstExpr final : public BVExpr
 {
   private:
     static const Kind ekind = Kind::CONST;
@@ -110,17 +123,54 @@ class ConstExpr final : public Expr
 };
 typedef std::shared_ptr<const ConstExpr> ConstExprPtr;
 
-class ExtractExpr final : public Expr
+class ITEExpr final : public BVExpr
+{
+  private:
+    static const Kind ekind = Kind::ITE;
+
+    BoolExprPtr m_guard;
+    BVExprPtr   m_iftrue;
+    BVExprPtr   m_iffalse;
+    size_t      m_size;
+
+  protected:
+    ITEExpr(BoolExprPtr guard, BVExprPtr iftrue, BVExprPtr iffalse)
+        : m_guard(guard), m_iftrue(iftrue), m_iffalse(iffalse)
+    {
+        m_size = iftrue->size();
+    }
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return m_size; };
+    virtual ExprPtr    clone() const
+    {
+        return ExprPtr(new ITEExpr(m_guard, m_iftrue, m_iffalse));
+    }
+
+    virtual uint64_t    hash() const;
+    virtual bool        eq(ExprPtr other) const;
+    virtual std::string to_string() const;
+
+    BoolExprPtr guard() const { return m_guard; }
+    BVExprPtr   iftrue() const { return m_iftrue; }
+    BVExprPtr   iffalse() const { return m_iffalse; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const ITEExpr> ITEExprPtr;
+
+class ExtractExpr final : public BVExpr
 {
   private:
     static const Kind ekind = Kind::EXTRACT;
 
-    ExprPtr  m_expr;
-    uint32_t m_high;
-    uint32_t m_low;
+    BVExprPtr m_expr;
+    uint32_t  m_high;
+    uint32_t  m_low;
 
   protected:
-    ExtractExpr(ExprPtr expr, uint32_t high, uint32_t low)
+    ExtractExpr(BVExprPtr expr, uint32_t high, uint32_t low)
         : m_expr(expr), m_high(high), m_low(low)
     {
     }
@@ -137,25 +187,25 @@ class ExtractExpr final : public Expr
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
 
-    ExprPtr  expr() const { return m_expr; }
-    uint32_t high() const { return m_high; }
-    uint32_t low() const { return m_low; }
+    BVExprPtr expr() const { return m_expr; }
+    uint32_t  high() const { return m_high; }
+    uint32_t  low() const { return m_low; }
 
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const ExtractExpr> ExtractExprPtr;
 
-class ConcatExpr final : public Expr
+class ConcatExpr final : public BVExpr
 {
   private:
     static const Kind ekind = Kind::CONCAT;
 
-    ExprPtr m_lhs;
-    ExprPtr m_rhs;
-    size_t  m_size;
+    BVExprPtr m_lhs;
+    BVExprPtr m_rhs;
+    size_t    m_size;
 
   protected:
-    ConcatExpr(ExprPtr lhs, ExprPtr rhs)
+    ConcatExpr(BVExprPtr lhs, BVExprPtr rhs)
         : m_lhs(lhs), m_rhs(rhs), m_size(lhs->size() + rhs->size())
     {
     }
@@ -172,23 +222,23 @@ class ConcatExpr final : public Expr
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
 
-    ExprPtr lhs() const { return m_lhs; }
-    ExprPtr rhs() const { return m_rhs; }
+    BVExprPtr lhs() const { return m_lhs; }
+    BVExprPtr rhs() const { return m_rhs; }
 
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const ConcatExpr> ConcatExprPtr;
 
-class ZextExpr final : public Expr
+class ZextExpr final : public BVExpr
 {
   private:
     static const Kind ekind = Kind::ZEXT;
 
-    ExprPtr m_expr;
-    size_t  m_size;
+    BVExprPtr m_expr;
+    size_t    m_size;
 
   protected:
-    ZextExpr(ExprPtr expr, size_t size);
+    ZextExpr(BVExprPtr expr, size_t size);
 
   public:
     virtual const Kind kind() const { return ekind; };
@@ -202,22 +252,22 @@ class ZextExpr final : public Expr
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
 
-    ExprPtr expr() const { return m_expr; }
+    BVExprPtr expr() const { return m_expr; }
 
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const ZextExpr> ZextExprPtr;
 
-class NegExpr final : public Expr
+class NegExpr final : public BVExpr
 {
   private:
     static const Kind ekind = Kind::NEG;
 
-    ExprPtr m_expr;
-    size_t  m_size;
+    BVExprPtr m_expr;
+    size_t    m_size;
 
   protected:
-    NegExpr(ExprPtr expr) : m_expr(expr), m_size(m_expr->size()) {}
+    NegExpr(BVExprPtr expr) : m_expr(expr), m_size(m_expr->size()) {}
 
   public:
     virtual const Kind kind() const { return ekind; };
@@ -228,22 +278,22 @@ class NegExpr final : public Expr
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
 
-    ExprPtr expr() const { return m_expr; }
+    BVExprPtr expr() const { return m_expr; }
 
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const NegExpr> NegExprPtr;
 
-class AddExpr final : public Expr
+class AddExpr final : public BVExpr
 {
   private:
     static const Kind ekind = Kind::ADD;
 
-    std::vector<ExprPtr> m_children;
-    size_t               m_size;
+    std::vector<BVExprPtr> m_children;
+    size_t                 m_size;
 
   protected:
-    AddExpr(std::vector<ExprPtr> children)
+    AddExpr(std::vector<BVExprPtr> children)
         : m_children(children), m_size(children.at(0)->size())
     {
     }
@@ -257,51 +307,73 @@ class AddExpr final : public Expr
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
 
-    const std::vector<ExprPtr>& children() const { return m_children; }
+    const std::vector<BVExprPtr>& children() const { return m_children; }
 
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const AddExpr> AddExprPtr;
 
-class NotExpr final : public Expr
+class BoolConst final : public BoolExpr
+{
+  private:
+    static const Kind ekind = Kind::BOOL_CONST;
+
+    bool m_is_true;
+
+  public:
+    BoolConst(bool is_true) : m_is_true(is_true) {}
+    BoolConst(BoolConst& other) : m_is_true(other.m_is_true) {}
+
+    virtual const Kind kind() const { return ekind; };
+    virtual ExprPtr clone() const { return ExprPtr(new BoolConst(m_is_true)); }
+
+    virtual uint64_t    hash() const;
+    virtual bool        eq(ExprPtr other) const;
+    virtual std::string to_string() const;
+
+    bool is_true() const { return m_is_true; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const BoolConst> BoolConstPtr;
+
+class NotExpr final : public BoolExpr
 {
   private:
     static const Kind ekind = Kind::NOT;
 
-    ExprPtr m_expr;
+    BoolExprPtr m_expr;
 
   protected:
-    NotExpr(ExprPtr expr);
+    NotExpr(BoolExprPtr expr) : m_expr(expr) {}
 
   public:
     virtual const Kind kind() const { return ekind; };
-    virtual size_t     size() const { return 1; };
     virtual ExprPtr    clone() const { return ExprPtr(new NotExpr(m_expr)); }
 
     virtual uint64_t    hash() const;
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
 
-    ExprPtr expr() const { return m_expr; }
+    BoolExprPtr expr() const { return m_expr; }
 
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const NotExpr> NotExprPtr;
 
 #define GEN_BINARY_LOGICAL_EXPR_CLASS(NAME, NAME_SHARED, KIND)                 \
-    class NAME final : public Expr                                             \
+    class NAME final : public BoolExpr                                         \
     {                                                                          \
       private:                                                                 \
         static const Kind ekind = KIND;                                        \
-        ExprPtr           m_lhs;                                               \
-        ExprPtr           m_rhs;                                               \
+        BVExprPtr         m_lhs;                                               \
+        BVExprPtr         m_rhs;                                               \
                                                                                \
       protected:                                                               \
-        NAME(ExprPtr lhs, ExprPtr rhs) : m_lhs(lhs), m_rhs(rhs) {}             \
+        NAME(BVExprPtr lhs, BVExprPtr rhs) : m_lhs(lhs), m_rhs(rhs) {}         \
                                                                                \
       public:                                                                  \
         virtual const Kind kind() const { return ekind; };                     \
-        virtual size_t     size() const { return 1; };                         \
         virtual ExprPtr    clone() const                                       \
         {                                                                      \
             return ExprPtr(new NAME(m_lhs, m_rhs));                            \
@@ -309,8 +381,8 @@ typedef std::shared_ptr<const NotExpr> NotExprPtr;
         virtual uint64_t    hash() const;                                      \
         virtual bool        eq(ExprPtr other) const;                           \
         virtual std::string to_string() const;                                 \
-        ExprPtr             lhs() const { return m_lhs; }                      \
-        ExprPtr             rhs() const { return m_rhs; }                      \
+        BVExprPtr           lhs() const { return m_lhs; }                      \
+        BVExprPtr           rhs() const { return m_rhs; }                      \
         friend class ExprBuilder;                                              \
     };                                                                         \
     typedef std::shared_ptr<const NAME> NAME_SHARED;
