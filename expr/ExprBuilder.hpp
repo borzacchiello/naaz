@@ -15,6 +15,8 @@ class ExprBuilder
 
     ExprPtr get_or_create(const Expr& e);
 
+    ExprBuilder() {}
+
   public:
     static ExprBuilder& The()
     {
@@ -52,8 +54,9 @@ class ExprBuilder
     BoolExprPtr mk_eq(BVExprPtr lhs, BVExprPtr rhs);
 
     // util
-    BVExprPtr sign_bit(BVExprPtr expr);
-    BVExprPtr bool_to_bv(BoolExprPtr expr);
+    BVExprPtr   sign_bit(BVExprPtr expr);
+    BVExprPtr   bool_to_bv(BoolExprPtr expr);
+    BoolExprPtr bv_to_bool(BVExprPtr expr);
 };
 
 } // namespace naaz::expr

@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
+#include <z3++.h>
 
 namespace naaz::expr
 {
@@ -44,10 +45,11 @@ class Expr
 
     virtual const Kind kind() const = 0;
 
-    virtual uint64_t    hash() const            = 0;
-    virtual bool        eq(ExprPtr other) const = 0;
-    virtual ExprPtr     clone() const           = 0;
-    virtual std::string to_string() const       = 0;
+    virtual uint64_t    hash() const                  = 0;
+    virtual bool        eq(ExprPtr other) const       = 0;
+    virtual ExprPtr     clone() const                 = 0;
+    virtual std::string to_string() const             = 0;
+    virtual z3::expr    to_z3(z3::context& ctx) const = 0;
 
     friend class ExprBuilder;
 };
@@ -86,6 +88,7 @@ class SymExpr final : public BVExpr
     virtual uint64_t    hash() const;
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
+    virtual z3::expr    to_z3(z3::context& ctx) const;
 
     const std::string& name() const { return m_name; }
 
@@ -115,6 +118,7 @@ class ConstExpr final : public BVExpr
     virtual uint64_t    hash() const;
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
+    virtual z3::expr    to_z3(z3::context& ctx) const;
 
     __uint128_t val() const { return m_val; }
     __int128_t  sval() const;
@@ -151,6 +155,7 @@ class ITEExpr final : public BVExpr
     virtual uint64_t    hash() const;
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
+    virtual z3::expr    to_z3(z3::context& ctx) const;
 
     BoolExprPtr guard() const { return m_guard; }
     BVExprPtr   iftrue() const { return m_iftrue; }
@@ -186,6 +191,7 @@ class ExtractExpr final : public BVExpr
     virtual uint64_t    hash() const;
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
+    virtual z3::expr    to_z3(z3::context& ctx) const;
 
     BVExprPtr expr() const { return m_expr; }
     uint32_t  high() const { return m_high; }
@@ -221,6 +227,7 @@ class ConcatExpr final : public BVExpr
     virtual uint64_t    hash() const;
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
+    virtual z3::expr    to_z3(z3::context& ctx) const;
 
     BVExprPtr lhs() const { return m_lhs; }
     BVExprPtr rhs() const { return m_rhs; }
@@ -251,6 +258,7 @@ class ZextExpr final : public BVExpr
     virtual uint64_t    hash() const;
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
+    virtual z3::expr    to_z3(z3::context& ctx) const;
 
     BVExprPtr expr() const { return m_expr; }
 
@@ -277,6 +285,7 @@ class NegExpr final : public BVExpr
     virtual uint64_t    hash() const;
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
+    virtual z3::expr    to_z3(z3::context& ctx) const;
 
     BVExprPtr expr() const { return m_expr; }
 
@@ -306,6 +315,7 @@ class AddExpr final : public BVExpr
     virtual uint64_t    hash() const;
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
+    virtual z3::expr    to_z3(z3::context& ctx) const;
 
     const std::vector<BVExprPtr>& children() const { return m_children; }
 
@@ -342,6 +352,7 @@ class BoolConst final : public BoolExpr
     virtual uint64_t    hash() const;
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
+    virtual z3::expr    to_z3(z3::context& ctx) const;
 
     bool is_true() const { return m_is_true; }
 
@@ -366,6 +377,7 @@ class NotExpr final : public BoolExpr
     virtual uint64_t    hash() const;
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
+    virtual z3::expr    to_z3(z3::context& ctx) const;
 
     BoolExprPtr expr() const { return m_expr; }
 
@@ -393,6 +405,7 @@ typedef std::shared_ptr<const NotExpr> NotExprPtr;
         virtual uint64_t    hash() const;                                      \
         virtual bool        eq(ExprPtr other) const;                           \
         virtual std::string to_string() const;                                 \
+        virtual z3::expr    to_z3(z3::context& ctx) const;                     \
         BVExprPtr           lhs() const { return m_lhs; }                      \
         BVExprPtr           rhs() const { return m_rhs; }                      \
         friend class ExprBuilder;                                              \

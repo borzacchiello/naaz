@@ -63,15 +63,9 @@ static inline __uint128_t bitmask(uint32_t n)
     return ((__uint128_t)2 << (__uint128_t)(n - 1)) - (__uint128_t)1;
 }
 
-BoolConstPtr ExprBuilder::mk_true()
-{
-    return BoolConst::true_expr();
-}
+BoolConstPtr ExprBuilder::mk_true() { return BoolConst::true_expr(); }
 
-BoolConstPtr ExprBuilder::mk_false()
-{
-    return BoolConst::false_expr();
-}
+BoolConstPtr ExprBuilder::mk_false() { return BoolConst::false_expr(); }
 
 SymExprPtr ExprBuilder::mk_sym(const std::string& name, size_t size)
 {
@@ -427,6 +421,11 @@ BVExprPtr ExprBuilder::sign_bit(BVExprPtr expr)
 BVExprPtr ExprBuilder::bool_to_bv(BoolExprPtr expr)
 {
     return mk_ite(expr, mk_const(1, 1), mk_const(0, 1));
+}
+
+BoolExprPtr ExprBuilder::bv_to_bool(BVExprPtr expr)
+{
+    return mk_not(mk_eq(expr, mk_const(0, expr->size())));
 }
 
 } // namespace naaz::expr
