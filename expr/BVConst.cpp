@@ -442,6 +442,76 @@ void BVConst::extract(uint32_t high, uint32_t low)
     }
 }
 
+bool BVConst::eq(const BVConst& other) const
+{
+    check_size_or_die(*this, other);
+
+    if (!is_big())
+        return m_small_val == other.m_small_val;
+
+    return mpz_cmp(m_big_val.get_mpz_t(), other.m_big_val.get_mpz_t()) == 0;
+}
+
+bool BVConst::ult(const BVConst& other) const
+{
+    check_size_or_die(*this, other);
+
+    if (!is_big())
+        return m_small_val < other.m_small_val;
+
+    // Compare the absolute values of op1 and op2. Return a positive value if
+    // abs(op1) > abs(op2), zero if abs(op1) = abs(op2), or a negative value if
+    // abs(op1) < abs(op2).
+    return mpz_cmpabs(m_big_val.get_mpz_t(), other.m_big_val.get_mpz_t()) < 0;
+}
+
+bool BVConst::ule(const BVConst& other) const
+{
+    return eq(other) || ult(other);
+}
+
+bool BVConst::ugt(const BVConst& other) const { return !ule(other); }
+
+bool BVConst::uge(const BVConst& other) const { return !ult(other); }
+
+bool BVConst::slt(const BVConst& other) const
+{
+    check_size_or_die(*this, other);
+
+    if (!is_big()) {
+        return _sext(m_small_val, m_size) < _sext(other.m_small_val, m_size);
+    }
+
+    if (mpz_tstbit(m_big_val.get_mpz_t(), m_size - 1)) {
+        if (mpz_tstbit(other.m_big_val.get_mpz_t(), m_size - 1)) {
+            // both negative: return if this has the lowest absolute value
+            // (2-complement!)
+            return mpz_cmpabs(m_big_val.get_mpz_t(),
+                              other.m_big_val.get_mpz_t()) < 0;
+        } else {
+            // this negative, other positive
+            return true;
+        }
+    } else {
+        if (mpz_tstbit(other.m_big_val.get_mpz_t(), m_size - 1)) {
+            // this positive, other negative
+            return true;
+        } else {
+            // both positive: return if this has the lowest absolute value
+            return mpz_cmpabs(m_big_val.get_mpz_t(),
+                              other.m_big_val.get_mpz_t()) < 0;
+        }
+    }
+}
+
+bool BVConst::sle(const BVConst& other) const
+{
+    return eq(other) || slt(other);
+}
+
+bool BVConst::sgt(const BVConst& other) const { return !sle(other); }
+bool BVConst::sge(const BVConst& other) const { return !slt(other); }
+
 std::ostream& operator<<(std::ostream& os, const BVConst& c)
 {
     return os << c.to_string();

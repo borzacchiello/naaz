@@ -59,6 +59,15 @@ class BVConst
     void shl(uint32_t v);
 
     // comparison
+    bool eq(const BVConst& other) const;
+    bool ult(const BVConst& other) const;
+    bool ule(const BVConst& other) const;
+    bool ugt(const BVConst& other) const;
+    bool uge(const BVConst& other) const;
+    bool slt(const BVConst& other) const;
+    bool sle(const BVConst& other) const;
+    bool sgt(const BVConst& other) const;
+    bool sge(const BVConst& other) const;
 
     std::string to_string(bool hex = false) const;
 

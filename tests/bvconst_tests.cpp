@@ -246,3 +246,68 @@ TEST_CASE("IntConst as_data 1", "[intconst]")
 
     REQUIRE(memcmp(data.data(), "\xaa\xbb\xcc\xdd", data.size()) == 0);
 }
+
+TEST_CASE("IntConst comparisons 1", "[intconst]")
+{
+    BVConst c1(0xffUL, 8);
+    BVConst c2(0x01UL, 8);
+
+    REQUIRE(c1.ugt(c2));
+    REQUIRE(c1.slt(c2));
+    REQUIRE(!c1.eq(c2));
+}
+
+TEST_CASE("IntConst comparisons 2", "[intconst]")
+{
+    BVConst c1(0xffUL, 8);
+    BVConst c2(0xfeUL, 8);
+
+    REQUIRE(c1.ugt(c2));
+    REQUIRE(c1.sgt(c2));
+    REQUIRE(!c1.eq(c2));
+}
+
+TEST_CASE("IntConst comparisons 3", "[intconst]")
+{
+    BVConst c1(0x10UL, 8);
+    BVConst c2(0x20UL, 8);
+
+    REQUIRE(c1.ult(c2));
+    REQUIRE(c1.slt(c2));
+    REQUIRE(!c1.eq(c2));
+}
+
+TEST_CASE("IntConst comparisons 4", "[intconst]")
+{
+    BVConst c1(0xffUL, 8);
+    c1.sext(128);
+
+    BVConst c2(0x01UL, 128);
+
+    REQUIRE(c1.ugt(c2));
+    REQUIRE(c1.slt(c2));
+    REQUIRE(!c1.eq(c2));
+}
+
+TEST_CASE("IntConst comparisons 5", "[intconst]")
+{
+    BVConst c1(0xffUL, 8);
+    c1.sext(128);
+
+    BVConst c2(0xfeUL, 8);
+    c2.sext(128);
+
+    REQUIRE(c1.ugt(c2));
+    REQUIRE(c1.sgt(c2));
+    REQUIRE(!c1.eq(c2));
+}
+
+TEST_CASE("IntConst comparisons 6", "[intconst]")
+{
+    BVConst c1(0x10UL, 128);
+    BVConst c2(0x20UL, 128);
+
+    REQUIRE(c1.ult(c2));
+    REQUIRE(c1.slt(c2));
+    REQUIRE(!c1.eq(c2));
+}
