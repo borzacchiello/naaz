@@ -66,6 +66,31 @@ function fetch_and_build_libbfd {
     popd
 }
 
+function fetch_and_build_libgmp {
+    version=6.1.2
+    if [ ! -d "$SCRIPTPATH/gmp" ]; then
+        pushd "$SCRIPTPATH" || exit 1
+        wget https://gmplib.org/download/gmp/gmp-$version.tar.xz || exit 1
+        tar -xf gmp-$version.tar.xz || exit 1
+        mv ./gmp-$version ./gmp || exit 1
+        rm gmp-$version.tar.xz || exit 1
+        popd
+    fi
+
+    pushd "$SCRIPTPATH/gmp" || exit 1
+    CFLAGS="-fPIC -O3" ./configure || exit 1
+    make -j`nproc` || exit 1
+    popd
+
+    [ -d "$SCRIPTPATH/gmp/build" ] || \
+        mkdir "$SCRIPTPATH/gmp/build"
+
+    pushd "$SCRIPTPATH/gmp/build"
+    cp "`pwd`/../.libs/libgmp.a" . || exit 1
+    popd
+}
+
 build_sleigh
 build_pugixml
 fetch_and_build_libbfd
+fetch_and_build_libgmp

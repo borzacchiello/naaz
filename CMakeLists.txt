@@ -14,11 +14,16 @@ link_directories ( ${CMAKE_SOURCE_DIR}/third_party/pugixml/build )
 include_directories ( ${CMAKE_SOURCE_DIR}/third_party/binutils/bfd )
 link_directories ( ${CMAKE_SOURCE_DIR}/third_party/binutils/build )
 
+# libgmp
+include_directories ( ${CMAKE_SOURCE_DIR}/third_party/gmp )
+link_directories ( ${CMAKE_SOURCE_DIR}/third_party/gmp/build )
+
 set ( CMAKE_CXX_STANDARD 20 )
 
 set ( naaz_src
     util/ioutil.cpp
     util/strutil.cpp
+    expr/BVConst.cpp
     expr/Expr.cpp
     expr/ExprBuilder.cpp
     state/MapMemory.cpp
@@ -54,6 +59,9 @@ target_link_libraries ( libnaaz_static LINK_PUBLIC pugixml )
 
 target_link_libraries ( libnaaz_shared LINK_PUBLIC z3 )
 target_link_libraries ( libnaaz_static LINK_PUBLIC z3 )
+
+target_link_libraries ( libnaaz_shared LINK_PUBLIC gmp )
+target_link_libraries ( libnaaz_static LINK_PUBLIC gmp )
 
 set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined" )
 set ( CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined" )
