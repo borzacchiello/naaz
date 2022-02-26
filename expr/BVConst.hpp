@@ -36,7 +36,8 @@ class BVConst
 
     ~BVConst();
 
-    ssize_t size() const { return m_size; }
+    ssize_t  size() const { return m_size; }
+    uint64_t hash() const;
 
     uint64_t             as_u64() const;
     int64_t              as_s64() const;
@@ -54,6 +55,20 @@ class BVConst
     // arithmetic
     void add(const BVConst& other);
     void sub(const BVConst& other);
+    void mul(const BVConst& other);
+    void umul(const BVConst& other);
+    void smul(const BVConst& other);
+    void sdiv(const BVConst& other);
+    void udiv(const BVConst& other);
+    void srem(const BVConst& other);
+    void urem(const BVConst& other);
+    void neg();
+
+    void band(const BVConst& other);
+    void bor(const BVConst& other);
+    void bxor(const BVConst& other);
+    void bnot();
+
     void ashr(uint32_t v);
     void lshr(uint32_t v);
     void shl(uint32_t v);

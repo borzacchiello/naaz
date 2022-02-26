@@ -4,6 +4,7 @@
 #include "BVConst.hpp"
 #include "../util/ioutil.hpp"
 
+#include "../third_party/xxHash/xxh3.h"
 #include "gmpxx.h"
 
 namespace naaz::expr
@@ -25,6 +26,7 @@ BVConst::BVConst(uint64_t value, ssize_t size) : m_size(size)
     } else {
         m_big_val = mpz_class(value);
     }
+    adjust_bits();
 }
 
 BVConst::BVConst(const std::string& value, ssize_t size) : m_size(size)
@@ -51,6 +53,7 @@ BVConst::BVConst(const std::string& value, ssize_t size) : m_size(size)
     } else {
         m_big_val = mpz_class(num, base);
     }
+    adjust_bits();
 }
 
 BVConst::BVConst(const BVConst& other) : m_size(other.m_size)
@@ -87,9 +90,19 @@ BVConst::BVConst(const uint8_t* data, ssize_t size, Endianess end)
             }
         }
     }
+    adjust_bits();
 }
 
 BVConst::~BVConst() {}
+
+uint64_t BVConst::hash() const
+{
+    if (!is_big())
+        return m_small_val;
+
+    std::vector<uint8_t> data = as_data();
+    return XXH3_64bits(data.data(), data.size());
+}
 
 void BVConst::check_size_or_die(const BVConst& lhs, const BVConst& rhs) const
 {
@@ -113,6 +126,18 @@ static inline int64_t _sext(uint64_t v, ssize_t size)
     return res;
 }
 
+static inline mpz_class _mpz_as_signed(const mpz_class& val, ssize_t size)
+{
+    if (mpz_tstbit(val.get_mpz_t(), size - 1) == 0)
+        return mpz_class(val);
+
+    mpz_class res(0);
+    mpz_setbit(res.get_mpz_t(), size);
+    res -= val;
+    res = -res;
+    return res;
+}
+
 static inline uint64_t _bitmask(ssize_t size)
 {
     if (size > 64) {
@@ -131,20 +156,23 @@ void BVConst::adjust_bits()
 
     if (!is_big()) {
         m_small_val &= _bitmask(m_size);
-    } else if (mpz_sizeinbase(m_big_val.get_mpz_t(), 2) > m_size) {
-        mpz_t tmp;
-        mpz_init_set_ui(tmp, 0);
-        for (uint32_t i = 0; i < m_size; ++i) {
-            if (mpz_tstbit(m_big_val.get_mpz_t(), i))
-                mpz_setbit(tmp, i);
-            else
-                mpz_clrbit(tmp, i);
-        }
-        mpz_set(m_big_val.get_mpz_t(), tmp);
-        mpz_clear(tmp);
+    } else {
+        mpz_clrbit(m_big_val.get_mpz_t(), m_size); // make it unsigned
 
-        assert(mpz_sizeinbase(m_big_val.get_mpz_t(), 2) <= m_size &&
-               "adjust_bits(): bits not truncated correctly");
+        if (mpz_sizeinbase(m_big_val.get_mpz_t(), 2) > m_size) {
+            mpz_class tmp(0);
+            for (uint32_t i = 0; i < m_size; ++i) {
+                if (mpz_tstbit(m_big_val.get_mpz_t(), i))
+                    mpz_setbit(tmp.get_mpz_t(), i);
+                else
+                    mpz_clrbit(tmp.get_mpz_t(), i);
+            }
+            mpz_clrbit(tmp.get_mpz_t(), m_size); // make it unsigned
+            m_big_val = tmp;
+
+            assert(mpz_sizeinbase(m_big_val.get_mpz_t(), 2) <= m_size &&
+                   "adjust_bits(): bits not truncated correctly");
+        }
     }
 }
 
@@ -249,6 +277,168 @@ void BVConst::sub(const BVConst& other)
         m_small_val -= other.m_small_val;
     } else {
         m_big_val -= other.m_big_val;
+    }
+
+    adjust_bits();
+}
+
+void BVConst::mul(const BVConst& other)
+{
+    check_size_or_die(*this, other);
+
+    if (!is_big()) {
+        m_small_val *= other.m_small_val;
+    } else {
+        m_big_val *= other.m_big_val;
+    }
+
+    adjust_bits();
+}
+
+void BVConst::umul(const BVConst& other)
+{
+    check_size_or_die(*this, other);
+
+    ssize_t new_size = m_size * 2;
+    if (new_size <= 64) {
+        m_small_val *= other.m_small_val;
+    } else {
+        m_big_val *= other.m_big_val;
+    }
+    m_size = new_size;
+    adjust_bits();
+}
+
+void BVConst::smul(const BVConst& other)
+{
+    check_size_or_die(*this, other);
+
+    ssize_t new_size = m_size * 2;
+    if (new_size <= 64) {
+        m_small_val = (uint64_t)(_sext(m_small_val, m_size) *
+                                 _sext(other.m_small_val, m_size));
+    } else {
+        mpz_class lhs_signed = _mpz_as_signed(as_mpz(), m_size);
+        mpz_class rhs_signed = _mpz_as_signed(other.as_mpz(), m_size);
+
+        m_big_val = lhs_signed * rhs_signed;
+    }
+    m_size = new_size;
+    adjust_bits();
+}
+
+void BVConst::udiv(const BVConst& other)
+{
+    check_size_or_die(*this, other);
+
+    if (!is_big()) {
+        m_small_val /= other.m_small_val;
+    } else {
+        m_big_val /= other.m_big_val;
+    }
+
+    adjust_bits();
+}
+
+void BVConst::sdiv(const BVConst& other)
+{
+    check_size_or_die(*this, other);
+
+    if (m_size <= 64) {
+        m_small_val = (uint64_t)(_sext(m_small_val, m_size) /
+                                 _sext(other.m_small_val, m_size));
+    } else {
+        mpz_class lhs_signed = _mpz_as_signed(m_big_val, m_size);
+        mpz_class rhs_signed = _mpz_as_signed(other.m_big_val, m_size);
+        m_big_val            = lhs_signed / rhs_signed;
+    }
+    adjust_bits();
+}
+
+void BVConst::urem(const BVConst& other)
+{
+    check_size_or_die(*this, other);
+
+    if (!is_big()) {
+        m_small_val %= other.m_small_val;
+    } else {
+        m_big_val %= other.m_big_val;
+    }
+
+    adjust_bits();
+}
+
+void BVConst::srem(const BVConst& other)
+{
+    check_size_or_die(*this, other);
+
+    if (m_size <= 64) {
+        m_small_val = (uint64_t)(_sext(m_small_val, m_size) %
+                                 _sext(other.m_small_val, m_size));
+    } else {
+        mpz_class lhs_signed = _mpz_as_signed(m_big_val, m_size);
+        mpz_class rhs_signed = _mpz_as_signed(other.m_big_val, m_size);
+        m_big_val            = lhs_signed % rhs_signed;
+    }
+    adjust_bits();
+}
+
+void BVConst::neg()
+{
+    if (m_size <= 64) {
+        m_small_val = (uint64_t)(-_sext(m_small_val, m_size));
+    } else {
+        mpz_class signed_mpz = _mpz_as_signed(m_big_val, m_size);
+        m_big_val            = -signed_mpz;
+    }
+    adjust_bits();
+}
+
+void BVConst::band(const BVConst& other)
+{
+    check_size_or_die(*this, other);
+
+    if (!is_big()) {
+        m_small_val &= other.m_small_val;
+    } else {
+        m_big_val &= other.m_big_val;
+    }
+
+    adjust_bits();
+}
+
+void BVConst::bor(const BVConst& other)
+{
+    check_size_or_die(*this, other);
+
+    if (!is_big()) {
+        m_small_val |= other.m_small_val;
+    } else {
+        m_big_val |= other.m_big_val;
+    }
+
+    adjust_bits();
+}
+
+void BVConst::bxor(const BVConst& other)
+{
+    check_size_or_die(*this, other);
+
+    if (!is_big()) {
+        m_small_val ^= other.m_small_val;
+    } else {
+        m_big_val ^= other.m_big_val;
+    }
+
+    adjust_bits();
+}
+
+void BVConst::bnot()
+{
+    if (!is_big()) {
+        m_small_val = ~m_small_val;
+    } else {
+        m_big_val = ~m_big_val;
     }
 
     adjust_bits();

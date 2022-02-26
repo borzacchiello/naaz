@@ -55,6 +55,22 @@ TEST_CASE("IntConst constuctor 4", "[intconst]")
             "a5910a2cf2cc6f22709e899b4d91b1820d6a8427ab73afaaed8a");
 }
 
+TEST_CASE("IntConst hash 1", "[intconst]")
+{
+    BVConst c1(1231, 256);
+    BVConst c2(1231, 256);
+
+    REQUIRE(c1.hash() == c2.hash());
+}
+
+TEST_CASE("IntConst hash 2", "[intconst]")
+{
+    BVConst c1(1231, 32);
+    BVConst c2(1231, 32);
+
+    REQUIRE(c1.hash() == c2.hash());
+}
+
 TEST_CASE("IntConst add 1", "[intconst]")
 {
     BVConst c1(10, 256);
@@ -71,6 +87,300 @@ TEST_CASE("IntConst sub 1", "[intconst]")
 
     c2.sub(c1);
     REQUIRE(c2.to_string().compare("1221") == 0);
+}
+
+TEST_CASE("IntConst sub 2", "[intconst]")
+{
+    BVConst c1(20, 128);
+    BVConst c2(10, 128);
+
+    c2.sub(c1);
+
+    REQUIRE(c2.to_string(true).compare("0xfffffffffffffffffffffffffffffff6") ==
+            0);
+}
+
+TEST_CASE("IntConst mul 1", "[intconst]")
+{
+    BVConst c1(20, 32);
+    BVConst c2(10, 32);
+
+    c2.mul(c1);
+
+    REQUIRE(c2.size() == 32);
+    REQUIRE(c2.as_u64() == 200);
+}
+
+TEST_CASE("IntConst mul 2", "[intconst]")
+{
+    BVConst c1(-2, 32);
+    BVConst c2(10, 32);
+
+    c2.mul(c1);
+
+    REQUIRE(c2.size() == 32);
+    REQUIRE(c2.as_s64() == -20);
+}
+
+TEST_CASE("IntConst mul 3", "[intconst]")
+{
+    BVConst c1(20, 128);
+    BVConst c2(10, 128);
+
+    c2.mul(c1);
+
+    REQUIRE(c2.size() == 128);
+    REQUIRE(c2.to_string() == "200");
+}
+
+TEST_CASE("IntConst mul 4", "[intconst]")
+{
+    BVConst c1("-2", 128);
+    BVConst c2(10, 128);
+
+    c2.mul(c1);
+
+    REQUIRE(c2.size() == 128);
+    REQUIRE(c2.to_string(true) == "0xffffffffffffffffffffffffffffffec");
+}
+
+TEST_CASE("IntConst umul 1", "[intconst]")
+{
+    BVConst c1(255, 8);
+    BVConst c2(10, 8);
+
+    c2.umul(c1);
+
+    REQUIRE(c2.size() == 16);
+    REQUIRE(c2.as_u64() == 2550);
+}
+
+TEST_CASE("IntConst umul 2", "[intconst]")
+{
+    BVConst c1("38109840912840912312231", 128);
+    BVConst c2("12948192849128399182938", 128);
+
+    c2.umul(c1);
+
+    REQUIRE(c2.size() == 256);
+    REQUIRE(c2.to_string() == "493453569589067605510971426649387964743914678");
+}
+
+TEST_CASE("IntConst smul 1", "[intconst]")
+{
+    BVConst c1(50, 8);
+    BVConst c2(-127, 8);
+
+    c2.smul(c1);
+
+    REQUIRE(c2.size() == 16);
+    REQUIRE(c2.as_u64() == 59186);
+}
+
+TEST_CASE("IntConst smul 2", "[intconst]")
+{
+    BVConst c1("50", 128);
+    BVConst c2("-127", 128);
+
+    c2.smul(c1);
+
+    REQUIRE(c2.size() == 256);
+    REQUIRE(
+        c2.to_string(true) ==
+        "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe732");
+}
+
+TEST_CASE("IntConst udiv 1", "[intconst]")
+{
+    BVConst c1(50, 8);
+    BVConst c2(15, 8);
+
+    c1.udiv(c2);
+
+    REQUIRE(c1.as_u64() == 3);
+}
+
+TEST_CASE("IntConst udiv 2", "[intconst]")
+{
+    BVConst c1(50, 128);
+    BVConst c2(15, 128);
+
+    c1.udiv(c2);
+
+    REQUIRE(c1.to_string() == "3");
+}
+
+TEST_CASE("IntConst sdiv 1", "[intconst]")
+{
+    BVConst c1(-50, 8);
+    BVConst c2(15, 8);
+
+    c1.sdiv(c2);
+
+    REQUIRE(c1.as_s64() == -3);
+}
+
+TEST_CASE("IntConst sdiv 2", "[intconst]")
+{
+    BVConst c1("-50", 128);
+    BVConst c2(15, 128);
+
+    c1.sdiv(c2);
+
+    REQUIRE(c1.size() == 128);
+    REQUIRE(c1.to_string(true) == "0xfffffffffffffffffffffffffffffffd");
+}
+
+TEST_CASE("IntConst urem 1", "[intconst]")
+{
+    BVConst c1(50, 8);
+    BVConst c2(15, 8);
+
+    c1.urem(c2);
+
+    REQUIRE(c1.as_u64() == 5);
+}
+
+TEST_CASE("IntConst urem 2", "[intconst]")
+{
+    BVConst c1(50, 128);
+    BVConst c2(15, 128);
+
+    c1.urem(c2);
+
+    REQUIRE(c1.to_string() == "5");
+}
+
+TEST_CASE("IntConst srem 1", "[intconst]")
+{
+    BVConst c1(-50, 8);
+    BVConst c2(15, 8);
+
+    c1.srem(c2);
+
+    REQUIRE(c1.as_s64() == -5);
+}
+
+TEST_CASE("IntConst srem 2", "[intconst]")
+{
+    BVConst c1("-50", 128);
+    BVConst c2(15, 128);
+
+    c1.srem(c2);
+
+    REQUIRE(c1.to_string(true) == "0xfffffffffffffffffffffffffffffffb");
+}
+
+TEST_CASE("IntConst neg 1", "[intconst]")
+{
+    BVConst c(10, 32);
+    c.neg();
+
+    REQUIRE(c.as_s64() == -10);
+}
+
+TEST_CASE("IntConst neg 2", "[intconst]")
+{
+    BVConst c(10, 128);
+    c.neg();
+
+    REQUIRE(c.to_string(true) == "0xfffffffffffffffffffffffffffffff6");
+}
+
+TEST_CASE("IntConst neg 3", "[intconst]")
+{
+    BVConst c(-10, 32);
+    c.neg();
+
+    REQUIRE(c.as_u64() == 10);
+}
+
+TEST_CASE("IntConst neg 4", "[intconst]")
+{
+    BVConst c("-10", 128);
+    c.neg();
+
+    REQUIRE(c.to_string() == "10");
+}
+
+TEST_CASE("IntConst band 1", "[intconst]")
+{
+    BVConst c1(0xaaaaaa, 32);
+    BVConst c2(0xbbbbbb, 32);
+
+    c1.band(c2);
+    REQUIRE(c1.as_u64() == 0xaaaaaa);
+}
+
+TEST_CASE("IntConst band 2", "[intconst]")
+{
+    BVConst c1(0xaaaaaa, 256);
+    BVConst c2(0xbbbbbb, 256);
+
+    c1.band(c2);
+    REQUIRE(c1.to_string(true) == "0xaaaaaa");
+}
+
+TEST_CASE("IntConst bor 1", "[intconst]")
+{
+    BVConst c1(0xa0a0a0, 32);
+    BVConst c2(0x0b0b0b, 32);
+
+    c1.bor(c2);
+    REQUIRE(c1.as_u64() == 0xababab);
+}
+
+TEST_CASE("IntConst bor 2", "[intconst]")
+{
+    BVConst c1(0xa0a0a0, 256);
+    BVConst c2(0x0b0b0b, 256);
+
+    c1.bor(c2);
+    REQUIRE(c1.to_string(true) == "0xababab");
+}
+
+TEST_CASE("IntConst bxor 1", "[intconst]")
+{
+    BVConst c1(0xaaaaaa, 32);
+    BVConst c2(0xbbbbbb, 32);
+
+    c1.bxor(c2);
+    REQUIRE(c1.as_u64() == 0x111111);
+}
+
+TEST_CASE("IntConst bxor 2", "[intconst]")
+{
+    BVConst c1(0xaaaaaa, 256);
+    BVConst c2(0xbbbbbb, 256);
+
+    c1.bxor(c2);
+    REQUIRE(c1.to_string(true) == "0x111111");
+}
+
+TEST_CASE("IntConst bnot 1", "[intconst]")
+{
+    BVConst c(0xaaaaaa, 32);
+    c.bnot();
+
+    REQUIRE(c.as_u64() == 0xff555555);
+}
+
+TEST_CASE("IntConst bnot 2", "[intconst]")
+{
+    BVConst c(0xaaaaaa, 256);
+    c.bnot();
+
+    REQUIRE(
+        c.to_string(true) ==
+        "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffff555555");
+}
+
+TEST_CASE("IntConst bnot 3", "[intconst]")
+{
+    BVConst c("-10", 128);
+    c.bnot();
+
+    REQUIRE(c.to_string() == "9");
 }
 
 TEST_CASE("IntConst shl 1", "[intconst]")
