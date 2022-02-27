@@ -55,6 +55,8 @@ class ExprBuilder
     BoolExprPtr mk_sge(BVExprPtr lhs, BVExprPtr rhs);
     BoolExprPtr mk_eq(BVExprPtr lhs, BVExprPtr rhs);
 
+    BoolExprPtr mk_bool_and(BoolExprPtr e1, BoolExprPtr e2);
+
     // util
     BVExprPtr   sign_bit(BVExprPtr expr);
     BVExprPtr   bool_to_bv(BoolExprPtr expr);

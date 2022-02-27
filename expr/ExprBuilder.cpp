@@ -237,7 +237,7 @@ BVExprPtr ExprBuilder::mk_add(BVExprPtr lhs, BVExprPtr rhs)
     // flatten args
     if (lhs->kind() == Expr::Kind::ADD) {
         auto lhs_ = std::static_pointer_cast<const AddExpr>(lhs);
-        for (const auto& child : lhs_->children())
+        for (const auto& child : lhs_->addends())
             addends.push_back(child);
     } else {
         addends.push_back(lhs);
@@ -245,7 +245,7 @@ BVExprPtr ExprBuilder::mk_add(BVExprPtr lhs, BVExprPtr rhs)
 
     if (rhs->kind() == Expr::Kind::ADD) {
         auto rhs_ = std::static_pointer_cast<const AddExpr>(rhs);
-        for (const auto& child : rhs_->children())
+        for (const auto& child : rhs_->addends())
             addends.push_back(child);
     } else {
         addends.push_back(rhs);
@@ -273,7 +273,8 @@ BVExprPtr ExprBuilder::mk_add(BVExprPtr lhs, BVExprPtr rhs)
     if (!concrete_val.is_zero())
         children.push_back(mk_const(concrete_val));
 
-    // sort children by address
+    // sort children by address (commutative! We are trying to reduce the
+    // number of equivalent expressions)
     std::sort(children.begin(), children.end());
 
     AddExpr e(children);
@@ -440,6 +441,54 @@ BoolExprPtr ExprBuilder::mk_eq(BVExprPtr lhs, BVExprPtr rhs)
     }
 
     EqExpr e(lhs, rhs);
+    return std::static_pointer_cast<const BoolExpr>(get_or_create(e));
+}
+
+BoolExprPtr ExprBuilder::mk_bool_and(BoolExprPtr e1, BoolExprPtr e2)
+{
+    std::set<BoolExprPtr> exprs;
+
+    // flatten args
+    if (e1->kind() == Expr::Kind::BOOL_AND) {
+        auto e1_ = std::static_pointer_cast<const BoolAndExpr>(e1);
+        for (const auto& e : e1_->exprs())
+            exprs.insert(e);
+    } else {
+        exprs.insert(e1);
+    }
+
+    if (e2->kind() == Expr::Kind::BOOL_AND) {
+        auto e2_ = std::static_pointer_cast<const BoolAndExpr>(e2);
+        for (const auto& e : e2_->exprs())
+            exprs.insert(e);
+    } else {
+        exprs.insert(e2);
+    }
+
+    std::vector<BoolExprPtr> actual_exprs;
+
+    // constant propagation
+    for (auto e : exprs) {
+        if (e->kind() == Expr::Kind::BOOL_CONST) {
+            auto e_ = std::static_pointer_cast<const BoolConst>(e);
+            if (!e_->is_true())
+                return mk_false();
+        } else {
+            actual_exprs.push_back(e);
+        }
+    }
+
+    if (actual_exprs.size() == 0)
+        return mk_true();
+
+    if (actual_exprs.size() == 1)
+        return actual_exprs.back();
+
+    // sort actual_exprs by address (commutative! We are trying to reduce the
+    // number of equivalent expressions)
+    std::sort(actual_exprs.begin(), actual_exprs.end());
+
+    BoolAndExpr e(actual_exprs);
     return std::static_pointer_cast<const BoolExpr>(get_or_create(e));
 }
 

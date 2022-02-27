@@ -376,6 +376,55 @@ std::string NotExpr::to_string() const
 
 z3::expr NotExpr::to_z3(z3::context& ctx) const { return !m_expr->to_z3(ctx); }
 
+uint64_t BoolAndExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    for (const auto& child : m_exprs) {
+        void* raw_child = (void*)child.get();
+        XXH64_update(&state, raw_child, sizeof(void*));
+    }
+    return XXH64_digest(&state);
+}
+
+bool BoolAndExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const BoolAndExpr>(other);
+    if (m_exprs.size() != other_->m_exprs.size())
+        return false;
+
+    for (uint64_t i = 0; i < m_exprs.size(); ++i)
+        if (m_exprs.at(i) != other_->m_exprs.at(i))
+            return false;
+    return true;
+}
+
+std::string BoolAndExpr::to_string() const
+{
+    std::string res = m_exprs.at(0)->to_string();
+    for (uint64_t i = 1; i < m_exprs.size(); ++i) {
+        res += " && ";
+        res += m_exprs.at(i)->to_string();
+    }
+    return res;
+}
+
+z3::expr BoolAndExpr::to_z3(z3::context& ctx) const
+{
+    // I'm assuming that there is always at least one element in BoolAndExpr.
+    // There should be at least 2 elements in m_exprs, this must be enforced by
+    // ExprBuilder
+    z3::expr e(m_exprs.at(0)->to_z3(ctx));
+
+    for (uint64_t i = 1; i < m_exprs.size(); ++i) {
+        e = e && m_exprs.at(i)->to_z3(ctx);
+    }
+    return e;
+}
+
 #define GEN_BINARY_LOGICAL_EXPR_IMPL(NAME, OP_STR)                             \
     uint64_t NAME::hash() const                                                \
     {                                                                          \
