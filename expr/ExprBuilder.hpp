@@ -12,10 +12,13 @@ class ExprBuilder
 {
   private:
     std::map<uint64_t, std::vector<WeakExprPtr>> m_exprs;
+    std::map<uint32_t, std::string>              m_sym_id_to_name;
+    std::map<std::string, SymExprPtr>            m_symbols;
+    uint32_t                                     m_sym_ids;
 
     ExprPtr get_or_create(const Expr& e);
 
-    ExprBuilder() {}
+    ExprBuilder() : m_sym_ids(0) {}
 
   public:
     static ExprBuilder& The()
@@ -25,6 +28,8 @@ class ExprBuilder
     }
 
     void collect_garbage();
+
+    const std::string& get_sym_name(uint32_t id) const;
 
     BoolConstPtr mk_true();
     BoolConstPtr mk_false();

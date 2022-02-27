@@ -78,19 +78,16 @@ class SymExpr final : public BVExpr
   private:
     static const Kind ekind = Kind::SYM;
 
-    std::string m_name;
-    size_t      m_size;
+    uint32_t m_id;
+    size_t   m_size;
 
   protected:
-    SymExpr(const std::string& name, size_t bits);
+    SymExpr(uint32_t id, size_t bits) : m_id(id), m_size(bits) {}
 
   public:
     virtual const Kind kind() const { return ekind; }
     virtual size_t     size() const { return m_size; }
-    virtual ExprPtr    clone() const
-    {
-        return ExprPtr(new SymExpr(m_name, m_size));
-    }
+    virtual ExprPtr clone() const { return ExprPtr(new SymExpr(m_id, m_size)); }
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
@@ -101,7 +98,8 @@ class SymExpr final : public BVExpr
         return std::vector<ExprPtr>();
     }
 
-    const std::string& name() const { return m_name; }
+    uint32_t id() const { return m_id; }
+    const std::string& name() const;
 
     friend class ExprBuilder;
 };

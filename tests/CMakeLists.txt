@@ -8,6 +8,10 @@ add_executable ( expr_tests
     common_main.cpp
     expr_tests.cpp )
 
+add_executable ( solver_tests
+    common_main.cpp
+    solver_tests.cpp )
+
 add_executable ( state_tests
     common_main.cpp
     state_tests.cpp )
@@ -21,6 +25,9 @@ target_link_libraries ( bvconst_tests PRIVATE Catch2::Catch2WithMain )
 
 target_link_libraries ( expr_tests LINK_PUBLIC libnaaz_shared )
 target_link_libraries ( expr_tests PRIVATE Catch2::Catch2WithMain )
+
+target_link_libraries ( solver_tests LINK_PUBLIC libnaaz_shared )
+target_link_libraries ( solver_tests PRIVATE Catch2::Catch2WithMain )
 
 target_link_libraries ( state_tests LINK_PUBLIC libnaaz_shared )
 target_link_libraries ( state_tests PRIVATE Catch2::Catch2WithMain )

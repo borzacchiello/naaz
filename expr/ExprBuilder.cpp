@@ -53,14 +53,10 @@ static inline void check_size_or_fail(const std::string& op_name, BVExprPtr lhs,
     }
 }
 
-static inline __uint128_t bitmask(uint32_t n)
+const std::string& ExprBuilder::get_sym_name(uint32_t id) const
 {
-    if (n > 128) {
-        err("ExprBuilder") << "bitmask does not support value of n > 128"
-                           << std::endl;
-        exit_fail();
-    }
-    return ((__uint128_t)2 << (__uint128_t)(n - 1)) - (__uint128_t)1;
+    // It raises an exeption if the id does not name a symbol
+    return m_sym_id_to_name.at(id);
 }
 
 BoolConstPtr ExprBuilder::mk_true() { return BoolConst::true_expr(); }
@@ -69,14 +65,26 @@ BoolConstPtr ExprBuilder::mk_false() { return BoolConst::false_expr(); }
 
 SymExprPtr ExprBuilder::mk_sym(const std::string& name, size_t size)
 {
-    if (size > 128) {
-        err("ExprBuilder") << "mk_sym(): size > 128 is not supported"
-                           << std::endl;
-        exit_fail();
+    if (m_symbols.contains(name)) {
+        auto sym = m_symbols[name];
+        if (sym->size() != size) {
+            err("ExprBuilder")
+                << "mk_sym(): symbol \"" << name << "\" was created with size "
+                << sym->size()
+                << " and now you are trying to create a new one with size "
+                << size << std::endl;
+            exit_fail();
+        }
+        return sym;
     }
 
-    SymExpr e(name, size);
-    return std::static_pointer_cast<const SymExpr>(get_or_create(e));
+    uint32_t   sym_id = m_sym_ids++;
+    SymExpr    e(sym_id, size);
+    SymExprPtr res = std::static_pointer_cast<const SymExpr>(get_or_create(e));
+
+    m_symbols[name]          = res;
+    m_sym_id_to_name[sym_id] = name;
+    return res;
 }
 
 ConstExprPtr ExprBuilder::mk_const(const BVConst& val)

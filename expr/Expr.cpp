@@ -1,6 +1,7 @@
 #include <sstream>
 
 #include "Expr.hpp"
+#include "ExprBuilder.hpp"
 
 #include "../util/ioutil.hpp"
 #include "../third_party/xxHash/xxh3.h"
@@ -8,20 +9,11 @@
 namespace naaz::expr
 {
 
-SymExpr::SymExpr(const std::string& name, size_t bits)
-    : m_name(name), m_size(bits)
-{
-    if (m_size == 0) {
-        err("SymExpr") << "invalid size (zero)" << std::endl;
-        exit_fail();
-    }
-}
-
 uint64_t SymExpr::hash() const
 {
     XXH64_state_t state;
     XXH64_reset(&state, 0);
-    XXH64_update(&state, m_name.data(), m_name.size());
+    XXH64_update(&state, &m_id, sizeof(m_id));
     XXH64_update(&state, &m_size, sizeof(m_size));
     return XXH64_digest(&state);
 }
@@ -33,14 +25,22 @@ bool SymExpr::eq(ExprPtr other) const
 
     std::shared_ptr<const SymExpr> other_ =
         std::static_pointer_cast<const SymExpr>(other);
-    return m_name.compare(other_->m_name) == 0;
+    return m_id == other_->m_id;
 }
 
-std::string SymExpr::to_string() const { return m_name; }
+std::string SymExpr::to_string() const
+{
+    return ExprBuilder::The().get_sym_name(m_id);
+}
+
+const std::string& SymExpr::name() const
+{
+    return ExprBuilder::The().get_sym_name(m_id);
+}
 
 z3::expr SymExpr::to_z3(z3::context& ctx) const
 {
-    return ctx.bv_const(m_name.c_str(), m_size);
+    return ctx.bv_const(ExprBuilder::The().get_sym_name(m_id).c_str(), m_size);
 }
 
 ConstExpr::ConstExpr(uint64_t val, size_t size) : m_val(val, size)

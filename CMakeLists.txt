@@ -32,7 +32,8 @@ set ( naaz_src
     lifter/PCodeLifter.cpp
     loader/AddressSpace.cpp
     loader/BFDLoader.cpp
-    executor/PCodeExecutor.cpp )
+    executor/PCodeExecutor.cpp
+    solver/ConstraintManager.cpp )
 
 add_library ( objLibNaaz OBJECT ${naaz_src} )
 

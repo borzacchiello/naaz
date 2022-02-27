@@ -46,8 +46,8 @@ TEST_CASE("AddExpr 1", "[expr]")
     AddExprPtr e =
         std::static_pointer_cast<const AddExpr>(exprBuilder.mk_add(s, c));
 
-    const auto& c1 = e->children().at(0);
-    const auto& c2 = e->children().at(1);
+    const auto& c1 = e->addends().at(0);
+    const auto& c2 = e->addends().at(1);
 
     if (c1 == s) {
         REQUIRE(c2 == c);
