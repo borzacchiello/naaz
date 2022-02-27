@@ -197,7 +197,7 @@ uint64_t BVConst::as_u64() const
 int64_t BVConst::as_s64() const
 {
     if (m_size > 64) {
-        err("BVConst") << "as_s64(): the const cannot be converted to u64"
+        err("BVConst") << "as_s64(): the const cannot be converted to s64"
                        << std::endl;
         exit_fail();
     }
