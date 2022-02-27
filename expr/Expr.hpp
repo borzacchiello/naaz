@@ -5,6 +5,8 @@
 #include <vector>
 #include <z3++.h>
 
+#include "BVConst.hpp"
+
 namespace naaz::expr
 {
 
@@ -101,27 +103,24 @@ class ConstExpr final : public BVExpr
   private:
     static const Kind ekind = Kind::CONST;
 
-    __uint128_t m_val;
-    size_t      m_size;
+    const BVConst m_val;
+    uint64_t      m_hash;
 
   protected:
-    ConstExpr(__uint128_t val, size_t size);
+    ConstExpr(uint64_t val, size_t size);
+    ConstExpr(const BVConst& val);
 
   public:
     virtual const Kind kind() const { return ekind; };
-    virtual size_t     size() const { return m_size; };
-    virtual ExprPtr    clone() const
-    {
-        return ExprPtr(new ConstExpr(m_val, m_size));
-    }
+    virtual size_t     size() const { return m_val.size(); };
+    virtual ExprPtr    clone() const { return ExprPtr(new ConstExpr(m_val)); }
 
     virtual uint64_t    hash() const;
     virtual bool        eq(ExprPtr other) const;
     virtual std::string to_string() const;
     virtual z3::expr    to_z3(z3::context& ctx) const;
 
-    __uint128_t val() const { return m_val; }
-    __int128_t  sval() const;
+    const BVConst& val() const { return m_val; }
 
     friend class ExprBuilder;
 };

@@ -98,7 +98,7 @@ BVConst::~BVConst() {}
 uint64_t BVConst::hash() const
 {
     if (!is_big())
-        return m_small_val;
+        return m_small_val ^ (m_size << 32);
 
     std::vector<uint8_t> data = as_data();
     return XXH3_64bits(data.data(), data.size());
@@ -701,6 +701,20 @@ bool BVConst::sle(const BVConst& other) const
 
 bool BVConst::sgt(const BVConst& other) const { return !sle(other); }
 bool BVConst::sge(const BVConst& other) const { return !slt(other); }
+
+bool BVConst::is_zero() const
+{
+    if (!is_big())
+        return m_small_val == 0;
+    return eq(BVConst(0UL, m_size));
+}
+
+bool BVConst::is_one() const
+{
+    if (!is_big())
+        return m_small_val == 1;
+    return eq(BVConst(1UL, m_size));
+}
 
 std::ostream& operator<<(std::ostream& os, const BVConst& c)
 {

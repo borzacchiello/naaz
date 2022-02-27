@@ -30,7 +30,8 @@ class ExprBuilder
     BoolConstPtr mk_false();
 
     SymExprPtr   mk_sym(const std::string& name, size_t size);
-    ConstExprPtr mk_const(__uint128_t val, size_t size);
+    ConstExprPtr mk_const(const BVConst& val);
+    ConstExprPtr mk_const(uint64_t val, size_t size);
     BVExprPtr    mk_extract(BVExprPtr expr, uint32_t high, uint32_t low);
     BVExprPtr    mk_concat(BVExprPtr left, BVExprPtr right);
     BVExprPtr    mk_zext(BVExprPtr e, uint32_t n);

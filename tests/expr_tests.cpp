@@ -23,8 +23,8 @@ TEST_CASE("NegExpr 1", "[expr]")
     REQUIRE(c->kind() == Expr::Kind::CONST);
     auto c_ = std::static_pointer_cast<const ConstExpr>(c);
 
-    REQUIRE(c_->sval() == -1);
-    REQUIRE(c_->val() == 255);
+    REQUIRE(c_->val().as_s64() == -1);
+    REQUIRE(c_->val().as_u64() == 255);
 }
 
 TEST_CASE("NegExpr 2", "[expr]")
@@ -36,7 +36,7 @@ TEST_CASE("NegExpr 2", "[expr]")
     REQUIRE(c->kind() == Expr::Kind::CONST);
     auto c_ = std::static_pointer_cast<const ConstExpr>(c);
 
-    REQUIRE(c_->val() == 41);
+    REQUIRE(c_->val().as_u64() == 41);
 }
 
 TEST_CASE("AddExpr 1", "[expr]")
@@ -62,7 +62,7 @@ TEST_CASE("AddExpr 2", "[expr]")
     BVExprPtr e = exprBuilder.mk_const(42, 32);
     e           = exprBuilder.mk_add(e, exprBuilder.mk_const(38, 32));
 
-    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val() == 80);
+    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().as_u64() == 80);
 }
 
 TEST_CASE("ConcatExpr 1", "[expr]")
@@ -96,7 +96,7 @@ TEST_CASE("ExtractExpr 2", "[expr]")
 
     REQUIRE(e->kind() == Expr::Kind::CONST);
     auto e_ = std::static_pointer_cast<const ConstExpr>(e);
-    REQUIRE(e_->val() == 0xbb);
+    REQUIRE(e_->val().as_u64() == 0xbb);
 }
 
 TEST_CASE("ExtractExpr 3", "[expr]")
@@ -106,7 +106,7 @@ TEST_CASE("ExtractExpr 3", "[expr]")
 
     REQUIRE(e->kind() == Expr::Kind::CONST);
     auto e_ = std::static_pointer_cast<const ConstExpr>(e);
-    REQUIRE(e_->val() == 0xab);
+    REQUIRE(e_->val().as_u64() == 0xab);
 }
 
 TEST_CASE("Equality 1", "[expr]")

@@ -79,15 +79,15 @@ SymExprPtr ExprBuilder::mk_sym(const std::string& name, size_t size)
     return std::static_pointer_cast<const SymExpr>(get_or_create(e));
 }
 
-ConstExprPtr ExprBuilder::mk_const(__uint128_t val, size_t size)
+ConstExprPtr ExprBuilder::mk_const(const BVConst& val)
 {
-    if (size > 128) {
-        err("ExprBuilder") << "mk_const(): size > 128 is not supported"
-                           << std::endl;
-        exit_fail();
-    }
+    ConstExpr e(val);
+    return std::static_pointer_cast<const ConstExpr>(get_or_create(e));
+}
 
-    ConstExpr e(val & bitmask(size), size);
+ConstExprPtr ExprBuilder::mk_const(uint64_t val, size_t size)
+{
+    ConstExpr e(val, size);
     return std::static_pointer_cast<const ConstExpr>(get_or_create(e));
 }
 
@@ -106,9 +106,9 @@ BVExprPtr ExprBuilder::mk_extract(BVExprPtr expr, uint32_t high, uint32_t low)
     // constant propagation
     if (expr->kind() == Expr::Kind::CONST) {
         ConstExprPtr expr_ = std::static_pointer_cast<const ConstExpr>(expr);
-        return mk_const((expr_->val() >> (__uint128_t)low) &
-                            bitmask(high - low + 1),
-                        high - low + 1);
+        BVConst      tmp(expr_->val());
+        tmp.extract(high, low);
+        return mk_const(tmp);
     }
 
     // extract of concat
@@ -143,7 +143,7 @@ BVExprPtr ExprBuilder::mk_zext(BVExprPtr e, uint32_t n)
     // constant propagation
     if (e->kind() == Expr::Kind::CONST) {
         auto e_ = std::static_pointer_cast<const ConstExpr>(e);
-        return mk_const(e_->val(), n);
+        return mk_const(e_->val());
     }
 
     ZextExpr r(e, n);
@@ -168,10 +168,11 @@ BVExprPtr ExprBuilder::mk_concat(BVExprPtr left, BVExprPtr right)
     // constant propagation
     if (left->kind() == Expr::Kind::CONST &&
         right->kind() == Expr::Kind::CONST) {
-        auto left_  = std::static_pointer_cast<const ConstExpr>(left);
-        auto right_ = std::static_pointer_cast<const ConstExpr>(right);
-        return mk_const(right_->val() | (left_->val() << right_->size()),
-                        left->size() + right->size());
+        auto    left_  = std::static_pointer_cast<const ConstExpr>(left);
+        auto    right_ = std::static_pointer_cast<const ConstExpr>(right);
+        BVConst tmp(left_->val());
+        tmp.concat(right_->val());
+        return mk_const(tmp);
     }
 
     // concat of extract
@@ -193,7 +194,9 @@ BVExprPtr ExprBuilder::mk_neg(BVExprPtr expr)
     // constant propagation
     if (expr->kind() == Expr::Kind::CONST) {
         ConstExprPtr expr_ = std::static_pointer_cast<const ConstExpr>(expr);
-        return mk_const((__uint128_t)-expr_->sval(), expr_->size());
+        BVConst      tmp(expr_->val());
+        tmp.neg();
+        return mk_const(tmp);
     }
 
     NegExpr e(expr);
@@ -226,24 +229,24 @@ BVExprPtr ExprBuilder::mk_add(BVExprPtr lhs, BVExprPtr rhs)
     std::vector<BVExprPtr> children;
 
     // constant propagation
-    __uint128_t concrete_val = 0;
+    BVConst concrete_val(0UL, addends.at(0)->size());
     for (const auto& addend : addends) {
         if (addend->kind() == Expr::Kind::CONST) {
             auto addend_ = std::static_pointer_cast<const ConstExpr>(addend);
-            concrete_val += addend_->val();
+            concrete_val.add(addend_->val());
         } else {
             children.push_back(addend);
         }
     }
 
     if (children.size() == 0)
-        return mk_const(concrete_val, lhs->size());
+        return mk_const(concrete_val);
 
-    if (children.size() == 1 && concrete_val == 0)
+    if (children.size() == 1 && concrete_val.is_zero())
         return children.back();
 
-    if (concrete_val > 0)
-        children.push_back(mk_const(concrete_val, lhs->size()));
+    if (!concrete_val.is_zero())
+        children.push_back(mk_const(concrete_val));
 
     // sort children by address
     std::sort(children.begin(), children.end());
@@ -260,7 +263,9 @@ BVExprPtr ExprBuilder::mk_sub(BVExprPtr lhs, BVExprPtr rhs)
     if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
         ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
         ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
-        return mk_const(lhs_->val() - rhs_->val(), lhs->size());
+        BVConst      tmp(lhs_->val());
+        tmp.sub(rhs_->val());
+        return mk_const(tmp);
     }
 
     return mk_add(lhs, mk_neg(rhs));
@@ -286,7 +291,7 @@ BoolExprPtr ExprBuilder::mk_ult(BVExprPtr lhs, BVExprPtr rhs)
     if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
         ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
         ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
-        return lhs_->val() < rhs_->val() ? mk_true() : mk_false();
+        return lhs_->val().ult(rhs_->val()) ? mk_true() : mk_false();
     }
 
     UltExpr e(lhs, rhs);
@@ -301,7 +306,7 @@ BoolExprPtr ExprBuilder::mk_ule(BVExprPtr lhs, BVExprPtr rhs)
     if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
         ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
         ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
-        return lhs_->val() <= rhs_->val() ? mk_true() : mk_false();
+        return lhs_->val().ule(rhs_->val()) ? mk_true() : mk_false();
     }
 
     UleExpr e(lhs, rhs);
@@ -316,7 +321,7 @@ BoolExprPtr ExprBuilder::mk_ugt(BVExprPtr lhs, BVExprPtr rhs)
     if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
         ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
         ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
-        return lhs_->val() > rhs_->val() ? mk_true() : mk_false();
+        return lhs_->val().ugt(rhs_->val()) ? mk_true() : mk_false();
     }
 
     UgtExpr e(lhs, rhs);
@@ -331,7 +336,7 @@ BoolExprPtr ExprBuilder::mk_uge(BVExprPtr lhs, BVExprPtr rhs)
     if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
         ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
         ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
-        return lhs_->val() >= rhs_->val() ? mk_true() : mk_false();
+        return lhs_->val().uge(rhs_->val()) ? mk_true() : mk_false();
     }
 
     UgeExpr e(lhs, rhs);
@@ -346,7 +351,7 @@ BoolExprPtr ExprBuilder::mk_slt(BVExprPtr lhs, BVExprPtr rhs)
     if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
         ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
         ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
-        return lhs_->sval() < rhs_->sval() ? mk_true() : mk_false();
+        return lhs_->val().slt(rhs_->val()) ? mk_true() : mk_false();
     }
 
     SltExpr e(lhs, rhs);
@@ -361,7 +366,7 @@ BoolExprPtr ExprBuilder::mk_sle(BVExprPtr lhs, BVExprPtr rhs)
     if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
         ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
         ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
-        return lhs_->sval() <= rhs_->sval() ? mk_true() : mk_false();
+        return lhs_->val().sle(rhs_->val()) ? mk_true() : mk_false();
     }
 
     SleExpr e(lhs, rhs);
@@ -376,7 +381,7 @@ BoolExprPtr ExprBuilder::mk_sgt(BVExprPtr lhs, BVExprPtr rhs)
     if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
         ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
         ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
-        return lhs_->sval() > rhs_->sval() ? mk_true() : mk_false();
+        return lhs_->val().sgt(rhs_->val()) ? mk_true() : mk_false();
     }
 
     SgtExpr e(lhs, rhs);
@@ -391,7 +396,7 @@ BoolExprPtr ExprBuilder::mk_sge(BVExprPtr lhs, BVExprPtr rhs)
     if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
         ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
         ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
-        return lhs_->sval() >= rhs_->sval() ? mk_true() : mk_false();
+        return lhs_->val().sge(rhs_->val()) ? mk_true() : mk_false();
     }
 
     SgeExpr e(lhs, rhs);
@@ -406,7 +411,7 @@ BoolExprPtr ExprBuilder::mk_eq(BVExprPtr lhs, BVExprPtr rhs)
     if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
         ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
         ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
-        return lhs_->val() == rhs_->val() ? mk_true() : mk_false();
+        return lhs_->val().eq(rhs_->val()) ? mk_true() : mk_false();
     }
 
     EqExpr e(lhs, rhs);

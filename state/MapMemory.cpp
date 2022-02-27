@@ -20,7 +20,7 @@ BVExprPtr MapMemory::read(BVExprPtr addr, size_t len, Endianess end)
     }
 
     ConstExprPtr addr_ = std::static_pointer_cast<const ConstExpr>(addr);
-    return read(addr_->val(), len, end);
+    return read(addr_->val().as_u64(), len, end);
 }
 
 BVExprPtr MapMemory::read_byte(uint64_t addr)
@@ -87,7 +87,7 @@ void MapMemory::write(BVExprPtr addr, BVExprPtr value, Endianess end)
     }
 
     ConstExprPtr addr_ = std::static_pointer_cast<const ConstExpr>(addr);
-    return write(addr_->val(), value, end);
+    return write(addr_->val().as_u64(), value, end);
 }
 
 void MapMemory::write_byte(uint64_t addr, BVExprPtr value)

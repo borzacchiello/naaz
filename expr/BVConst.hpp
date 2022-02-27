@@ -84,6 +84,9 @@ class BVConst
     bool sgt(const BVConst& other) const;
     bool sge(const BVConst& other) const;
 
+    bool is_zero() const;
+    bool is_one() const;
+
     std::string to_string(bool hex = false) const;
 
     friend std::ostream& operator<<(std::ostream& os, const BVConst& c);

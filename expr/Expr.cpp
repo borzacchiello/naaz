@@ -41,30 +41,14 @@ z3::expr SymExpr::to_z3(z3::context& ctx) const
     return ctx.bv_const(m_name.c_str(), m_size);
 }
 
-ConstExpr::ConstExpr(__uint128_t val, size_t size) : m_val(val), m_size(size)
+ConstExpr::ConstExpr(uint64_t val, size_t size) : m_val(val, size)
 {
-    if (m_size == 0) {
-        err("ConstExpr") << "invalid size (zero)" << std::endl;
-        exit_fail();
-    }
+    m_hash = m_val.hash();
 }
 
-__int128_t ConstExpr::sval() const
-{
-    __int128_t res = (__int128_t)m_val;
-    if (res & ((__uint128_t)1 << (m_size - 1)))
-        res |= (((__uint128_t)2 << (128 - m_size)) - (__uint128_t)1) << m_size;
-    return res;
-}
+ConstExpr::ConstExpr(const BVConst& val) : m_val(val) { m_hash = m_val.hash(); }
 
-uint64_t ConstExpr::hash() const
-{
-    XXH64_state_t state;
-    XXH64_reset(&state, 0);
-    XXH64_update(&state, &m_val, sizeof(m_val));
-    XXH64_update(&state, &m_size, sizeof(m_size));
-    return XXH64_digest(&state);
-}
+uint64_t ConstExpr::hash() const { return m_hash; }
 
 bool ConstExpr::eq(ExprPtr other) const
 {
@@ -73,27 +57,16 @@ bool ConstExpr::eq(ExprPtr other) const
 
     std::shared_ptr<const ConstExpr> other_ =
         std::static_pointer_cast<const ConstExpr>(other);
-    return m_size == other_->m_size && m_val == other_->m_val;
+    if (size() != other_->size())
+        return false;
+    return m_val.eq(other_->m_val);
 }
 
-std::string ConstExpr::to_string() const
-{
-    std::string num = "";
-
-    __uint128_t tmp = m_val;
-    while (tmp > 0) {
-        std::string digit;
-        digit += ('0' + (char)(tmp % 10));
-
-        num = digit + num;
-        tmp /= 10;
-    }
-    return num;
-}
+std::string ConstExpr::to_string() const { return m_val.to_string(); }
 
 z3::expr ConstExpr::to_z3(z3::context& ctx) const
 {
-    return ctx.bv_val(to_string().c_str(), m_size);
+    return ctx.bv_val(to_string().c_str(), size());
 }
 
 uint64_t ITEExpr::hash() const
