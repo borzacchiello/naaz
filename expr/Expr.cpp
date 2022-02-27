@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include "Expr.hpp"
 
 #include "../util/ioutil.hpp"
@@ -123,7 +125,7 @@ bool ExtractExpr::eq(ExprPtr other) const
 
     auto other_ = std::static_pointer_cast<const ExtractExpr>(other);
     return m_high == other_->m_high && m_low == other_->m_low &&
-           m_expr.get() == other_->m_expr.get();
+           m_expr == other_->m_expr;
 }
 
 std::string ExtractExpr::to_string() const
@@ -155,8 +157,8 @@ bool ConcatExpr::eq(ExprPtr other) const
         return false;
 
     auto other_ = std::static_pointer_cast<const ConcatExpr>(other);
-    return m_size == other_->m_size && m_lhs.get() == other_->m_lhs.get() &&
-           m_rhs.get() == other_->m_rhs.get();
+    return m_size == other_->m_size && m_lhs == other_->m_lhs &&
+           m_rhs == other_->m_rhs;
 }
 
 std::string ConcatExpr::to_string() const
@@ -193,14 +195,58 @@ bool ZextExpr::eq(ExprPtr other) const
         return false;
 
     auto other_ = std::static_pointer_cast<const ZextExpr>(other);
-    return m_size == other_->m_size && m_expr.get() == other_->m_expr.get();
+    return m_size == other_->m_size && m_expr == other_->m_expr;
 }
 
-std::string ZextExpr::to_string() const { return m_expr->to_string(); }
+std::string ZextExpr::to_string() const
+{
+    std::stringstream ss;
+    ss << "zext(" << m_expr->to_string() << ", " << m_size << ")";
+    return ss.str();
+}
 
 z3::expr ZextExpr::to_z3(z3::context& ctx) const
 {
     return z3::zext(m_expr->to_z3(ctx), m_size - m_expr->size());
+}
+
+SextExpr::SextExpr(BVExprPtr e, size_t s) : m_expr(e), m_size(s)
+{
+    if (s < e->size()) {
+        err("SextExpr") << "invalid size" << std::endl;
+        exit_fail();
+    }
+}
+
+uint64_t SextExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, &m_size, sizeof(m_size));
+    void* raw_expr = (void*)m_expr.get();
+    XXH64_update(&state, raw_expr, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool SextExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const SextExpr>(other);
+    return m_size == other_->m_size && m_expr == other_->m_expr;
+}
+
+std::string SextExpr::to_string() const
+{
+    std::stringstream ss;
+    ss << "sext(" << m_expr->to_string() << ", " << m_size << ")";
+    return ss.str();
+}
+
+z3::expr SextExpr::to_z3(z3::context& ctx) const
+{
+    return z3::sext(m_expr->to_z3(ctx), m_size - m_expr->size());
 }
 
 uint64_t NegExpr::hash() const
@@ -219,7 +265,7 @@ bool NegExpr::eq(ExprPtr other) const
         return false;
 
     auto other_ = std::static_pointer_cast<const NegExpr>(other);
-    return m_size == other_->m_size && m_expr.get() == other_->m_expr.get();
+    return m_size == other_->m_size && m_expr == other_->m_expr;
 }
 
 std::string NegExpr::to_string() const

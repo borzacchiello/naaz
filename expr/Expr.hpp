@@ -26,6 +26,7 @@ class Expr
         EXTRACT,
         CONCAT,
         ZEXT,
+        SEXT,
         ITE,
 
         // arithmetic
@@ -264,6 +265,36 @@ class ZextExpr final : public BVExpr
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const ZextExpr> ZextExprPtr;
+
+class SextExpr final : public BVExpr
+{
+  private:
+    static const Kind ekind = Kind::SEXT;
+
+    BVExprPtr m_expr;
+    size_t    m_size;
+
+  protected:
+    SextExpr(BVExprPtr expr, size_t size);
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return m_size; };
+    virtual ExprPtr    clone() const
+    {
+        return ExprPtr(new SextExpr(m_expr, m_size));
+    }
+
+    virtual uint64_t    hash() const;
+    virtual bool        eq(ExprPtr other) const;
+    virtual std::string to_string() const;
+    virtual z3::expr    to_z3(z3::context& ctx) const;
+
+    BVExprPtr expr() const { return m_expr; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const SextExpr> SextExprPtr;
 
 class NegExpr final : public BVExpr
 {

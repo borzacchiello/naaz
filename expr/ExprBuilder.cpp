@@ -142,11 +142,36 @@ BVExprPtr ExprBuilder::mk_zext(BVExprPtr e, uint32_t n)
 
     // constant propagation
     if (e->kind() == Expr::Kind::CONST) {
-        auto e_ = std::static_pointer_cast<const ConstExpr>(e);
+        auto    e_ = std::static_pointer_cast<const ConstExpr>(e);
+        BVConst tmp(e_->val());
+        tmp.zext(n);
         return mk_const(e_->val());
     }
 
     ZextExpr r(e, n);
+    return std::static_pointer_cast<const BVExpr>(get_or_create(r));
+}
+
+BVExprPtr ExprBuilder::mk_sext(BVExprPtr e, uint32_t n)
+{
+    if (n < e->size()) {
+        err("ExprBuilder") << "mk_sext(): invalid size" << std::endl;
+        exit_fail();
+    }
+
+    // unnecessary sext
+    if (n == e->size())
+        return e;
+
+    // constant propagation
+    if (e->kind() == Expr::Kind::CONST) {
+        auto    e_ = std::static_pointer_cast<const ConstExpr>(e);
+        BVConst tmp(e_->val());
+        tmp.sext(n);
+        return mk_const(tmp);
+    }
+
+    SextExpr r(e, n);
     return std::static_pointer_cast<const BVExpr>(get_or_create(r));
 }
 

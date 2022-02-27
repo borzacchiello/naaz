@@ -35,6 +35,7 @@ class ExprBuilder
     BVExprPtr    mk_extract(BVExprPtr expr, uint32_t high, uint32_t low);
     BVExprPtr    mk_concat(BVExprPtr left, BVExprPtr right);
     BVExprPtr    mk_zext(BVExprPtr e, uint32_t n);
+    BVExprPtr    mk_sext(BVExprPtr e, uint32_t n);
     BVExprPtr    mk_ite(BoolExprPtr guard, BVExprPtr iftrue, BVExprPtr iffalse);
 
     // arithmetic
