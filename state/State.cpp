@@ -59,6 +59,13 @@ void State::reg_write(uint64_t offset, expr::BVExprPtr data)
     m_regs->write(offset, data, Endianess::BIG);
 }
 
-void State::add_constraint(expr::BoolExprPtr c) { m_constraints.insert(c); }
+void State::add_constraint(expr::BoolExprPtr c) { m_constraints.add(c); }
+
+expr::BoolExprPtr State::query(expr::BoolExprPtr c) const
+{
+    return m_constraints.build_query(c);
+}
+
+expr::BoolExprPtr State::pi() const { return m_constraints.pi(); }
 
 } // namespace naaz::state

@@ -3,6 +3,7 @@
 #include "../expr/Expr.hpp"
 #include "../expr/ExprBuilder.hpp"
 #include "../solver/ConstraintManager.hpp"
+#include "../solver/Z3Solver.hpp"
 
 using namespace naaz::solver;
 using namespace naaz::expr;
@@ -29,6 +30,33 @@ TEST_CASE("ConstraintManager constuctor 1", "[solver]")
     auto query2 = manager.build_query(
         exprBuilder.mk_sgt(sym6, exprBuilder.mk_const(10, 32)));
 
-    std::cerr << query1->to_string() << std::endl;
-    std::cerr << query2->to_string() << std::endl;
+    auto expected1 = exprBuilder.mk_bool_and(
+        exprBuilder.mk_sgt(sym1, sym2),
+        exprBuilder.mk_bool_and(exprBuilder.mk_sgt(sym2, sym3),
+                                exprBuilder.mk_sgt(sym3, sym6)));
+    auto expected2 = exprBuilder.mk_sgt(sym6, exprBuilder.mk_const(10, 32));
+
+    REQUIRE(query1 == expected1);
+    REQUIRE(query2 == expected2);
+}
+
+TEST_CASE("Z3Solver 1", "[solver]")
+{
+    ConstraintManager manager;
+
+    auto sym1 = exprBuilder.mk_sym("sym1", 32);
+
+    manager.add(exprBuilder.mk_sgt(sym1, exprBuilder.mk_const(0, 32)));
+
+    CheckResult sat_res = Z3Solver::The().check(
+        manager, exprBuilder.mk_slt(sym1, exprBuilder.mk_const(3, 32)));
+
+    REQUIRE(sat_res == CheckResult::SAT);
+
+    auto model = Z3Solver::The().model();
+    REQUIRE(model.contains("sym1"));
+
+    auto sym1_val = model["sym1"].as_s64();
+    REQUIRE(sym1_val > 0);
+    REQUIRE(sym1_val < 3);
 }

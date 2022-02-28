@@ -33,7 +33,8 @@ ConstraintManager::get_involved_inputs(expr::ExprPtr constraint)
 }
 
 ConstraintManager::ConstraintManager(const ConstraintManager& other)
-    : m_constraints(other.m_constraints), m_dependencies(other.m_dependencies)
+    : m_constraint_map(other.m_constraint_map),
+      m_constraints(other.m_constraints), m_dependencies(other.m_dependencies)
 {
 }
 
@@ -42,10 +43,12 @@ void ConstraintManager::add(expr::BoolExprPtr constraint)
     const std::set<uint32_t>& involved_inputs = get_involved_inputs(constraint);
 
     for (auto& sym : involved_inputs) {
-        m_constraints[sym].insert(constraint);
+        m_constraint_map[sym].insert(constraint);
         for (auto& sym_again : involved_inputs)
             m_dependencies[sym].insert(sym_again);
     }
+
+    m_constraints.insert(constraint);
 }
 
 std::set<uint32_t>
@@ -81,9 +84,9 @@ ConstraintManager::build_query(expr::BoolExprPtr constraint) const
 
     std::set<expr::BoolExprPtr> constraints;
     for (auto& sym : involved_inputs) {
-        if (!m_constraints.contains(sym))
+        if (!m_constraint_map.contains(sym))
             continue;
-        for (expr::BoolExprPtr c : m_constraints.at(sym))
+        for (expr::BoolExprPtr c : m_constraint_map.at(sym))
             constraints.insert(c);
     }
 
@@ -91,6 +94,21 @@ ConstraintManager::build_query(expr::BoolExprPtr constraint) const
     for (auto c : constraints)
         q = exprBuilder.mk_bool_and(q, c);
     return q;
+}
+
+expr::BoolExprPtr ConstraintManager::pi() const
+{
+    if (m_constraints.size() == 0)
+        return exprBuilder.mk_true();
+
+    auto              it = m_constraints.begin();
+    expr::BoolExprPtr e  = *it;
+    it++;
+
+    for (; it != m_constraints.end(); it++)
+        e = exprBuilder.mk_bool_and(e, *it);
+
+    return e;
 }
 
 } // namespace naaz::solver

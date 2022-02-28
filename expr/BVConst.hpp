@@ -27,6 +27,7 @@ class BVConst
     BVConst(const std::string& value, ssize_t size);
     BVConst(const uint8_t* data, ssize_t size, Endianess end = Endianess::BIG);
     BVConst(const BVConst& other);
+    BVConst() : m_size(1), m_small_val(0), m_big_val(0) {}
 
     BVConst(const std::vector<uint8_t>& data, Endianess end = Endianess::BIG)
         : BVConst(data.data(), data.size(), end)

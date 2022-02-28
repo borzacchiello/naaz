@@ -6,6 +6,7 @@
 #include "MapMemory.hpp"
 #include "../loader/AddressSpace.hpp"
 #include "../lifter/PCodeLifter.hpp"
+#include "../solver/ConstraintManager.hpp"
 #include "../expr/Expr.hpp"
 
 namespace naaz::state
@@ -23,7 +24,7 @@ class State
     std::shared_ptr<loader::AddressSpace>      m_as;
     const std::shared_ptr<lifter::PCodeLifter> m_lifter;
 
-    std::set<expr::BoolExprPtr> m_constraints;
+    solver::ConstraintManager m_constraints;
 
   public:
     State(std::shared_ptr<loader::AddressSpace>      as,
@@ -51,8 +52,9 @@ class State
     void            reg_write(const std::string& name, expr::BVExprPtr data);
     void            reg_write(uint64_t offset, expr::BVExprPtr data);
 
-    void                               add_constraint(expr::BoolExprPtr c);
-    const std::set<expr::BoolExprPtr>& pi() const { return m_constraints; }
+    void              add_constraint(expr::BoolExprPtr c);
+    expr::BoolExprPtr query(expr::BoolExprPtr c) const;
+    expr::BoolExprPtr pi() const;
 
     void     set_pc(uint64_t pc) { m_pc = pc; }
     uint64_t pc() const { return m_pc; }

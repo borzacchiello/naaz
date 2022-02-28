@@ -33,7 +33,8 @@ set ( naaz_src
     loader/AddressSpace.cpp
     loader/BFDLoader.cpp
     executor/PCodeExecutor.cpp
-    solver/ConstraintManager.cpp )
+    solver/ConstraintManager.cpp
+    solver/Z3Solver.cpp )
 
 add_library ( objLibNaaz OBJECT ${naaz_src} )
 

@@ -18,7 +18,8 @@ class ConstraintManager
     get_involved_inputs(expr::ExprPtr constraint);
 
     // constraints saved as mappings between symbols (strings) and expressions
-    std::map<uint32_t, std::set<expr::BoolExprPtr>> m_constraints;
+    std::map<uint32_t, std::set<expr::BoolExprPtr>> m_constraint_map;
+    std::set<expr::BoolExprPtr>                     m_constraints;
 
     // symbol depencency graph
     std::map<uint32_t, std::set<uint32_t>> m_dependencies;
@@ -32,6 +33,7 @@ class ConstraintManager
 
     void              add(expr::BoolExprPtr constraint);
     expr::BoolExprPtr build_query(expr::BoolExprPtr constraint) const;
+    expr::BoolExprPtr pi() const;
 };
 
 } // namespace naaz::solver
