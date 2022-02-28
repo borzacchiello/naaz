@@ -55,6 +55,13 @@ TEST_CASE("IntConst constuctor 4", "[intconst]")
             "a5910a2cf2cc6f22709e899b4d91b1820d6a8427ab73afaaed8a");
 }
 
+TEST_CASE("IntConst constuctor 5", "[intconst]")
+{
+    BVConst c("-1", 32);
+
+    REQUIRE(c.as_u64() == 0xffffffff);
+}
+
 TEST_CASE("IntConst hash 1", "[intconst]")
 {
     BVConst c1(1231, 256);

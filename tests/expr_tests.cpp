@@ -65,6 +65,30 @@ TEST_CASE("AddExpr 2", "[expr]")
     REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().as_u64() == 80);
 }
 
+TEST_CASE("ShlExpr 1", "[expr]")
+{
+    BVExprPtr e = exprBuilder.mk_const(1, 32);
+    e           = exprBuilder.mk_shl(e, exprBuilder.mk_const(3, 32));
+
+    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().as_u64() == 8);
+}
+
+TEST_CASE("AShrExpr 1", "[expr]")
+{
+    BVExprPtr e = exprBuilder.mk_const(0xf0, 8);
+    e           = exprBuilder.mk_ashr(e, exprBuilder.mk_const(1, 8));
+
+    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().as_u64() == 0xf8);
+}
+
+TEST_CASE("LShrExpr 1", "[expr]")
+{
+    BVExprPtr e = exprBuilder.mk_const(0xf0, 8);
+    e           = exprBuilder.mk_lshr(e, exprBuilder.mk_const(1, 8));
+
+    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().as_u64() == 0x78);
+}
+
 TEST_CASE("ConcatExpr 1", "[expr]")
 {
     BVExprPtr s1 = exprBuilder.mk_sym("sym1", 32);

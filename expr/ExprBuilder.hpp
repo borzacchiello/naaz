@@ -44,6 +44,9 @@ class ExprBuilder
     BVExprPtr    mk_ite(BoolExprPtr guard, BVExprPtr iftrue, BVExprPtr iffalse);
 
     // arithmetic
+    BVExprPtr mk_shl(BVExprPtr expr, BVExprPtr val);
+    BVExprPtr mk_lshr(BVExprPtr expr, BVExprPtr val);
+    BVExprPtr mk_ashr(BVExprPtr expr, BVExprPtr val);
     BVExprPtr mk_neg(BVExprPtr expr);
     BVExprPtr mk_add(BVExprPtr lhs, BVExprPtr rhs);
     BVExprPtr mk_sub(BVExprPtr lhs, BVExprPtr rhs);

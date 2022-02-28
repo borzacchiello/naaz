@@ -31,6 +31,9 @@ class Expr
         ITE,
 
         // arithmetic
+        SHL,
+        LSHR,
+        ASHR,
         NEG,
         ADD,
 
@@ -98,7 +101,7 @@ class SymExpr final : public BVExpr
         return std::vector<ExprPtr>();
     }
 
-    uint32_t id() const { return m_id; }
+    uint32_t           id() const { return m_id; }
     const std::string& name() const;
 
     friend class ExprBuilder;
@@ -356,6 +359,123 @@ class NegExpr final : public BVExpr
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const NegExpr> NegExprPtr;
+
+class ShlExpr final : public BVExpr
+{
+  private:
+    static const Kind ekind = Kind::SHL;
+
+    BVExprPtr m_expr;
+    BVExprPtr m_val;
+    size_t    m_size;
+
+  protected:
+    ShlExpr(BVExprPtr expr, BVExprPtr val)
+        : m_expr(expr), m_val(val), m_size(m_expr->size())
+    {
+    }
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return m_size; };
+    virtual ExprPtr    clone() const
+    {
+        return ExprPtr(new ShlExpr(m_expr, m_val));
+    }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::string          to_string() const;
+    virtual z3::expr             to_z3(z3::context& ctx) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        return std::vector<ExprPtr>{m_expr, m_val};
+    }
+
+    BVExprPtr expr() const { return m_expr; }
+    BVExprPtr val() const { return m_val; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const ShlExpr> ShlExprPtr;
+
+class LShrExpr final : public BVExpr
+{
+  private:
+    static const Kind ekind = Kind::LSHR;
+
+    BVExprPtr m_expr;
+    BVExprPtr m_val;
+    size_t    m_size;
+
+  protected:
+    LShrExpr(BVExprPtr expr, BVExprPtr val)
+        : m_expr(expr), m_val(val), m_size(m_expr->size())
+    {
+    }
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return m_size; };
+    virtual ExprPtr    clone() const
+    {
+        return ExprPtr(new LShrExpr(m_expr, m_val));
+    }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::string          to_string() const;
+    virtual z3::expr             to_z3(z3::context& ctx) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        return std::vector<ExprPtr>{m_expr, m_val};
+    }
+
+    BVExprPtr expr() const { return m_expr; }
+    BVExprPtr val() const { return m_val; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const LShrExpr> LShrExprPtr;
+
+class AShrExpr final : public BVExpr
+{
+  private:
+    static const Kind ekind = Kind::LSHR;
+
+    BVExprPtr m_expr;
+    BVExprPtr m_val;
+    size_t    m_size;
+
+  protected:
+    AShrExpr(BVExprPtr expr, BVExprPtr val)
+        : m_expr(expr), m_val(val), m_size(m_expr->size())
+    {
+    }
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return m_size; };
+    virtual ExprPtr    clone() const
+    {
+        return ExprPtr(new AShrExpr(m_expr, m_val));
+    }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::string          to_string() const;
+    virtual z3::expr             to_z3(z3::context& ctx) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        return std::vector<ExprPtr>{m_expr, m_val};
+    }
+
+    BVExprPtr expr() const { return m_expr; }
+    BVExprPtr val() const { return m_val; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const AShrExpr> AShrExprPtr;
 
 class AddExpr final : public BVExpr
 {

@@ -259,6 +259,102 @@ uint64_t NegExpr::hash() const
     return XXH64_digest(&state);
 }
 
+uint64_t ShlExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, &m_size, sizeof(m_size));
+    void* raw_expr = (void*)m_expr.get();
+    void* raw_val  = (void*)m_val.get();
+    XXH64_update(&state, raw_expr, sizeof(void*));
+    XXH64_update(&state, raw_val, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool ShlExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const ShlExpr>(other);
+    return m_size == other_->m_size && m_expr == other_->m_expr &&
+           m_val == other_->m_val;
+}
+
+std::string ShlExpr::to_string() const
+{
+    return m_expr->to_string() + " << " + m_val->to_string();
+}
+
+z3::expr ShlExpr::to_z3(z3::context& ctx) const
+{
+    return z3::shl(m_expr->to_z3(ctx), m_val->to_z3(ctx));
+}
+
+uint64_t LShrExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, &m_size, sizeof(m_size));
+    void* raw_expr = (void*)m_expr.get();
+    void* raw_val  = (void*)m_val.get();
+    XXH64_update(&state, raw_expr, sizeof(void*));
+    XXH64_update(&state, raw_val, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool LShrExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const LShrExpr>(other);
+    return m_size == other_->m_size && m_expr == other_->m_expr &&
+           m_val == other_->m_val;
+}
+
+std::string LShrExpr::to_string() const
+{
+    return m_expr->to_string() + " l>> " + m_val->to_string();
+}
+
+z3::expr LShrExpr::to_z3(z3::context& ctx) const
+{
+    return z3::lshr(m_expr->to_z3(ctx), m_val->to_z3(ctx));
+}
+
+uint64_t AShrExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, &m_size, sizeof(m_size));
+    void* raw_expr = (void*)m_expr.get();
+    void* raw_val  = (void*)m_val.get();
+    XXH64_update(&state, raw_expr, sizeof(void*));
+    XXH64_update(&state, raw_val, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool AShrExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const AShrExpr>(other);
+    return m_size == other_->m_size && m_expr == other_->m_expr &&
+           m_val == other_->m_val;
+}
+
+std::string AShrExpr::to_string() const
+{
+    return m_expr->to_string() + " a>> " + m_val->to_string();
+}
+
+z3::expr AShrExpr::to_z3(z3::context& ctx) const
+{
+    return z3::ashr(m_expr->to_z3(ctx), m_val->to_z3(ctx));
+}
+
 bool NegExpr::eq(ExprPtr other) const
 {
     if (other->kind() != ekind)

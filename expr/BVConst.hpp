@@ -43,6 +43,9 @@ class BVConst
     int64_t              as_s64() const;
     std::vector<uint8_t> as_data() const;
 
+    bool fit_in_u64() const;
+    bool fit_in_s64() const;
+
     // least significant first!
     uint8_t get_bit(uint64_t i) const;
     uint8_t get_byte(uint64_t i) const;

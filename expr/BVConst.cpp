@@ -185,7 +185,7 @@ mpz_class BVConst::as_mpz() const
 
 uint64_t BVConst::as_u64() const
 {
-    if (m_size > 64) {
+    if (this->ugt(BVConst("0xffffffffffffffff", m_size))) {
         err("BVConst") << "as_u64(): the const cannot be converted to u64"
                        << std::endl;
         exit_fail();
@@ -196,13 +196,23 @@ uint64_t BVConst::as_u64() const
 
 int64_t BVConst::as_s64() const
 {
-    if (m_size > 64) {
+    if (this->ugt(BVConst("0x7fffffffffffffff", m_size))) {
         err("BVConst") << "as_s64(): the const cannot be converted to s64"
                        << std::endl;
         exit_fail();
     }
 
     return _sext(m_small_val, m_size);
+}
+
+bool BVConst::fit_in_u64() const
+{
+    return !this->ugt(BVConst("0xffffffffffffffff", m_size));
+}
+
+bool BVConst::fit_in_s64() const
+{
+    return !this->ugt(BVConst("0x7fffffffffffffff", m_size));
 }
 
 uint8_t BVConst::get_bit(uint64_t idx) const

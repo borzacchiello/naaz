@@ -222,6 +222,105 @@ BVExprPtr ExprBuilder::mk_concat(BVExprPtr left, BVExprPtr right)
     return std::static_pointer_cast<const BVExpr>(get_or_create(e));
 }
 
+BVExprPtr ExprBuilder::mk_shl(BVExprPtr expr, BVExprPtr val)
+{
+    check_size_or_fail("shl", expr, val);
+
+    // constant propagation
+    if (expr->kind() == Expr::Kind::CONST && val->kind() == Expr::Kind::CONST) {
+        auto expr_ = std::static_pointer_cast<const ConstExpr>(expr);
+        auto val_  = std::static_pointer_cast<const ConstExpr>(val);
+        if (!val_->val().fit_in_u64())
+            return mk_const(0, expr->size());
+
+        BVConst tmp(expr_->val());
+        tmp.shl(val_->val().as_u64());
+        return mk_const(tmp);
+    }
+
+    // special cases
+    if (val->kind() == Expr::Kind::CONST) {
+        auto val_ = std::static_pointer_cast<const ConstExpr>(val);
+        if (val_->val().is_zero())
+            return expr;
+        if (val_->val().as_u64() >= expr->size())
+            return mk_const(0, expr->size());
+    }
+
+    ShlExpr e(expr, val);
+    return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+}
+
+BVExprPtr ExprBuilder::mk_lshr(BVExprPtr expr, BVExprPtr val)
+{
+    check_size_or_fail("lshr", expr, val);
+
+    // constant propagation
+    if (expr->kind() == Expr::Kind::CONST && val->kind() == Expr::Kind::CONST) {
+        auto expr_ = std::static_pointer_cast<const ConstExpr>(expr);
+        auto val_  = std::static_pointer_cast<const ConstExpr>(val);
+        if (!val_->val().fit_in_u64())
+            return mk_const(0, expr->size());
+
+        BVConst tmp(expr_->val());
+        tmp.lshr(val_->val().as_u64());
+        return mk_const(tmp);
+    }
+
+    // special cases
+    if (val->kind() == Expr::Kind::CONST) {
+        auto val_ = std::static_pointer_cast<const ConstExpr>(val);
+        if (val_->val().is_zero())
+            return expr;
+        if (val_->val().as_u64() >= expr->size())
+            return mk_const(0, expr->size());
+    }
+
+    LShrExpr e(expr, val);
+    return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+}
+
+BVExprPtr ExprBuilder::mk_ashr(BVExprPtr expr, BVExprPtr val)
+{
+    check_size_or_fail("ashr", expr, val);
+
+    // constant propagation
+    if (expr->kind() == Expr::Kind::CONST && val->kind() == Expr::Kind::CONST) {
+        auto expr_ = std::static_pointer_cast<const ConstExpr>(expr);
+        auto val_  = std::static_pointer_cast<const ConstExpr>(val);
+        if (!val_->val().fit_in_u64()) {
+            if (val_->val().get_bit(val->size() - 1) == 0)
+                return mk_const(0, expr->size());
+            return mk_const(BVConst("-1", expr->size()));
+        }
+
+        BVConst tmp(expr_->val());
+        tmp.ashr(val_->val().as_u64());
+        return mk_const(tmp);
+    }
+
+    // special cases
+    if (val->kind() == Expr::Kind::CONST) {
+        auto val_ = std::static_pointer_cast<const ConstExpr>(val);
+        if (val_->val().is_zero())
+            return expr;
+        if (val_->val().as_u64() >= expr->size()) {
+            auto sign_expr =
+                mk_extract(expr, expr->size() - 1, expr->size() - 1);
+            if (sign_expr->kind() == Expr::Kind::CONST) {
+                auto sign_expr_ =
+                    std::static_pointer_cast<const ConstExpr>(sign_expr);
+                if (sign_expr_->val().is_zero())
+                    return mk_const(0, expr->size());
+                return mk_const(BVConst("-1", expr->size()));
+            }
+        }
+    }
+
+    AShrExpr e(expr, val);
+    return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+}
+
 BVExprPtr ExprBuilder::mk_neg(BVExprPtr expr)
 {
     // constant propagation
