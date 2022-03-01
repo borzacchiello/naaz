@@ -153,7 +153,7 @@ BVExprPtr ExprBuilder::mk_zext(BVExprPtr e, uint32_t n)
         auto    e_ = std::static_pointer_cast<const ConstExpr>(e);
         BVConst tmp(e_->val());
         tmp.zext(n);
-        return mk_const(e_->val());
+        return mk_const(tmp);
     }
 
     ZextExpr r(e, n);
@@ -813,7 +813,7 @@ BVExprPtr ExprBuilder::sign_bit(BVExprPtr expr)
 
 BVExprPtr ExprBuilder::bool_to_bv(BoolExprPtr expr)
 {
-    return mk_ite(expr, mk_const(1, 1), mk_const(0, 1));
+    return mk_ite(expr, mk_const(1, 8), mk_const(0, 8));
 }
 
 BoolExprPtr ExprBuilder::bv_to_bool(BVExprPtr expr)

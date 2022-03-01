@@ -28,7 +28,7 @@ expr::BVExprPtr PCodeExecutor::resolve_varnode(ExecutionContext& ctx,
     } else if (space_id == m_regs_space_id) {
         return ctx.state->reg_read(node.offset, node.size);
     } else if (space_id == m_const_space_id) {
-        return exprBuilder.mk_const(node.offset, node.size);
+        return exprBuilder.mk_const(node.offset, node.size * 8);
     } else if (space_id == m_tmp_space_id) {
         return ctx.tmp_storage.read(node.offset, node.size);
     } else {
@@ -43,17 +43,12 @@ void PCodeExecutor::write_to_varnode(ExecutionContext& ctx,
                                      csleigh_Varnode   node,
                                      expr::BVExprPtr   value)
 {
-    if (node.size != value->size()) {
+    if (node.size * 8 != value->size()) {
         err("PCodeExecutor")
             << "write_to_varnode(): the size of the varnode (" << std::dec
-            << node.size << ") is different from the size of the value ("
+            << node.size * 8 << ") is different from the size of the value ("
             << value->size() << ")" << std::endl;
         exit_fail();
-    }
-
-    if (node.size == 1) {
-        // extend bools to byte
-        value = exprBuilder.mk_zext(value, 8);
     }
 
     uint32_t space_id = csleigh_AddrSpace_getId(node.space);
@@ -75,15 +70,24 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 {
     switch (op.opcode) {
         case csleigh_CPUI_COPY: {
-            assert(op.output != nullptr && "CPUI_COPY: output is NULL");
-            assert(op.inputs_count == 1 && "CPUI_COPY: inputs_count != 1");
+            assert(op.output != nullptr && "COPY: output is NULL");
+            assert(op.inputs_count == 1 && "COPY: inputs_count != 1");
             write_to_varnode(ctx, *op.output,
                              resolve_varnode(ctx, op.inputs[0]));
             break;
         }
+        case csleigh_CPUI_INT_EQUAL: {
+            assert(op.output != nullptr && "INT_EQUAL: output is NULL");
+            assert(op.inputs_count == 2 && "INT_EQUAL: inputs_count != 2");
+            expr::BoolExprPtr expr =
+                exprBuilder.mk_eq(resolve_varnode(ctx, op.inputs[0]),
+                                  resolve_varnode(ctx, op.inputs[1]));
+            write_to_varnode(ctx, *op.output, exprBuilder.bool_to_bv(expr));
+            break;
+        }
         case csleigh_CPUI_INT_LESS: {
-            assert(op.output != nullptr && "CPUI_INT_LESS: output is NULL");
-            assert(op.inputs_count == 2 && "CPUI_INT_LESS: inputs_count != 1");
+            assert(op.output != nullptr && "INT_LESS: output is NULL");
+            assert(op.inputs_count == 2 && "INT_LESS: inputs_count != 2");
             expr::BoolExprPtr expr =
                 exprBuilder.mk_ult(resolve_varnode(ctx, op.inputs[0]),
                                    resolve_varnode(ctx, op.inputs[1]));
@@ -91,12 +95,65 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             break;
         }
         case csleigh_CPUI_INT_SLESS: {
-            assert(op.output != nullptr && "CPUI_INT_SLESS: output is NULL");
-            assert(op.inputs_count == 2 && "CPUI_INT_SLESS: inputs_count != 1");
+            assert(op.output != nullptr && "INT_SLESS: output is NULL");
+            assert(op.inputs_count == 2 && "INT_SLESS: inputs_count != 2");
             expr::BoolExprPtr expr =
                 exprBuilder.mk_slt(resolve_varnode(ctx, op.inputs[0]),
                                    resolve_varnode(ctx, op.inputs[1]));
             write_to_varnode(ctx, *op.output, exprBuilder.bool_to_bv(expr));
+            break;
+        }
+        case csleigh_CPUI_INT_AND: {
+            assert(op.output != nullptr && "INT_AND: output is NULL");
+            assert(op.inputs_count == 2 && "INT_AND: inputs_count != 2");
+            expr::BVExprPtr expr =
+                exprBuilder.mk_and(resolve_varnode(ctx, op.inputs[0]),
+                                   resolve_varnode(ctx, op.inputs[1]));
+            write_to_varnode(ctx, *op.output, expr);
+            break;
+        }
+        case csleigh_CPUI_INT_SUB: {
+            assert(op.output != nullptr && "INT_SUB: output is NULL");
+            assert(op.inputs_count == 2 && "INT_SUB: inputs_count != 2");
+            expr::BVExprPtr expr =
+                exprBuilder.mk_sub(resolve_varnode(ctx, op.inputs[0]),
+                                   resolve_varnode(ctx, op.inputs[1]));
+            write_to_varnode(ctx, *op.output, expr);
+            break;
+        }
+        case csleigh_CPUI_INT_SBORROW: {
+            assert(op.output != nullptr && "INT_SBORROW: output is NULL");
+            assert(op.inputs_count == 2 && "INT_SBORROW: inputs_count != 2");
+
+            expr::BVExprPtr in1 = resolve_varnode(ctx, op.inputs[0]);
+            expr::BVExprPtr in2 = resolve_varnode(ctx, op.inputs[1]);
+            expr::BVExprPtr res = exprBuilder.mk_sub(in1, in2);
+
+            expr::BVExprPtr a = exprBuilder.sign_bit(in1);
+            expr::BVExprPtr b = exprBuilder.sign_bit(in2);
+            expr::BVExprPtr r = exprBuilder.sign_bit(res);
+
+            a = exprBuilder.mk_xor(a, r);
+            r = exprBuilder.mk_xor(r, b);
+            r = exprBuilder.mk_xor(r, exprBuilder.mk_const(1, r->size()));
+            a = exprBuilder.mk_and(a, r);
+            write_to_varnode(ctx, *op.output, exprBuilder.mk_zext(a, 8));
+            break;
+        }
+        case csleigh_CPUI_POPCOUNT: {
+            assert(op.output != nullptr && "POPCOUNT: output is NULL");
+            assert(op.inputs_count == 1 && "POPCOUNT: inputs_count != 1");
+
+            expr::BVExprPtr inp_expr = resolve_varnode(ctx, op.inputs[0]);
+            uint32_t        dst_size = op.output->size * 8;
+
+            expr::BVExprPtr res = exprBuilder.mk_zext(
+                exprBuilder.mk_extract(inp_expr, 0, 0), dst_size);
+            for (uint32_t i = 1; i < op.inputs[0].size; ++i)
+                res = exprBuilder.mk_add(
+                    res, exprBuilder.mk_zext(
+                             exprBuilder.mk_extract(inp_expr, i, i), dst_size));
+            write_to_varnode(ctx, *op.output, res);
             break;
         }
         default:
