@@ -726,6 +726,8 @@ bool BVConst::is_one() const
     return eq(BVConst(1UL, m_size));
 }
 
+bool BVConst::has_all_bit_set() const { return eq(BVConst("-1", m_size)); }
+
 std::ostream& operator<<(std::ostream& os, const BVConst& c)
 {
     return os << c.to_string();

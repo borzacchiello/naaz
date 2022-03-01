@@ -50,6 +50,9 @@ class ExprBuilder
     BVExprPtr mk_neg(BVExprPtr expr);
     BVExprPtr mk_add(BVExprPtr lhs, BVExprPtr rhs);
     BVExprPtr mk_sub(BVExprPtr lhs, BVExprPtr rhs);
+    BVExprPtr mk_and(BVExprPtr lhs, BVExprPtr rhs);
+    BVExprPtr mk_or(BVExprPtr lhs, BVExprPtr rhs);
+    BVExprPtr mk_xor(BVExprPtr lhs, BVExprPtr rhs);
 
     // logical
     BoolExprPtr mk_not(BoolExprPtr expr);

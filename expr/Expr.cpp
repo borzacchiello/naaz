@@ -9,6 +9,10 @@
 namespace naaz::expr
 {
 
+// **********
+// * SymExpr
+// **********
+
 uint64_t SymExpr::hash() const
 {
     XXH64_state_t state;
@@ -43,6 +47,10 @@ z3::expr SymExpr::to_z3(z3::context& ctx) const
     return ctx.bv_const(ExprBuilder::The().get_sym_name(m_id).c_str(), m_size);
 }
 
+// ***************
+// * ConstExpr
+// ***************
+
 ConstExpr::ConstExpr(uint64_t val, size_t size) : m_val(val, size)
 {
     m_hash = m_val.hash();
@@ -70,6 +78,10 @@ z3::expr ConstExpr::to_z3(z3::context& ctx) const
 {
     return ctx.bv_val(to_string().c_str(), size());
 }
+
+// ***************
+// * ITEExpr
+// ***************
 
 uint64_t ITEExpr::hash() const
 {
@@ -107,6 +119,10 @@ z3::expr ITEExpr::to_z3(z3::context& ctx) const
                    m_iffalse->to_z3(ctx));
 }
 
+// ***************
+// * ExtractExpr
+// ***************
+
 uint64_t ExtractExpr::hash() const
 {
     XXH64_state_t state;
@@ -139,6 +155,10 @@ z3::expr ExtractExpr::to_z3(z3::context& ctx) const
     return m_expr->to_z3(ctx).extract(m_high, m_low);
 }
 
+// ***************
+// * ConcatExpr
+// ***************
+
 uint64_t ConcatExpr::hash() const
 {
     XXH64_state_t state;
@@ -170,6 +190,10 @@ z3::expr ConcatExpr::to_z3(z3::context& ctx) const
 {
     return z3::concat(m_lhs->to_z3(ctx), m_rhs->to_z3(ctx));
 }
+
+// ***************
+// * ZextExpr
+// ***************
 
 ZextExpr::ZextExpr(BVExprPtr e, size_t s) : m_expr(e), m_size(s)
 {
@@ -210,6 +234,10 @@ z3::expr ZextExpr::to_z3(z3::context& ctx) const
     return z3::zext(m_expr->to_z3(ctx), m_size - m_expr->size());
 }
 
+// ***************
+// * SextExpr
+// ***************
+
 SextExpr::SextExpr(BVExprPtr e, size_t s) : m_expr(e), m_size(s)
 {
     if (s < e->size()) {
@@ -249,6 +277,10 @@ z3::expr SextExpr::to_z3(z3::context& ctx) const
     return z3::sext(m_expr->to_z3(ctx), m_size - m_expr->size());
 }
 
+// ***************
+// * NegExpr
+// ***************
+
 uint64_t NegExpr::hash() const
 {
     XXH64_state_t state;
@@ -258,6 +290,26 @@ uint64_t NegExpr::hash() const
     XXH64_update(&state, raw_expr, sizeof(void*));
     return XXH64_digest(&state);
 }
+
+bool NegExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const NegExpr>(other);
+    return m_size == other_->m_size && m_expr == other_->m_expr;
+}
+
+std::string NegExpr::to_string() const
+{
+    return std::string("( - (") + m_expr->to_string() + "))";
+}
+
+z3::expr NegExpr::to_z3(z3::context& ctx) const { return -m_expr->to_z3(ctx); }
+
+// ***************
+// * ShlExpr
+// ***************
 
 uint64_t ShlExpr::hash() const
 {
@@ -291,6 +343,10 @@ z3::expr ShlExpr::to_z3(z3::context& ctx) const
     return z3::shl(m_expr->to_z3(ctx), m_val->to_z3(ctx));
 }
 
+// ***************
+// * LShrExpr
+// ***************
+
 uint64_t LShrExpr::hash() const
 {
     XXH64_state_t state;
@@ -322,6 +378,10 @@ z3::expr LShrExpr::to_z3(z3::context& ctx) const
 {
     return z3::lshr(m_expr->to_z3(ctx), m_val->to_z3(ctx));
 }
+
+// ***************
+// * AShrExpr
+// ***************
 
 uint64_t AShrExpr::hash() const
 {
@@ -355,21 +415,9 @@ z3::expr AShrExpr::to_z3(z3::context& ctx) const
     return z3::ashr(m_expr->to_z3(ctx), m_val->to_z3(ctx));
 }
 
-bool NegExpr::eq(ExprPtr other) const
-{
-    if (other->kind() != ekind)
-        return false;
-
-    auto other_ = std::static_pointer_cast<const NegExpr>(other);
-    return m_size == other_->m_size && m_expr == other_->m_expr;
-}
-
-std::string NegExpr::to_string() const
-{
-    return std::string("( - (") + m_expr->to_string() + "))";
-}
-
-z3::expr NegExpr::to_z3(z3::context& ctx) const { return -m_expr->to_z3(ctx); }
+// ***************
+// * AddExpr
+// ***************
 
 uint64_t AddExpr::hash() const
 {
@@ -418,6 +466,163 @@ z3::expr AddExpr::to_z3(z3::context& ctx) const
     return z3expr;
 }
 
+// ***************
+// * AndExpr
+// ***************
+
+uint64_t AndExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, (void*)&m_size, sizeof(m_size));
+    for (const auto& child : m_children) {
+        void* raw_child = (void*)child.get();
+        XXH64_update(&state, raw_child, sizeof(void*));
+    }
+    return XXH64_digest(&state);
+}
+
+bool AndExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const AndExpr>(other);
+    if (m_size != other_->m_size)
+        return false;
+    if (m_children.size() != other_->m_children.size())
+        return false;
+
+    for (uint64_t i = 0; i < m_children.size(); ++i)
+        if (m_children.at(i) != other_->m_children.at(i))
+            return false;
+    return true;
+}
+
+std::string AndExpr::to_string() const
+{
+    std::string res = m_children.at(0)->to_string();
+    for (uint64_t i = 1; i < m_children.size(); ++i) {
+        res += " & ";
+        res += m_children.at(i)->to_string();
+    }
+    return res;
+}
+
+z3::expr AndExpr::to_z3(z3::context& ctx) const
+{
+    z3::expr z3expr = m_children.at(0)->to_z3(ctx);
+    for (uint64_t i = 1; i < m_children.size(); ++i)
+        z3expr = z3expr & m_children.at(i)->to_z3(ctx);
+    return z3expr;
+}
+
+// ***************
+// * OrExpr
+// ***************
+
+uint64_t OrExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, (void*)&m_size, sizeof(m_size));
+    for (const auto& child : m_children) {
+        void* raw_child = (void*)child.get();
+        XXH64_update(&state, raw_child, sizeof(void*));
+    }
+    return XXH64_digest(&state);
+}
+
+bool OrExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const OrExpr>(other);
+    if (m_size != other_->m_size)
+        return false;
+    if (m_children.size() != other_->m_children.size())
+        return false;
+
+    for (uint64_t i = 0; i < m_children.size(); ++i)
+        if (m_children.at(i) != other_->m_children.at(i))
+            return false;
+    return true;
+}
+
+std::string OrExpr::to_string() const
+{
+    std::string res = m_children.at(0)->to_string();
+    for (uint64_t i = 1; i < m_children.size(); ++i) {
+        res += " | ";
+        res += m_children.at(i)->to_string();
+    }
+    return res;
+}
+
+z3::expr OrExpr::to_z3(z3::context& ctx) const
+{
+    z3::expr z3expr = m_children.at(0)->to_z3(ctx);
+    for (uint64_t i = 1; i < m_children.size(); ++i)
+        z3expr = z3expr | m_children.at(i)->to_z3(ctx);
+    return z3expr;
+}
+
+// ***************
+// * XorExpr
+// ***************
+
+uint64_t XorExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, (void*)&m_size, sizeof(m_size));
+    for (const auto& child : m_children) {
+        void* raw_child = (void*)child.get();
+        XXH64_update(&state, raw_child, sizeof(void*));
+    }
+    return XXH64_digest(&state);
+}
+
+bool XorExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const XorExpr>(other);
+    if (m_size != other_->m_size)
+        return false;
+    if (m_children.size() != other_->m_children.size())
+        return false;
+
+    for (uint64_t i = 0; i < m_children.size(); ++i)
+        if (m_children.at(i) != other_->m_children.at(i))
+            return false;
+    return true;
+}
+
+std::string XorExpr::to_string() const
+{
+    std::string res = m_children.at(0)->to_string();
+    for (uint64_t i = 1; i < m_children.size(); ++i) {
+        res += " | ";
+        res += m_children.at(i)->to_string();
+    }
+    return res;
+}
+
+z3::expr XorExpr::to_z3(z3::context& ctx) const
+{
+    z3::expr z3expr = m_children.at(0)->to_z3(ctx);
+    for (uint64_t i = 1; i < m_children.size(); ++i)
+        z3expr = z3expr ^ m_children.at(i)->to_z3(ctx);
+    return z3expr;
+}
+
+// ***************
+// * BoolConst
+// ***************
+
 uint64_t BoolConst::hash() const
 {
     if (m_is_true)
@@ -447,6 +652,10 @@ z3::expr BoolConst::to_z3(z3::context& ctx) const
     return ctx.bool_val(false);
 }
 
+// ***************
+// * NotExpr
+// ***************
+
 uint64_t NotExpr::hash() const
 {
     XXH64_state_t state;
@@ -471,6 +680,10 @@ std::string NotExpr::to_string() const
 }
 
 z3::expr NotExpr::to_z3(z3::context& ctx) const { return !m_expr->to_z3(ctx); }
+
+// ***************
+// * BoolAndExpr
+// ***************
 
 uint64_t BoolAndExpr::hash() const
 {
@@ -520,6 +733,10 @@ z3::expr BoolAndExpr::to_z3(z3::context& ctx) const
     }
     return e;
 }
+
+// ***************
+// * LogicalExprs
+// ***************
 
 #define GEN_BINARY_LOGICAL_EXPR_IMPL(NAME, OP_STR)                             \
     uint64_t NAME::hash() const                                                \

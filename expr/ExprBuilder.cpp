@@ -337,6 +337,8 @@ BVExprPtr ExprBuilder::mk_neg(BVExprPtr expr)
 
 BVExprPtr ExprBuilder::mk_add(BVExprPtr lhs, BVExprPtr rhs)
 {
+    // FIXME: add simplification 'add with negated'
+
     check_size_or_fail("add", lhs, rhs);
 
     std::vector<BVExprPtr> addends;
@@ -344,7 +346,7 @@ BVExprPtr ExprBuilder::mk_add(BVExprPtr lhs, BVExprPtr rhs)
     // flatten args
     if (lhs->kind() == Expr::Kind::ADD) {
         auto lhs_ = std::static_pointer_cast<const AddExpr>(lhs);
-        for (const auto& child : lhs_->addends())
+        for (auto child : lhs_->addends())
             addends.push_back(child);
     } else {
         addends.push_back(lhs);
@@ -352,7 +354,7 @@ BVExprPtr ExprBuilder::mk_add(BVExprPtr lhs, BVExprPtr rhs)
 
     if (rhs->kind() == Expr::Kind::ADD) {
         auto rhs_ = std::static_pointer_cast<const AddExpr>(rhs);
-        for (const auto& child : rhs_->addends())
+        for (auto child : rhs_->addends())
             addends.push_back(child);
     } else {
         addends.push_back(rhs);
@@ -362,7 +364,7 @@ BVExprPtr ExprBuilder::mk_add(BVExprPtr lhs, BVExprPtr rhs)
 
     // constant propagation
     BVConst concrete_val(0UL, addends.at(0)->size());
-    for (const auto& addend : addends) {
+    for (auto addend : addends) {
         if (addend->kind() == Expr::Kind::CONST) {
             auto addend_ = std::static_pointer_cast<const ConstExpr>(addend);
             concrete_val.add(addend_->val());
@@ -371,20 +373,224 @@ BVExprPtr ExprBuilder::mk_add(BVExprPtr lhs, BVExprPtr rhs)
         }
     }
 
+    // remove 'add with negated'
+    std::vector<BVExprPtr> pruned_children;
+    std::set<BVExprPtr>    negated_exprs;
+    std::set<BVExprPtr>    normal_exprs;
+    for (auto exp : children) {
+        if (exp->kind() == Expr::Kind::NEG) {
+            auto exp_ = std::static_pointer_cast<const NegExpr>(exp);
+            if (normal_exprs.contains(exp_->expr()))
+                normal_exprs.erase(exp_->expr());
+            else
+                negated_exprs.insert(exp_->expr());
+        } else {
+            if (negated_exprs.contains(exp))
+                negated_exprs.erase(exp);
+            else
+                normal_exprs.insert(exp);
+        }
+    }
+    for (auto exp : negated_exprs)
+        pruned_children.push_back(mk_neg(exp));
+    for (auto exp : normal_exprs)
+        pruned_children.push_back(exp);
+
+    // final checks
+    if (pruned_children.size() == 0)
+        return mk_const(concrete_val);
+
+    if (!concrete_val.is_zero())
+        pruned_children.push_back(mk_const(concrete_val));
+
+    if (pruned_children.size() == 1)
+        return pruned_children.back();
+
+    // sort children by address (commutative! We are trying to reduce the
+    // number of equivalent expressions)
+    std::sort(pruned_children.begin(), pruned_children.end());
+
+    AddExpr e(pruned_children);
+    return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+}
+
+BVExprPtr ExprBuilder::mk_and(BVExprPtr lhs, BVExprPtr rhs)
+{
+    check_size_or_fail("and", lhs, rhs);
+
+    std::vector<BVExprPtr> exprs;
+
+    // flatten args
+    if (lhs->kind() == Expr::Kind::AND) {
+        auto lhs_ = std::static_pointer_cast<const AndExpr>(lhs);
+        for (auto child : lhs_->els())
+            exprs.push_back(child);
+    } else {
+        exprs.push_back(lhs);
+    }
+
+    if (rhs->kind() == Expr::Kind::AND) {
+        auto rhs_ = std::static_pointer_cast<const AndExpr>(rhs);
+        for (auto child : rhs_->els())
+            exprs.push_back(child);
+    } else {
+        exprs.push_back(rhs);
+    }
+
+    std::vector<BVExprPtr> children;
+
+    // constant propagation
+    BVConst concrete_val("-1", exprs.at(0)->size());
+    for (auto exp : exprs) {
+        if (exp->kind() == Expr::Kind::CONST) {
+            auto exp_ = std::static_pointer_cast<const ConstExpr>(exp);
+            // special case: and with zero
+            if (exp_->val().is_zero())
+                return exp_;
+            concrete_val.band(exp_->val());
+        } else {
+            children.push_back(exp);
+        }
+    }
+
+    // final checks
     if (children.size() == 0)
         return mk_const(concrete_val);
 
-    if (children.size() == 1 && concrete_val.is_zero())
-        return children.back();
-
-    if (!concrete_val.is_zero())
+    if (!concrete_val.has_all_bit_set())
         children.push_back(mk_const(concrete_val));
+
+    if (children.size() == 1)
+        return children.back();
 
     // sort children by address (commutative! We are trying to reduce the
     // number of equivalent expressions)
     std::sort(children.begin(), children.end());
 
-    AddExpr e(children);
+    AndExpr e(children);
+    return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+}
+
+BVExprPtr ExprBuilder::mk_or(BVExprPtr lhs, BVExprPtr rhs)
+{
+    check_size_or_fail("or", lhs, rhs);
+
+    std::vector<BVExprPtr> exprs;
+
+    // flatten args
+    if (lhs->kind() == Expr::Kind::OR) {
+        auto lhs_ = std::static_pointer_cast<const OrExpr>(lhs);
+        for (auto child : lhs_->els())
+            exprs.push_back(child);
+    } else {
+        exprs.push_back(lhs);
+    }
+
+    if (rhs->kind() == Expr::Kind::OR) {
+        auto rhs_ = std::static_pointer_cast<const OrExpr>(rhs);
+        for (auto child : rhs_->els())
+            exprs.push_back(child);
+    } else {
+        exprs.push_back(rhs);
+    }
+
+    std::vector<BVExprPtr> children;
+
+    // constant propagation
+    BVConst concrete_val(0UL, exprs.at(0)->size());
+    for (auto exp : exprs) {
+        if (exp->kind() == Expr::Kind::CONST) {
+            auto exp_ = std::static_pointer_cast<const ConstExpr>(exp);
+            // special case: or with 11..1
+            if (exp_->val().has_all_bit_set())
+                return mk_const(BVConst("-1", exprs.at(0)->size()));
+            concrete_val.bor(exp_->val());
+        } else {
+            children.push_back(exp);
+        }
+    }
+
+    // final checks
+    if (children.size() == 0)
+        return mk_const(concrete_val);
+
+    if (!concrete_val.is_zero())
+        children.push_back(mk_const(concrete_val));
+
+    if (children.size() == 1)
+        return children.back();
+
+    // sort children by address (commutative! We are trying to reduce the
+    // number of equivalent expressions)
+    std::sort(children.begin(), children.end());
+
+    OrExpr e(children);
+    return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+}
+
+BVExprPtr ExprBuilder::mk_xor(BVExprPtr lhs, BVExprPtr rhs)
+{
+    check_size_or_fail("xor", lhs, rhs);
+
+    std::vector<BVExprPtr> exprs;
+
+    // flatten args
+    if (lhs->kind() == Expr::Kind::OR) {
+        auto lhs_ = std::static_pointer_cast<const XorExpr>(lhs);
+        for (auto child : lhs_->els())
+            exprs.push_back(child);
+    } else {
+        exprs.push_back(lhs);
+    }
+
+    if (rhs->kind() == Expr::Kind::OR) {
+        auto rhs_ = std::static_pointer_cast<const XorExpr>(rhs);
+        for (auto child : rhs_->els())
+            exprs.push_back(child);
+    } else {
+        exprs.push_back(rhs);
+    }
+
+    std::vector<BVExprPtr> children;
+
+    // constant propagation
+    BVConst concrete_val(0UL, exprs.at(0)->size());
+    for (auto exp : exprs) {
+        if (exp->kind() == Expr::Kind::CONST) {
+            auto exp_ = std::static_pointer_cast<const ConstExpr>(exp);
+            concrete_val.bxor(exp_->val());
+        } else {
+            children.push_back(exp);
+        }
+    }
+
+    // remove 'xor with myself'
+    std::vector<BVExprPtr> pruned_children;
+    std::set<BVExprPtr>    added_exprs;
+    for (auto exp : children) {
+        if (added_exprs.contains(exp))
+            added_exprs.erase(exp);
+        else
+            added_exprs.insert(exp);
+    }
+    for (auto exp : added_exprs)
+        pruned_children.push_back(exp);
+
+    // final checks
+    if (pruned_children.size() == 0)
+        return mk_const(concrete_val);
+
+    if (!concrete_val.is_zero())
+        pruned_children.push_back(mk_const(concrete_val));
+
+    if (pruned_children.size() == 1)
+        return pruned_children.back();
+
+    // sort children by address (commutative! We are trying to reduce the
+    // number of equivalent expressions)
+    std::sort(pruned_children.begin(), pruned_children.end());
+
+    XorExpr e(pruned_children);
     return std::static_pointer_cast<const BVExpr>(get_or_create(e));
 }
 
@@ -558,7 +764,7 @@ BoolExprPtr ExprBuilder::mk_bool_and(BoolExprPtr e1, BoolExprPtr e2)
     // flatten args
     if (e1->kind() == Expr::Kind::BOOL_AND) {
         auto e1_ = std::static_pointer_cast<const BoolAndExpr>(e1);
-        for (const auto& e : e1_->exprs())
+        for (auto e : e1_->exprs())
             exprs.insert(e);
     } else {
         exprs.insert(e1);
@@ -566,7 +772,7 @@ BoolExprPtr ExprBuilder::mk_bool_and(BoolExprPtr e1, BoolExprPtr e2)
 
     if (e2->kind() == Expr::Kind::BOOL_AND) {
         auto e2_ = std::static_pointer_cast<const BoolAndExpr>(e2);
-        for (const auto& e : e2_->exprs())
+        for (auto e : e2_->exprs())
             exprs.insert(e);
     } else {
         exprs.insert(e2);
@@ -585,6 +791,7 @@ BoolExprPtr ExprBuilder::mk_bool_and(BoolExprPtr e1, BoolExprPtr e2)
         }
     }
 
+    // final checks
     if (actual_exprs.size() == 0)
         return mk_true();
 

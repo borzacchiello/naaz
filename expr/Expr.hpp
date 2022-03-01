@@ -35,6 +35,9 @@ class Expr
         LSHR,
         ASHR,
         NEG,
+        AND,
+        OR,
+        XOR,
         ADD,
 
         // logical
@@ -513,6 +516,117 @@ class AddExpr final : public BVExpr
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const AddExpr> AddExprPtr;
+
+class AndExpr final : public BVExpr
+{
+  private:
+    static const Kind ekind = Kind::AND;
+
+    std::vector<BVExprPtr> m_children;
+    size_t                 m_size;
+
+  protected:
+    AndExpr(std::vector<BVExprPtr> children)
+        : m_children(children), m_size(children.at(0)->size())
+    {
+    }
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return m_size; };
+    virtual ExprPtr clone() const { return ExprPtr(new AndExpr(m_children)); }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::string          to_string() const;
+    virtual z3::expr             to_z3(z3::context& ctx) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        std::vector<ExprPtr> res;
+        for (auto c : m_children)
+            res.push_back(std::static_pointer_cast<const Expr>(c));
+        return res;
+    }
+
+    const std::vector<BVExprPtr>& els() const { return m_children; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const AndExpr> AndExprPtr;
+
+class OrExpr final : public BVExpr
+{
+  private:
+    static const Kind ekind = Kind::OR;
+
+    std::vector<BVExprPtr> m_children;
+    size_t                 m_size;
+
+  protected:
+    OrExpr(std::vector<BVExprPtr> children)
+        : m_children(children), m_size(children.at(0)->size())
+    {
+    }
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return m_size; };
+    virtual ExprPtr    clone() const { return ExprPtr(new OrExpr(m_children)); }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::string          to_string() const;
+    virtual z3::expr             to_z3(z3::context& ctx) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        std::vector<ExprPtr> res;
+        for (auto c : m_children)
+            res.push_back(std::static_pointer_cast<const Expr>(c));
+        return res;
+    }
+
+    const std::vector<BVExprPtr>& els() const { return m_children; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const OrExpr> OrExprPtr;
+
+class XorExpr final : public BVExpr
+{
+  private:
+    static const Kind ekind = Kind::XOR;
+
+    std::vector<BVExprPtr> m_children;
+    size_t                 m_size;
+
+  protected:
+    XorExpr(std::vector<BVExprPtr> children)
+        : m_children(children), m_size(children.at(0)->size())
+    {
+    }
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return m_size; };
+    virtual ExprPtr clone() const { return ExprPtr(new XorExpr(m_children)); }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::string          to_string() const;
+    virtual z3::expr             to_z3(z3::context& ctx) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        std::vector<ExprPtr> res;
+        for (auto c : m_children)
+            res.push_back(std::static_pointer_cast<const Expr>(c));
+        return res;
+    }
+
+    const std::vector<BVExprPtr>& els() const { return m_children; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const XorExpr> XorExprPtr;
 
 class BoolConst final : public BoolExpr
 {

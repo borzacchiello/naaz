@@ -59,10 +59,84 @@ TEST_CASE("AddExpr 1", "[expr]")
 
 TEST_CASE("AddExpr 2", "[expr]")
 {
+    BVExprPtr s = exprBuilder.mk_sym("sym", 32);
+
+    BVExprPtr e = exprBuilder.mk_sub(s, s);
+    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().is_zero());
+}
+
+TEST_CASE("AddExpr 3", "[expr]")
+{
+    BVExprPtr s1 = exprBuilder.mk_sym("sym1", 32);
+    BVExprPtr s2 = exprBuilder.mk_sym("sym2", 32);
+    BVExprPtr s3 = exprBuilder.mk_sym("sym3", 32);
+
+    BVExprPtr e = exprBuilder.mk_add(
+        s1, exprBuilder.mk_add(s2, exprBuilder.mk_sub(s3, s1)));
+    REQUIRE(e == exprBuilder.mk_add(s2, s3));
+}
+
+TEST_CASE("AddExpr 4", "[expr]")
+{
     BVExprPtr e = exprBuilder.mk_const(42, 32);
     e           = exprBuilder.mk_add(e, exprBuilder.mk_const(38, 32));
 
     REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().as_u64() == 80);
+}
+
+TEST_CASE("AndExpr 1", "[expr]")
+{
+    BVExprPtr c1 = exprBuilder.mk_const(0xf0f0f0f0, 32);
+    BVExprPtr c2 = exprBuilder.mk_const(0x0f0f0f0f, 32);
+    BVExprPtr e  = exprBuilder.mk_and(c1, c2);
+
+    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().is_zero());
+}
+
+TEST_CASE("AndExpr 2", "[expr]")
+{
+    BVExprPtr s = exprBuilder.mk_sym("sym", 32);
+    BVExprPtr c = exprBuilder.mk_const(0UL, 32);
+    BVExprPtr e = exprBuilder.mk_and(s, c);
+
+    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().is_zero());
+}
+
+TEST_CASE("OrExpr 1", "[expr]")
+{
+    BVExprPtr c1 = exprBuilder.mk_const(0xf0f0f0f0, 32);
+    BVExprPtr c2 = exprBuilder.mk_const(0x0f0f0f0f, 32);
+    BVExprPtr e  = exprBuilder.mk_or(c1, c2);
+
+    REQUIRE(
+        std::static_pointer_cast<const ConstExpr>(e)->val().has_all_bit_set());
+}
+
+TEST_CASE("OrExpr 2", "[expr]")
+{
+    BVExprPtr s = exprBuilder.mk_sym("sym", 32);
+    BVExprPtr c = exprBuilder.mk_const(BVConst("-1", 32));
+    BVExprPtr e = exprBuilder.mk_or(s, c);
+
+    REQUIRE(
+        std::static_pointer_cast<const ConstExpr>(e)->val().has_all_bit_set());
+}
+
+TEST_CASE("XorExpr 1", "[expr]")
+{
+    BVExprPtr c1 = exprBuilder.mk_const(0xa, 32);
+    BVExprPtr c2 = exprBuilder.mk_const(0xb, 32);
+    BVExprPtr e  = exprBuilder.mk_xor(c1, c2);
+
+    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().as_u64() == 1);
+}
+
+TEST_CASE("XorExpr 2", "[expr]")
+{
+    BVExprPtr s1 = exprBuilder.mk_sym("sym1", 32);
+    BVExprPtr e  = exprBuilder.mk_xor(s1, s1);
+
+    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().is_zero());
 }
 
 TEST_CASE("ShlExpr 1", "[expr]")
@@ -78,7 +152,8 @@ TEST_CASE("AShrExpr 1", "[expr]")
     BVExprPtr e = exprBuilder.mk_const(0xf0, 8);
     e           = exprBuilder.mk_ashr(e, exprBuilder.mk_const(1, 8));
 
-    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().as_u64() == 0xf8);
+    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().as_u64() ==
+            0xf8);
 }
 
 TEST_CASE("LShrExpr 1", "[expr]")
@@ -86,7 +161,8 @@ TEST_CASE("LShrExpr 1", "[expr]")
     BVExprPtr e = exprBuilder.mk_const(0xf0, 8);
     e           = exprBuilder.mk_lshr(e, exprBuilder.mk_const(1, 8));
 
-    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().as_u64() == 0x78);
+    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().as_u64() ==
+            0x78);
 }
 
 TEST_CASE("ConcatExpr 1", "[expr]")

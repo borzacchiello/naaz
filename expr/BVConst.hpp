@@ -89,6 +89,7 @@ class BVConst
 
     bool is_zero() const;
     bool is_one() const;
+    bool has_all_bit_set() const;
 
     std::string to_string(bool hex = false) const;
 
