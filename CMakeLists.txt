@@ -26,8 +26,10 @@ set ( naaz_src
     expr/BVConst.cpp
     expr/Expr.cpp
     expr/ExprBuilder.cpp
+    expr/util.cpp
     state/MapMemory.cpp
     state/State.cpp
+    state/Solver.cpp
     arch/Arch.cpp
     lifter/PCodeLifter.cpp
     loader/AddressSpace.cpp

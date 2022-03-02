@@ -22,10 +22,9 @@ class Z3Solver
         return solv;
     }
 
-    CheckResult check(const ConstraintManager& constraints,
-                      expr::BoolExprPtr        query);
+    CheckResult check(expr::BoolExprPtr query);
 
-    std::map<std::string, expr::BVConst> model();
+    std::map<uint32_t, expr::BVConst> model();
 };
 
 } // namespace naaz::solver

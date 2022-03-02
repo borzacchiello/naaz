@@ -52,7 +52,7 @@ void ConstraintManager::add(expr::BoolExprPtr constraint)
 }
 
 std::set<uint32_t>
-ConstraintManager::get_dependencies(expr::BoolExprPtr constraint) const
+ConstraintManager::get_dependencies(expr::ExprPtr constraint) const
 {
     const std::set<uint32_t>& involved_inputs = get_involved_inputs(constraint);
 
@@ -77,10 +77,9 @@ ConstraintManager::get_dependencies(expr::BoolExprPtr constraint) const
     return res;
 }
 
-expr::BoolExprPtr
-ConstraintManager::build_query(expr::BoolExprPtr constraint) const
+expr::BoolExprPtr ConstraintManager::pi(expr::ExprPtr expr) const
 {
-    std::set<uint32_t> involved_inputs = get_dependencies(constraint);
+    std::set<uint32_t> involved_inputs = get_dependencies(expr);
 
     std::set<expr::BoolExprPtr> constraints;
     for (auto& sym : involved_inputs) {
@@ -90,7 +89,7 @@ ConstraintManager::build_query(expr::BoolExprPtr constraint) const
             constraints.insert(c);
     }
 
-    expr::BoolExprPtr q = constraint;
+    expr::BoolExprPtr q = exprBuilder.mk_true();
     for (auto c : constraints)
         q = exprBuilder.mk_bool_and(q, c);
     return q;

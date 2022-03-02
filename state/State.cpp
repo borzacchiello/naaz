@@ -4,8 +4,7 @@ namespace naaz::state
 {
 
 State::State(const State& other)
-    : m_as(other.m_as), m_lifter(other.m_lifter),
-      m_constraints(other.m_constraints)
+    : m_as(other.m_as), m_lifter(other.m_lifter), m_solver(other.m_solver)
 {
     m_ram  = other.m_ram->clone();
     m_regs = other.m_regs->clone();
@@ -59,13 +58,8 @@ void State::reg_write(uint64_t offset, expr::BVExprPtr data)
     m_regs->write(offset, data, Endianess::BIG);
 }
 
-void State::add_constraint(expr::BoolExprPtr c) { m_constraints.add(c); }
+void State::add_constraint(expr::BoolExprPtr c) { m_solver.add(c); }
 
-expr::BoolExprPtr State::query(expr::BoolExprPtr c) const
-{
-    return m_constraints.build_query(c);
-}
-
-expr::BoolExprPtr State::pi() const { return m_constraints.pi(); }
+expr::BoolExprPtr State::pi() const { return m_solver.manager().pi(); }
 
 } // namespace naaz::state

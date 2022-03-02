@@ -24,15 +24,15 @@ class ConstraintManager
     // symbol depencency graph
     std::map<uint32_t, std::set<uint32_t>> m_dependencies;
 
-    std::set<uint32_t> get_dependencies(expr::BoolExprPtr constraint) const;
-
   public:
     ConstraintManager() {}
     ConstraintManager(const ConstraintManager& other);
     ~ConstraintManager() {}
 
+    std::set<uint32_t> get_dependencies(expr::ExprPtr constraint) const;
+
     void              add(expr::BoolExprPtr constraint);
-    expr::BoolExprPtr build_query(expr::BoolExprPtr constraint) const;
+    expr::BoolExprPtr pi(expr::ExprPtr expr) const;
     expr::BoolExprPtr pi() const;
 };
 

@@ -26,9 +26,10 @@ TEST_CASE("ConstraintManager constuctor 1", "[solver]")
 
     manager.add(exprBuilder.mk_sgt(sym4, sym5));
 
-    auto query1 = manager.build_query(exprBuilder.mk_sgt(sym3, sym6));
-    auto query2 = manager.build_query(
-        exprBuilder.mk_sgt(sym6, exprBuilder.mk_const(10, 32)));
+    auto branch1 = exprBuilder.mk_sgt(sym3, sym6);
+    auto query1  = exprBuilder.mk_bool_and(manager.pi(branch1), branch1);
+    auto branch2 = exprBuilder.mk_sgt(sym6, exprBuilder.mk_const(10, 32));
+    auto query2  = exprBuilder.mk_bool_and(manager.pi(branch2), branch2);
 
     auto expected1 = exprBuilder.mk_bool_and(
         exprBuilder.mk_sgt(sym1, sym2),
@@ -48,15 +49,16 @@ TEST_CASE("Z3Solver 1", "[solver]")
 
     manager.add(exprBuilder.mk_sgt(sym1, exprBuilder.mk_const(0, 32)));
 
-    CheckResult sat_res = Z3Solver::The().check(
-        manager, exprBuilder.mk_slt(sym1, exprBuilder.mk_const(3, 32)));
+    auto        q = exprBuilder.mk_slt(sym1, exprBuilder.mk_const(3, 32));
+    CheckResult sat_res =
+        Z3Solver::The().check(exprBuilder.mk_bool_and(manager.pi(q), q));
 
     REQUIRE(sat_res == CheckResult::SAT);
 
     auto model = Z3Solver::The().model();
-    REQUIRE(model.contains("sym1"));
+    REQUIRE(model.contains(exprBuilder.get_sym_id("sym1")));
 
-    auto sym1_val = model["sym1"].as_s64();
+    auto sym1_val = model[exprBuilder.get_sym_id("sym1")].as_s64();
     REQUIRE(sym1_val > 0);
     REQUIRE(sym1_val < 3);
 }

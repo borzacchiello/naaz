@@ -30,6 +30,7 @@ class ExprBuilder
     void collect_garbage();
 
     const std::string& get_sym_name(uint32_t id) const;
+    uint32_t get_sym_id(const std::string& name) const;
 
     BoolConstPtr mk_true();
     BoolConstPtr mk_false();

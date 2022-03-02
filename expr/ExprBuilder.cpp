@@ -59,6 +59,12 @@ const std::string& ExprBuilder::get_sym_name(uint32_t id) const
     return m_sym_id_to_name.at(id);
 }
 
+uint32_t ExprBuilder::get_sym_id(const std::string& name) const
+{
+    // It raises an exeption if the name is not a symbol
+    return m_symbols.at(name)->id();
+}
+
 BoolConstPtr ExprBuilder::mk_true() { return BoolConst::true_expr(); }
 
 BoolConstPtr ExprBuilder::mk_false() { return BoolConst::false_expr(); }

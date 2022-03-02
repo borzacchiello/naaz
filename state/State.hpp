@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "MapMemory.hpp"
+#include "Solver.hpp"
 #include "../loader/AddressSpace.hpp"
 #include "../lifter/PCodeLifter.hpp"
 #include "../solver/ConstraintManager.hpp"
@@ -24,7 +25,7 @@ class State
     std::shared_ptr<loader::AddressSpace>      m_as;
     const std::shared_ptr<lifter::PCodeLifter> m_lifter;
 
-    solver::ConstraintManager m_constraints;
+    Solver m_solver;
 
   public:
     State(std::shared_ptr<loader::AddressSpace>      as,
@@ -53,7 +54,6 @@ class State
     void            reg_write(uint64_t offset, expr::BVExprPtr data);
 
     void              add_constraint(expr::BoolExprPtr c);
-    expr::BoolExprPtr query(expr::BoolExprPtr c) const;
     expr::BoolExprPtr pi() const;
 
     void     set_pc(uint64_t pc) { m_pc = pc; }
