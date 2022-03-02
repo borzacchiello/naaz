@@ -22,7 +22,8 @@ class Solver
     const solver::ConstraintManager& manager() const { return m_manager; }
 
     void                add(expr::BoolExprPtr c);
-    solver::CheckResult check_sat(expr::BoolExprPtr c);
+    solver::CheckResult check_sat(expr::BoolExprPtr c,
+                                  bool              populate_model = true);
 
     expr::BVConst evaluate(expr::ExprPtr e);
 };

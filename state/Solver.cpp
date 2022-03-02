@@ -12,7 +12,7 @@ namespace naaz::state
 
 void Solver::add(expr::BoolExprPtr c) { m_manager.add(c); }
 
-solver::CheckResult Solver::check_sat(expr::BoolExprPtr c)
+solver::CheckResult Solver::check_sat(expr::BoolExprPtr c, bool populate_model)
 {
     auto expr_in_current_model = expr::evaluate(c, m_model, false);
     if (expr_in_current_model->kind() == expr::Expr::Kind::BOOL_CONST) {
@@ -26,7 +26,7 @@ solver::CheckResult Solver::check_sat(expr::BoolExprPtr c)
 
     solver::CheckResult res = solver::Z3Solver::The().check(
         exprBuilder.mk_bool_and(m_manager.pi(c), c));
-    if (res == solver::CheckResult::SAT) {
+    if (res == solver::CheckResult::SAT && populate_model) {
         std::map<uint32_t, expr::BVConst> model =
             solver::Z3Solver::The().model();
         for (const auto& [sym, val] : model)

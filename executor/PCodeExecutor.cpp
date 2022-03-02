@@ -218,9 +218,11 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 
             if (sat_cond == solver::CheckResult::SAT) {
                 ctx.state->set_pc(dst_addr);
+                ctx.state->solver().add(cond);
                 ctx.successors.push_back(ctx.state);
             }
             if (sat_not_cond == solver::CheckResult::SAT) {
+                other_state->solver().add(exprBuilder.mk_not(cond));
                 other_state->set_pc(ctx.transl.address.offset +
                                     ctx.transl.length);
                 ctx.successors.push_back(other_state);
