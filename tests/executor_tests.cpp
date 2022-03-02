@@ -38,7 +38,7 @@ get_state_executing(const std::shared_ptr<lifter::PCodeLifter> lifter,
     return state;
 }
 
-TEST_CASE("Execute Block 1", "[expr]")
+TEST_CASE("Execute Block 1", "[executor]")
 {
     const uint8_t code[] = "\x48\xC7\xC0\x0A\x00\x00\x00" //   mov rax,0xa
                            "\x48\xC7\xC3\x0A\x00\x00\x00" //   mov rbx,0xa
@@ -55,7 +55,7 @@ TEST_CASE("Execute Block 1", "[expr]")
     REQUIRE(successors.at(0)->pc() == 0x400013);
 }
 
-TEST_CASE("Execute Block 2", "[expr]")
+TEST_CASE("Execute Block 2", "[executor]")
 {
     const uint8_t code[] = "\x31\xC0"                 //   xor eax,eax
                            "\x81\xF1\xDD\xCC\xBB\xAA" //   xor ecx,0xaabbccdd
@@ -73,6 +73,7 @@ TEST_CASE("Execute Block 2", "[expr]")
     auto                    successors = executor.execute_basic_block(state);
     REQUIRE(successors.size() == 2);
     REQUIRE(successors.at(0)->pc() == 0x40000f);
+    REQUIRE(successors.at(1)->pc() == 0x40000d);
 
     expr::BVConst eval_sym = successors.at(1)->solver().evaluate(sym);
     REQUIRE(eval_sym.as_u64() == 0x55443322UL);
