@@ -69,13 +69,6 @@ void PCodeExecutor::write_to_varnode(ExecutionContext& ctx,
 void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 {
     switch (op.opcode) {
-        case csleigh_CPUI_COPY: {
-            assert(op.output != nullptr && "COPY: output is NULL");
-            assert(op.inputs_count == 1 && "COPY: inputs_count != 1");
-            write_to_varnode(ctx, *op.output,
-                             resolve_varnode(ctx, op.inputs[0]));
-            break;
-        }
         case csleigh_CPUI_INT_EQUAL: {
             assert(op.output != nullptr && "INT_EQUAL: output is NULL");
             assert(op.inputs_count == 2 && "INT_EQUAL: inputs_count != 2");
@@ -101,6 +94,40 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                 exprBuilder.mk_slt(resolve_varnode(ctx, op.inputs[0]),
                                    resolve_varnode(ctx, op.inputs[1]));
             write_to_varnode(ctx, *op.output, exprBuilder.bool_to_bv(expr));
+            break;
+        }
+        case csleigh_CPUI_BOOL_NEGATE: {
+            assert(op.output != nullptr && "BOOL_NEGATE: output is NULL");
+            assert(op.inputs_count == 1 && "BOOL_NEGATE: inputs_count != 1");
+            write_to_varnode(ctx, *op.output,
+                             exprBuilder.bool_to_bv(
+                                 exprBuilder.mk_not(exprBuilder.bv_to_bool(
+                                     resolve_varnode(ctx, op.inputs[0])))));
+            break;
+        }
+        case csleigh_CPUI_COPY: {
+            assert(op.output != nullptr && "COPY: output is NULL");
+            assert(op.inputs_count == 1 && "COPY: inputs_count != 1");
+            write_to_varnode(ctx, *op.output,
+                             resolve_varnode(ctx, op.inputs[0]));
+            break;
+        }
+        case csleigh_CPUI_INT_ZEXT: {
+            assert(op.output != nullptr && "INT_ZEXT: output is NULL");
+            assert(op.inputs_count == 1 && "INT_ZEXT: inputs_count != 1");
+            write_to_varnode(
+                ctx, *op.output,
+                exprBuilder.mk_zext(resolve_varnode(ctx, op.inputs[0]),
+                                    op.output->size * 8));
+            break;
+        }
+        case csleigh_CPUI_INT_XOR: {
+            assert(op.output != nullptr && "INT_XOR: output is NULL");
+            assert(op.inputs_count == 2 && "INT_XOR: inputs_count != 2");
+            expr::BVExprPtr expr =
+                exprBuilder.mk_xor(resolve_varnode(ctx, op.inputs[0]),
+                                   resolve_varnode(ctx, op.inputs[1]));
+            write_to_varnode(ctx, *op.output, expr);
             break;
         }
         case csleigh_CPUI_INT_AND: {
@@ -234,8 +261,10 @@ PCodeExecutor::execute_basic_block(state::StatePtr state)
         exit_fail();
     }
 
-    const auto& block = m_lifter->lift(state->pc(), data, size);
+    const auto block = m_lifter->lift(state->pc(), data, size);
     const csleigh_TranslationResult* tr = block->transl();
+
+    // block->pp();
 
     std::vector<state::StatePtr> successors;
 

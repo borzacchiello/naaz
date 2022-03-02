@@ -27,21 +27,21 @@ ExprPtr evaluate(ExprPtr e, const std::map<uint32_t, BVConst>& assignments,
         case Expr::Kind::EXTRACT: {
             auto e_     = std::static_pointer_cast<const ExtractExpr>(e);
             auto eval_e = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_, assignments, model_completion));
+                evaluate(e_->expr(), assignments, model_completion));
             return exprBuilder.mk_extract(eval_e, e_->high(), e_->low());
         }
         case Expr::Kind::CONCAT: {
             auto e_       = std::static_pointer_cast<const ConcatExpr>(e);
             auto eval_lhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_, assignments, model_completion));
+                evaluate(e_->lhs(), assignments, model_completion));
             auto eval_rhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_, assignments, model_completion));
+                evaluate(e_->rhs(), assignments, model_completion));
             return exprBuilder.mk_concat(eval_lhs, eval_rhs);
         }
         case Expr::Kind::ZEXT: {
             auto e_     = std::static_pointer_cast<const ZextExpr>(e);
             auto eval_e = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_, assignments, model_completion));
+                evaluate(e_->expr(), assignments, model_completion));
             return exprBuilder.mk_zext(eval_e, e_->size());
         }
         case Expr::Kind::SEXT: {

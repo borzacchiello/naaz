@@ -153,6 +153,8 @@ csleigh_Varnode PCodeLifter::reg(const std::string& name) const
     return csleigh_Sleigh_getRegister(m_ctx, name.c_str());
 }
 
+void PCodeLifter::clear_block_cache() { m_blocks.clear(); }
+
 uint32_t PCodeLifter::ram_space_id() const
 {
     auto space = csleigh_Sleigh_getSpaceByName(m_ctx, "ram");
