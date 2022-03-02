@@ -36,5 +36,7 @@ TEST_CASE("Execute Block 1", "[expr]")
     auto state = get_state_executing(lifter_x64, code, sizeof(code));
 
     executor::PCodeExecutor executor(lifter_x64);
-    executor.execute_basic_block(state);
+    auto                    successors = executor.execute_basic_block(state);
+    REQUIRE(successors.size() == 1);
+    REQUIRE(successors.at(0)->pc() == 0x400013);
 }

@@ -156,6 +156,50 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             write_to_varnode(ctx, *op.output, res);
             break;
         }
+        case csleigh_CPUI_CBRANCH: {
+            assert(op.output == nullptr && "CBRANCH: output is not NULL");
+            assert(op.inputs_count == 2 && "CBRANCH: inputs_count != 2");
+            assert(csleigh_AddrSpace_getId(op.inputs[0].space) ==
+                       m_lifter->ram_space_id() &&
+                   "CBRANCH: unexpected space");
+
+            uint64_t dst_addr;
+            if (csleigh_AddrSpace_getId(op.inputs[0].space) ==
+                m_lifter->ram_space_id()) {
+                dst_addr = op.inputs[0].offset;
+            } else {
+                err("PCodeExecutor")
+                    << "CBRANCH: unhandled case (FIXME)" << std::endl;
+                exit_fail();
+            }
+
+            expr::BoolExprPtr cond =
+                exprBuilder.bv_to_bool(resolve_varnode(ctx, op.inputs[1]));
+
+            state::StatePtr     other_state = ctx.state->clone();
+            solver::CheckResult sat_cond = ctx.state->solver().check_sat(cond);
+            if (sat_cond == solver::CheckResult::UNKNOWN) {
+                err("PCodeExecutor") << "unknown from solver" << std::endl;
+                exit_fail();
+            }
+            solver::CheckResult sat_not_cond =
+                other_state->solver().check_sat(exprBuilder.mk_not(cond));
+            if (sat_not_cond == solver::CheckResult::UNKNOWN) {
+                err("PCodeExecutor") << "unknown from solver" << std::endl;
+                exit_fail();
+            }
+
+            if (sat_cond == solver::CheckResult::SAT) {
+                ctx.state->set_pc(dst_addr);
+                ctx.successors.push_back(ctx.state);
+            }
+            if (sat_not_cond == solver::CheckResult::SAT) {
+                other_state->set_pc(ctx.transl.address.offset +
+                                    ctx.transl.length);
+                ctx.successors.push_back(other_state);
+            }
+            break;
+        }
         default:
             err("PCodeExecutor") << "Unsupported opcode "
                                  << csleigh_OpCodeName(op.opcode) << std::endl;
@@ -169,7 +213,7 @@ void PCodeExecutor::execute_instruction(
 {
     state::MapMemory tmp_storage(
         state::MapMemory::UninitReadBehavior::THROW_ERR);
-    ExecutionContext ctx(state, tmp_storage, o_successors);
+    ExecutionContext ctx(state, tmp_storage, t, o_successors);
 
     for (uint32_t i = 0; i < t.ops_count; ++i) {
         csleigh_PcodeOp op = t.ops[i];

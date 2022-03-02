@@ -23,11 +23,14 @@ class PCodeExecutor
     struct ExecutionContext {
         state::StatePtr               state;
         state::MapMemory&             tmp_storage;
+        csleigh_Translation&          transl;
         std::vector<state::StatePtr>& successors;
 
         ExecutionContext(state::StatePtr state_, state::MapMemory& tmp_storage_,
+                         csleigh_Translation&          transl_,
                          std::vector<state::StatePtr>& successors_)
-            : state(state_), tmp_storage(tmp_storage_), successors(successors_)
+            : state(state_), tmp_storage(tmp_storage_), transl(transl_),
+              successors(successors_)
         {
         }
     };

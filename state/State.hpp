@@ -53,7 +53,7 @@ class State
     void            reg_write(const std::string& name, expr::BVExprPtr data);
     void            reg_write(uint64_t offset, expr::BVExprPtr data);
 
-    void              add_constraint(expr::BoolExprPtr c);
+    Solver&           solver() { return m_solver; }
     expr::BoolExprPtr pi() const;
 
     void     set_pc(uint64_t pc) { m_pc = pc; }
