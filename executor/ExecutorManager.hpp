@@ -18,6 +18,7 @@ template <class ExecutorPolicy, class ExplorationPolicy> class ExecutorManager
 
     std::optional<state::StatePtr> explore(std::vector<uint64_t> find,
                                            std::vector<uint64_t> avoid);
+    std::optional<state::StatePtr> explore(uint64_t find_addr);
 };
 
 } // namespace naaz::executor

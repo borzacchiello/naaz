@@ -15,7 +15,7 @@ int main(int argc, char const* argv[])
 
     naaz::loader::BFDLoader loader(argv[1]);
 
-    auto& as   = loader.address_space();
+    auto  as   = loader.address_space();
     auto& arch = loader.arch();
 
     printf("%s\n", argv[1]);
@@ -26,7 +26,7 @@ int main(int argc, char const* argv[])
     printf("----------------------------------------------------\n");
     printf("  address range                          name       \n");
     printf("----------------------------------------------------\n");
-    for (auto& sec : as.segments()) {
+    for (auto& sec : as->segments()) {
         printf("  %016lxh - %016lxh  %s\n", sec.addr(), sec.addr() + sec.size(),
                sec.name().c_str());
     }

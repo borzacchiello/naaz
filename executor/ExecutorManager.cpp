@@ -48,6 +48,17 @@ ExecutorManager<ExecutorPolicy, ExplorationPolicy>::explore(
     return {};
 }
 
+template <class ExecutorPolicy, class ExplorationPolicy>
+std::optional<state::StatePtr>
+ExecutorManager<ExecutorPolicy, ExplorationPolicy>::explore(uint64_t find_addr)
+{
+    std::vector<uint64_t> find_addrs;
+    std::vector<uint64_t> avoid_addrs;
+
+    find_addrs.push_back(find_addr);
+    return explore(find_addrs, avoid_addrs);
+}
+
 template class ExecutorManager<PCodeExecutor, BFSExplorationTechnique>;
 template class ExecutorManager<PCodeExecutor, DFSExplorationTechnique>;
 

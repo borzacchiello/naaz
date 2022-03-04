@@ -32,6 +32,9 @@ BFDLoader::BFDLoader(const std::filesystem::path& filename)
             exit_fail();
     }
 
+    m_lifter        = std::make_shared<lifter::PCodeLifter>(*m_arch);
+    m_address_space = std::make_shared<AddressSpace>();
+
     bfd_flavour flavor = bfd_get_flavour(m_obj);
     if (bfd_get_flavour(m_obj) == bfd_target_unknown_flavour) {
         err("BFDLoader") << "unrecognized binary format ("
@@ -72,9 +75,9 @@ void BFDLoader::load_sections()
             perm |= PERM_EXEC;
 
         std::string sec_name(bfd_section_name(bfd_sec));
-        Segment&    segment =
-            m_address_space.register_segment(sec_name, bfd_section_vma(bfd_sec),
-                                             bfd_section_size(bfd_sec), perm);
+        Segment&    segment = m_address_space->register_segment(
+               sec_name, bfd_section_vma(bfd_sec), bfd_section_size(bfd_sec),
+               perm);
 
         uint8_t* seg_data;
         size_t   seg_size;
@@ -107,7 +110,7 @@ void BFDLoader::process_symtable(asymbol* symbol_table[],
             type = Symbol::Type::GLOBAL;
 
         std::string symb_name(symbolinfo.name);
-        m_address_space.register_symbol(symbolinfo.value, symb_name, type);
+        m_address_space->register_symbol(symbolinfo.value, symb_name, type);
     }
 }
 
@@ -192,8 +195,8 @@ void BFDLoader::load_dyn_relocs()
         if ((*reloc->sym_ptr_ptr)->flags & BSF_FUNCTION) {
             std::string fname((*reloc->sym_ptr_ptr)->name);
             uint64_t    addr = reloc->address;
-            m_address_space.register_symbol(addr, fname,
-                                            Symbol::Type::EXT_FUNCTION);
+            m_address_space->register_symbol(addr, fname,
+                                             Symbol::Type::EXT_FUNCTION);
         }
     }
 }
@@ -204,9 +207,19 @@ BFDLoader::~BFDLoader()
         bfd_close(m_obj);
 }
 
-AddressSpace& BFDLoader::address_space() { return m_address_space; }
-const Arch&   BFDLoader::arch() const { return *m_arch; }
-BinaryType    BFDLoader::bin_type() const { return m_bin_type; }
-uint64_t      BFDLoader::entrypoint() const { return m_entrypoint; }
+std::shared_ptr<AddressSpace> BFDLoader::address_space()
+{
+    return m_address_space;
+}
+const Arch& BFDLoader::arch() const { return *m_arch; }
+BinaryType  BFDLoader::bin_type() const { return m_bin_type; }
+uint64_t    BFDLoader::entrypoint() const { return m_entrypoint; }
+
+state::StatePtr BFDLoader::entry_state() const
+{
+    auto state =
+        std::make_shared<state::State>(m_address_space, m_lifter, m_entrypoint);
+    return state;
+}
 
 } // namespace naaz::loader

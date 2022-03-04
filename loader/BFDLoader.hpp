@@ -7,6 +7,7 @@
 #include <filesystem>
 
 #include "Loader.hpp"
+#include "../lifter/PCodeLifter.hpp"
 
 namespace naaz::loader
 {
@@ -14,12 +15,13 @@ namespace naaz::loader
 class BFDLoader : public Loader
 {
   private:
-    std::filesystem::path m_filename;
-    bfd*                  m_obj;
-    AddressSpace          m_address_space;
-    uint64_t              m_entrypoint;
-    const Arch*           m_arch;
-    BinaryType            m_bin_type;
+    std::filesystem::path                m_filename;
+    bfd*                                 m_obj;
+    uint64_t                             m_entrypoint;
+    const Arch*                          m_arch;
+    BinaryType                           m_bin_type;
+    std::shared_ptr<AddressSpace>        m_address_space;
+    std::shared_ptr<lifter::PCodeLifter> m_lifter;
 
     void load_sections();
 
@@ -32,10 +34,11 @@ class BFDLoader : public Loader
     BFDLoader(const std::filesystem::path& filename);
     ~BFDLoader();
 
-    virtual AddressSpace& address_space();
-    virtual const Arch&   arch() const;
-    virtual BinaryType    bin_type() const;
-    virtual uint64_t      entrypoint() const;
+    virtual std::shared_ptr<AddressSpace> address_space();
+    virtual const Arch&                   arch() const;
+    virtual BinaryType                    bin_type() const;
+    virtual uint64_t                      entrypoint() const;
+    virtual state::StatePtr               entry_state() const;
 };
 
 } // namespace naaz::loader

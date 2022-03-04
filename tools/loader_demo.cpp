@@ -90,7 +90,7 @@ int main(int argc, char const* argv[])
 
     naaz::loader::BFDLoader loader(argv[1]);
 
-    auto& as   = loader.address_space();
+    auto  as   = loader.address_space();
     auto& arch = loader.arch();
 
     printf("Loaded %s (arch %s)\n\n", argv[1], arch.description().c_str());
@@ -115,14 +115,14 @@ int main(int argc, char const* argv[])
                 continue;
             }
 
-            dump_hex(as, off, size);
+            dump_hex(*as, off, size);
         } else if (line[0] == 'i') {
             switch (line[1]) {
                 case 'S':
-                    dump_segments(as);
+                    dump_segments(*as);
                     break;
                 case 's':
-                    dump_symbols(as);
+                    dump_symbols(*as);
                     break;
                 default:
                     printf("!Err: unknown command %s", line);
