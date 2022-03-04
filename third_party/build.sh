@@ -78,7 +78,8 @@ function fetch_and_build_libgmp {
     fi
 
     pushd "$SCRIPTPATH/gmp" || exit 1
-    CFLAGS="-fPIC -O3" ./configure || exit 1
+    CFLAGS="-fPIC -O3" CXXFLAGS="-fPIC -O3" \
+        ./configure --enable-cxx || exit 1
     make -j`nproc` || exit 1
     popd
 
