@@ -18,8 +18,8 @@ solver::CheckResult Solver::check_sat(expr::BoolExprPtr c, bool populate_model)
     if (expr_in_current_model->kind() == expr::Expr::Kind::BOOL_CONST) {
         auto e_ = std::static_pointer_cast<const expr::BoolConst>(
             expr_in_current_model);
-        return e_->is_true() ? solver::CheckResult::SAT
-                             : solver::CheckResult::UNSAT;
+        if (e_->is_true())
+            return solver::CheckResult::SAT;
     }
     assert(expr_in_current_model->kind() != expr::Expr::Kind::CONST &&
            "Solver::check_sat(): unexpected expr::evaluate result");

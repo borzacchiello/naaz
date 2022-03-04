@@ -8,6 +8,9 @@
 #include "../loader/AddressSpace.hpp"
 #include "../lifter/PCodeLifter.hpp"
 #include "../executor/PCodeExecutor.hpp"
+#include "../executor/ExecutorManager.hpp"
+#include "../executor/BFSExplorationTechnique.hpp"
+#include "../executor/DFSExplorationTechnique.hpp"
 
 #define exprBuilder naaz::expr::ExprBuilder::The()
 
@@ -50,7 +53,7 @@ TEST_CASE("Execute Block 1", "[executor]")
     auto state = get_state_executing(get_x86_64_lifter(), code, sizeof(code));
 
     executor::PCodeExecutor executor(get_x86_64_lifter());
-    auto                    successors = executor.execute_basic_block(state);
+    auto successors = executor.execute_basic_block(state).active;
     REQUIRE(successors.size() == 1);
     REQUIRE(successors.at(0)->pc() == 0x400013);
 }
@@ -70,11 +73,79 @@ TEST_CASE("Execute Block 2", "[executor]")
     state->reg_write("ECX", sym);
 
     executor::PCodeExecutor executor(get_x86_64_lifter());
-    auto                    successors = executor.execute_basic_block(state);
+    auto successors = executor.execute_basic_block(state).active;
     REQUIRE(successors.size() == 2);
     REQUIRE(successors.at(0)->pc() == 0x40000f);
     REQUIRE(successors.at(1)->pc() == 0x40000d);
 
     expr::BVConst eval_sym = successors.at(1)->solver().evaluate(sym);
     REQUIRE(eval_sym.as_u64() == 0x55443322UL);
+}
+
+TEST_CASE("Explore BFS 1", "[executor]")
+{
+    const uint8_t code[] = "\x31\xC0"             // 0x400000:    xor eax, eax
+                                                  //           L:
+                           "\x83\xFF\x0A"         // 0x400002:    cmp edi, 0xa
+                           "\x73\x06"             // 0x400005:    jae OUT
+                           "\xFF\xC0"             // 0x400007:    inc eax
+                           "\xFF\xC7"             // 0x400009:    inc edi
+                           "\xEB\xF5"             // 0x40000b:    jmp L
+                                                  //         OUT:
+                           "\x83\xF8\x07"         // 0x40000d:    cmp eax, 7
+                           "\x75\x05"             // 0x400010:    jne RET
+                           "\xB8\x2A\x00\x00\x00" // 0x400012:    mov eax, 42
+                                                  //         RET:
+                           "\xC3";                // 0x400017:    ret
+
+    auto state = get_state_executing(get_x86_64_lifter(), code, sizeof(code));
+    auto sym   = exprBuilder.mk_sym("sym", 32);
+    state->reg_write("EDI", sym);
+
+    executor::ExecutorManager<executor::PCodeExecutor,
+                              executor::BFSExplorationTechnique>
+        em(state);
+
+    std::vector<uint64_t> find;
+    find.push_back(0x400012);
+    std::vector<uint64_t> avoid;
+    avoid.push_back(0x400017);
+    std::optional<state::StatePtr> s = em.explore(find, avoid);
+
+    REQUIRE(s.has_value());
+    REQUIRE(s.value()->solver().evaluate(sym).as_u64() == 3);
+}
+
+TEST_CASE("Explore DFS 1", "[executor]")
+{
+    const uint8_t code[] = "\x31\xC0"             // 0x400000:    xor eax, eax
+                                                  //           L:
+                           "\x83\xFF\x0A"         // 0x400002:    cmp edi, 0xa
+                           "\x73\x06"             // 0x400005:    jae OUT
+                           "\xFF\xC0"             // 0x400007:    inc eax
+                           "\xFF\xC7"             // 0x400009:    inc edi
+                           "\xEB\xF5"             // 0x40000b:    jmp L
+                                                  //         OUT:
+                           "\x83\xF8\x07"         // 0x40000d:    cmp eax, 7
+                           "\x75\x05"             // 0x400010:    jne RET
+                           "\xB8\x2A\x00\x00\x00" // 0x400012:    mov eax, 42
+                                                  //         RET:
+                           "\xC3";                // 0x400017:    ret
+
+    auto state = get_state_executing(get_x86_64_lifter(), code, sizeof(code));
+    auto sym   = exprBuilder.mk_sym("sym", 32);
+    state->reg_write("EDI", sym);
+
+    executor::ExecutorManager<executor::PCodeExecutor,
+                              executor::DFSExplorationTechnique>
+        em(state);
+
+    std::vector<uint64_t> find;
+    find.push_back(0x400012);
+    std::vector<uint64_t> avoid;
+    avoid.push_back(0x400017);
+    std::optional<state::StatePtr> s = em.explore(find, avoid);
+
+    REQUIRE(s.has_value());
+    REQUIRE(s.value()->solver().evaluate(sym).as_u64() == 3);
 }

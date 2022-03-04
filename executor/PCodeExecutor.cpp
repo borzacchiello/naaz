@@ -139,6 +139,15 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             write_to_varnode(ctx, *op.output, expr);
             break;
         }
+        case csleigh_CPUI_INT_ADD: {
+            assert(op.output != nullptr && "INT_ADD: output is NULL");
+            assert(op.inputs_count == 2 && "INT_ADD: inputs_count != 2");
+            expr::BVExprPtr expr =
+                exprBuilder.mk_add(resolve_varnode(ctx, op.inputs[0]),
+                                   resolve_varnode(ctx, op.inputs[1]));
+            write_to_varnode(ctx, *op.output, expr);
+            break;
+        }
         case csleigh_CPUI_INT_SUB: {
             assert(op.output != nullptr && "INT_SUB: output is NULL");
             assert(op.inputs_count == 2 && "INT_SUB: inputs_count != 2");
@@ -167,6 +176,25 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             write_to_varnode(ctx, *op.output, exprBuilder.mk_zext(a, 8));
             break;
         }
+        case csleigh_CPUI_INT_SCARRY: {
+            assert(op.output != nullptr && "INT_SCARRY: output is NULL");
+            assert(op.inputs_count == 2 && "INT_SCARRY: inputs_count != 2");
+
+            expr::BVExprPtr in1 = resolve_varnode(ctx, op.inputs[0]);
+            expr::BVExprPtr in2 = resolve_varnode(ctx, op.inputs[1]);
+            expr::BVExprPtr res = exprBuilder.mk_sub(in1, in2);
+
+            expr::BVExprPtr a = exprBuilder.sign_bit(in1);
+            expr::BVExprPtr b = exprBuilder.sign_bit(in2);
+            expr::BVExprPtr r = exprBuilder.sign_bit(res);
+
+            r = exprBuilder.mk_xor(r, a);
+            a = exprBuilder.mk_xor(a, b);
+            a = exprBuilder.mk_xor(a, exprBuilder.mk_const(1, r->size()));
+            r = exprBuilder.mk_and(r, a);
+            write_to_varnode(ctx, *op.output, exprBuilder.mk_zext(r, 8));
+            break;
+        }
         case csleigh_CPUI_POPCOUNT: {
             assert(op.output != nullptr && "POPCOUNT: output is NULL");
             assert(op.inputs_count == 1 && "POPCOUNT: inputs_count != 1");
@@ -181,6 +209,27 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                     res, exprBuilder.mk_zext(
                              exprBuilder.mk_extract(inp_expr, i, i), dst_size));
             write_to_varnode(ctx, *op.output, res);
+            break;
+        }
+        case csleigh_CPUI_BRANCH: {
+            assert(op.output == nullptr && "BRANCH: output is not NULL");
+            assert(op.inputs_count == 1 && "BRANCH: inputs_count != 1");
+            assert(csleigh_AddrSpace_getId(op.inputs[0].space) ==
+                       m_lifter->ram_space_id() &&
+                   "BRANCH: unexpected space");
+
+            uint64_t dst_addr;
+            if (csleigh_AddrSpace_getId(op.inputs[0].space) ==
+                m_lifter->ram_space_id()) {
+                dst_addr = op.inputs[0].offset;
+            } else {
+                err("PCodeExecutor")
+                    << "BRANCH: unhandled case (FIXME)" << std::endl;
+                exit_fail();
+            }
+
+            ctx.state->set_pc(dst_addr);
+            ctx.successors.active.push_back(ctx.state);
             break;
         }
         case csleigh_CPUI_CBRANCH: {
@@ -219,13 +268,13 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             if (sat_cond == solver::CheckResult::SAT) {
                 ctx.state->set_pc(dst_addr);
                 ctx.state->solver().add(cond);
-                ctx.successors.push_back(ctx.state);
+                ctx.successors.active.push_back(ctx.state);
             }
             if (sat_not_cond == solver::CheckResult::SAT) {
                 other_state->solver().add(exprBuilder.mk_not(cond));
                 other_state->set_pc(ctx.transl.address.offset +
                                     ctx.transl.length);
-                ctx.successors.push_back(other_state);
+                ctx.successors.active.push_back(other_state);
             }
             break;
         }
@@ -236,9 +285,9 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
     }
 }
 
-void PCodeExecutor::execute_instruction(
-    state::StatePtr state, csleigh_Translation t,
-    std::vector<state::StatePtr>& o_successors)
+void PCodeExecutor::execute_instruction(state::StatePtr     state,
+                                        csleigh_Translation t,
+                                        ExecutorResult&     o_successors)
 {
     state::MapMemory tmp_storage(
         state::MapMemory::UninitReadBehavior::THROW_ERR);
@@ -250,8 +299,7 @@ void PCodeExecutor::execute_instruction(
     }
 }
 
-std::vector<state::StatePtr>
-PCodeExecutor::execute_basic_block(state::StatePtr state)
+ExecutorResult PCodeExecutor::execute_basic_block(state::StatePtr state)
 {
     uint8_t* data;
     uint64_t size;
@@ -268,7 +316,7 @@ PCodeExecutor::execute_basic_block(state::StatePtr state)
 
     // block->pp();
 
-    std::vector<state::StatePtr> successors;
+    ExecutorResult successors;
 
     for (uint32_t i = 0; i < tr->instructions_count; ++i) {
         csleigh_Translation t = tr->instructions[i];

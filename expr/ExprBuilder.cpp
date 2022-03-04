@@ -137,7 +137,15 @@ BVExprPtr ExprBuilder::mk_extract(BVExprPtr expr, uint32_t high, uint32_t low)
     }
 
     // extract of zext/sext
-    // TODO
+    if (expr->kind() == Expr::Kind::ZEXT) {
+        ZextExprPtr expr_ = std::static_pointer_cast<const ZextExpr>(expr);
+        if (low == 0 && high == expr_->expr()->size() - 1)
+            return expr_->expr();
+    } else if (expr->kind() == Expr::Kind::SEXT) {
+        SextExprPtr expr_ = std::static_pointer_cast<const SextExpr>(expr);
+        if (low == 0 && high == expr_->expr()->size() - 1)
+            return expr_->expr();
+    }
 
     ExtractExpr e(expr, high, low);
     return std::static_pointer_cast<const BVExpr>(get_or_create(e));
@@ -192,6 +200,8 @@ BVExprPtr ExprBuilder::mk_sext(BVExprPtr e, uint32_t n)
 BVExprPtr ExprBuilder::mk_ite(BoolExprPtr guard, BVExprPtr iftrue,
                               BVExprPtr iffalse)
 {
+    check_size_or_fail("ITE", iftrue, iffalse);
+
     // constant propagation
     if (guard->kind() == Expr::Kind::BOOL_CONST) {
         auto guard_ = std::static_pointer_cast<const BoolConst>(guard);
@@ -624,6 +634,12 @@ BoolExprPtr ExprBuilder::mk_not(BoolExprPtr expr)
         return expr_->is_true() ? mk_false() : mk_true();
     }
 
+    // double not
+    if (expr->kind() == Expr::Kind::NOT) {
+        auto expr_ = std::static_pointer_cast<const NotExpr>(expr);
+        return expr_->expr();
+    }
+
     NotExpr e(expr);
     return std::static_pointer_cast<const BoolExpr>(get_or_create(e));
 }
@@ -824,7 +840,20 @@ BVExprPtr ExprBuilder::bool_to_bv(BoolExprPtr expr)
 
 BoolExprPtr ExprBuilder::bv_to_bool(BVExprPtr expr)
 {
-    return mk_not(mk_eq(expr, mk_const(0, expr->size())));
+    // simplify bv_to_bool(bool_to_bv)
+    if (expr->kind() == Expr::Kind::ITE) {
+        auto expr_ = std::static_pointer_cast<const ITEExpr>(expr);
+        if (expr_->iftrue()->kind() == Expr::Kind::CONST &&
+            expr_->iffalse()->kind() == Expr::Kind::CONST) {
+            auto iftrue_ =
+                std::static_pointer_cast<const ConstExpr>(expr_->iftrue());
+            auto iffalse_ =
+                std::static_pointer_cast<const ConstExpr>(expr_->iffalse());
+            if (iftrue_->val().is_one() && iffalse_->val().is_zero())
+                return expr_->guard();
+        }
+    }
+    return mk_ugt(expr, mk_const(0, expr->size()));
 }
 
 } // namespace naaz::expr

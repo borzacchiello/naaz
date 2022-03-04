@@ -35,6 +35,10 @@ set ( naaz_src
     loader/AddressSpace.cpp
     loader/BFDLoader.cpp
     executor/PCodeExecutor.cpp
+    executor/ExplorationTechnique.cpp
+    executor/BFSExplorationTechnique.cpp
+    executor/DFSExplorationTechnique.cpp
+    executor/ExecutorManager.cpp
     solver/ConstraintManager.cpp
     solver/Z3Solver.cpp )
 

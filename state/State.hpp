@@ -22,14 +22,14 @@ class State
     std::unique_ptr<MapMemory> m_regs;
     std::unique_ptr<MapMemory> m_ram;
 
-    std::shared_ptr<loader::AddressSpace>      m_as;
-    const std::shared_ptr<lifter::PCodeLifter> m_lifter;
+    std::shared_ptr<loader::AddressSpace> m_as;
+    std::shared_ptr<lifter::PCodeLifter>  m_lifter;
 
     Solver m_solver;
 
   public:
-    State(std::shared_ptr<loader::AddressSpace>      as,
-          const std::shared_ptr<lifter::PCodeLifter> lifter, uint64_t pc)
+    State(std::shared_ptr<loader::AddressSpace> as,
+          std::shared_ptr<lifter::PCodeLifter> lifter, uint64_t pc)
         : m_as(as), m_lifter(lifter), m_pc(pc)
     {
         m_regs = std::unique_ptr<MapMemory>(new MapMemory());
@@ -40,6 +40,7 @@ class State
     ~State() {}
 
     const Arch& arch() const { return m_lifter->arch(); }
+    std::shared_ptr<lifter::PCodeLifter> lifter() { return m_lifter; }
 
     bool get_code_at(uint64_t addr, uint8_t** o_data, uint64_t* o_size);
 

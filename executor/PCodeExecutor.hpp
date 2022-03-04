@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 
+#include "Executor.hpp"
 #include "../lifter/PCodeLifter.hpp"
 #include "../state/MapMemory.hpp"
 #include "../state/State.hpp"
@@ -21,14 +22,14 @@ class PCodeExecutor
     uint32_t m_tmp_space_id;
 
     struct ExecutionContext {
-        state::StatePtr               state;
-        state::MapMemory&             tmp_storage;
-        csleigh_Translation&          transl;
-        std::vector<state::StatePtr>& successors;
+        state::StatePtr      state;
+        state::MapMemory&    tmp_storage;
+        csleigh_Translation& transl;
+        ExecutorResult&      successors;
 
         ExecutionContext(state::StatePtr state_, state::MapMemory& tmp_storage_,
-                         csleigh_Translation&          transl_,
-                         std::vector<state::StatePtr>& successors_)
+                         csleigh_Translation& transl_,
+                         ExecutorResult&      successors_)
             : state(state_), tmp_storage(tmp_storage_), transl(transl_),
               successors(successors_)
         {
@@ -41,12 +42,12 @@ class PCodeExecutor
                           expr::BVExprPtr value);
     void execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op);
     void execute_instruction(state::StatePtr state, csleigh_Translation t,
-                             std::vector<state::StatePtr>& o_successors);
+                             ExecutorResult& o_successors);
 
   public:
     PCodeExecutor(std::shared_ptr<lifter::PCodeLifter> lifter);
 
-    std::vector<state::StatePtr> execute_basic_block(state::StatePtr state);
+    ExecutorResult execute_basic_block(state::StatePtr state);
 };
 
 } // namespace naaz::executor
