@@ -40,7 +40,8 @@ class State
     ~State() {}
 
     const Arch& arch() const { return m_lifter->arch(); }
-    std::shared_ptr<lifter::PCodeLifter> lifter() { return m_lifter; }
+    std::shared_ptr<lifter::PCodeLifter>  lifter() { return m_lifter; }
+    std::shared_ptr<loader::AddressSpace> address_space() { return m_as; }
 
     bool get_code_at(uint64_t addr, uint8_t** o_data, uint64_t* o_size);
 

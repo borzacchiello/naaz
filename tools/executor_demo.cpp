@@ -2,6 +2,7 @@
 #include <cstdint>
 
 #include "../loader/BFDLoader.hpp"
+#include "../expr/ExprBuilder.hpp"
 #include "../executor/ExecutorManager.hpp"
 #include "../executor/DFSExplorationTechnique.hpp"
 #include "../executor/PCodeExecutor.hpp"
@@ -24,6 +25,8 @@ int main(int argc, char const* argv[])
 
     loader::BFDLoader loader(binpath);
     state::StatePtr   entry_state = loader.entry_state();
+    entry_state->reg_write("RSP",
+                           expr::ExprBuilder::The().mk_const(0xc0000000, 64));
 
     executor::ExecutorManager<executor::PCodeExecutor,
                               executor::DFSExplorationTechnique>

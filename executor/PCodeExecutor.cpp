@@ -105,6 +105,41 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                                      resolve_varnode(ctx, op.inputs[0])))));
             break;
         }
+        case csleigh_CPUI_LOAD: {
+            assert(op.output != nullptr && "LOAD: output is NULL");
+            assert(op.inputs_count == 2 && "LOAD: inputs_count != 2");
+
+            csleigh_Address   addr = {.space  = op.inputs[0].space,
+                                      .offset = op.inputs[0].offset};
+            csleigh_AddrSpace as   = csleigh_Addr_getSpaceFromConst(&addr);
+            if (csleigh_AddrSpace_getId(as) != m_ram_space_id) {
+                err("PCodeExecutor")
+                    << "execute_pcodeop(): unexpected AddressSpace in LOAD"
+                    << std::endl;
+                exit_fail();
+            }
+            auto value = ctx.state->read(resolve_varnode(ctx, op.inputs[1]),
+                                         op.output->size);
+            write_to_varnode(ctx, *op.output, value);
+            break;
+        }
+        case csleigh_CPUI_STORE: {
+            assert(op.output == nullptr && "STORE: output is not NULL");
+            assert(op.inputs_count == 3 && "STORE: inputs_count != 3");
+
+            csleigh_Address   addr = {.space  = op.inputs[0].space,
+                                      .offset = op.inputs[0].offset};
+            csleigh_AddrSpace as   = csleigh_Addr_getSpaceFromConst(&addr);
+            if (csleigh_AddrSpace_getId(as) != m_ram_space_id) {
+                err("PCodeExecutor")
+                    << "execute_pcodeop(): unexpected AddressSpace in STORE"
+                    << std::endl;
+                exit_fail();
+            }
+            auto value = resolve_varnode(ctx, op.inputs[2]);
+            ctx.state->write(resolve_varnode(ctx, op.inputs[1]), value);
+            break;
+        }
         case csleigh_CPUI_COPY: {
             assert(op.output != nullptr && "COPY: output is NULL");
             assert(op.inputs_count == 1 && "COPY: inputs_count != 1");
@@ -278,6 +313,20 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             }
             break;
         }
+        case csleigh_CPUI_CALLIND: {
+            assert(op.output == nullptr && "CALLIND: output is not NULL");
+            assert(op.inputs_count == 1 && "CALLIND: inputs_count != 1");
+
+            auto dst = resolve_varnode(ctx, op.inputs[0]);
+            std::cout << "calling the address: " << dst->to_string()
+                      << std::endl;
+            std::cout << "symbol at 0x3fd8: "
+                      << ctx.state->address_space()->ext_function_symbol_at(
+                             0x3fd8).value()->name()
+                      << std::endl;
+            exit_fail();
+            break;
+        }
         default:
             err("PCodeExecutor") << "Unsupported opcode "
                                  << csleigh_OpCodeName(op.opcode) << std::endl;
@@ -314,7 +363,7 @@ ExecutorResult PCodeExecutor::execute_basic_block(state::StatePtr state)
     const auto block = m_lifter->lift(state->pc(), data, size);
     const csleigh_TranslationResult* tr = block->transl();
 
-    // block->pp();
+    block->pp();
 
     ExecutorResult successors;
 
