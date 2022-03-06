@@ -1,8 +1,13 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 
-#include "../state/State.hpp"
+namespace naaz::state
+{
+class State;
+typedef std::shared_ptr<State> StatePtr;
+} // namespace naaz::state
 
 namespace naaz::executor
 {

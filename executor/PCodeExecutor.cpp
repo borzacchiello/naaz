@@ -318,13 +318,24 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             assert(op.inputs_count == 1 && "CALLIND: inputs_count != 1");
 
             auto dst = resolve_varnode(ctx, op.inputs[0]);
-            std::cout << "calling the address: " << dst->to_string()
-                      << std::endl;
-            std::cout << "symbol at 0x3fd8: "
-                      << ctx.state->address_space()->ext_function_symbol_at(
-                             0x3fd8).value()->name()
-                      << std::endl;
-            exit_fail();
+            if (dst->kind() != expr::Expr::Kind::CONST) {
+                err("PCodeExecutor")
+                    << "FIXME: unhandled symbolic IP (CALLIND)" << std::endl;
+                exit_fail();
+            }
+            auto dst_ = std::static_pointer_cast<const expr::ConstExpr>(dst);
+            if (ctx.state->is_linked_function(dst_->val().as_u64())) {
+                if (ctx.state->execute_linked_function(dst_->val().as_u64())) {
+                    // We must handle the return
+                    ctx.state->arch().handle_return(ctx.state, ctx.successors);
+                } else {
+                    ctx.successors.active.push_back(ctx.state);
+                }
+            }
+            break;
+        }
+        case csleigh_CPUI_RETURN: {
+            ctx.state->arch().handle_return(ctx.state, ctx.successors);
             break;
         }
         default:
@@ -363,7 +374,7 @@ ExecutorResult PCodeExecutor::execute_basic_block(state::StatePtr state)
     const auto block = m_lifter->lift(state->pc(), data, size);
     const csleigh_TranslationResult* tr = block->transl();
 
-    block->pp();
+    // block->pp();
 
     ExecutorResult successors;
 

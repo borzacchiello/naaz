@@ -1,10 +1,26 @@
 #include "State.hpp"
 
+#include "../models/Linker.hpp"
+
 namespace naaz::state
 {
 
+State::State(std::shared_ptr<loader::AddressSpace> as,
+             std::shared_ptr<lifter::PCodeLifter> lifter, uint64_t pc)
+    : m_as(as), m_lifter(lifter), m_pc(pc)
+{
+    m_linked_functions = std::make_shared<models::LinkedFunctions>();
+    m_regs             = std::unique_ptr<MapMemory>(new MapMemory());
+    m_ram              = std::unique_ptr<MapMemory>(new MapMemory(as.get()));
+
+    // Initialize the state (e.g., stack pointer, linked functions)
+    arch().init_state(*this);
+    models::Linker::The().link(*this);
+}
+
 State::State(const State& other)
-    : m_as(other.m_as), m_lifter(other.m_lifter), m_solver(other.m_solver)
+    : m_as(other.m_as), m_lifter(other.m_lifter),
+      m_linked_functions(other.m_linked_functions), m_solver(other.m_solver)
 {
     m_ram  = other.m_ram->clone();
     m_regs = other.m_regs->clone();
@@ -12,7 +28,7 @@ State::State(const State& other)
 
 bool State::get_code_at(uint64_t addr, uint8_t** o_data, uint64_t* o_size)
 {
-    // FIXME: This should be changed... It's wrong too many ways
+    // FIXME: This should be changed... It's wrong in too many ways
     return m_as->get_ref(addr, o_data, o_size);
 }
 
@@ -56,6 +72,27 @@ void State::reg_write(const std::string& name, expr::BVExprPtr data)
 void State::reg_write(uint64_t offset, expr::BVExprPtr data)
 {
     m_regs->write(offset, data, Endianess::BIG);
+}
+
+expr::BVExprPtr State::get_int_param(CallConv cv, uint64_t i)
+{
+    return arch().get_int_param(cv, *this, i);
+}
+
+void State::register_linked_function(uint64_t addr, const models::Model* m)
+{
+    m_linked_functions->links[addr] = m;
+}
+
+bool State::is_linked_function(uint64_t addr)
+{
+    return m_linked_functions->links.contains(addr);
+}
+
+bool State::execute_linked_function(uint64_t addr)
+{
+    m_linked_functions->links[addr]->exec(*this);
+    return m_linked_functions->links[addr]->returns();
 }
 
 expr::BoolExprPtr State::pi() const { return m_solver.manager().pi(); }

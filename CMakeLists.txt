@@ -30,6 +30,8 @@ set ( naaz_src
     state/MapMemory.cpp
     state/State.cpp
     state/Solver.cpp
+    models/Linker.cpp
+    models/libc/libc_start_main.cpp
     arch/Arch.cpp
     lifter/PCodeLifter.cpp
     loader/AddressSpace.cpp
