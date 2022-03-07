@@ -22,10 +22,12 @@ namespace naaz::models::libc
 
 GEN_MODEL_CLASS(__libc_start_main, CallConv::CDECL)
 GEN_MODEL_CLASS(exit, CallConv::CDECL)
+GEN_MODEL_CLASS(read, CallConv::CDECL)
 
 } // namespace naaz::models::libc
 
 #define REGISTER_LIBC_FUNCTIONS                                                \
     l.register_model(libc::__libc_start_main::The().name(),                    \
                      &libc::__libc_start_main::The());                         \
-    l.register_model(libc::exit::The().name(), &libc::exit::The());
+    l.register_model(libc::exit::The().name(), &libc::exit::The());            \
+    l.register_model(libc::read::The().name(), &libc::read::The());

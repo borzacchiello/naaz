@@ -43,7 +43,7 @@ void Linker::link(state::State& state) const
                     state.write(addr, fun_addr);
                     state.register_linked_function(external_addr,
                                                    m_models.at(sym.name()));
-                    external_addr += state.arch().ptr_size();
+                    external_addr += state.arch().ptr_size() / 8;
                 }
                 break;
             }

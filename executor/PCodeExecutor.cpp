@@ -246,6 +246,26 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             write_to_varnode(ctx, *op.output, res);
             break;
         }
+        case csleigh_CPUI_CALL: {
+            assert(op.output == nullptr && "CALL: output is not NULL");
+            assert(op.inputs_count == 1 && "CALL: inputs_count != 1");
+
+            uint64_t dst_addr;
+            if (csleigh_AddrSpace_getId(op.inputs[0].space) ==
+                m_lifter->ram_space_id()) {
+                dst_addr = op.inputs[0].offset;
+            } else {
+                err("PCodeExecutor")
+                    << "CALL: unexpected space ("
+                    << csleigh_AddrSpace_getName(op.inputs[0].space) << ")"
+                    << std::endl;
+                exit_fail();
+            }
+
+            ctx.state->set_pc(dst_addr);
+            ctx.successors.active.push_back(ctx.state);
+            break;
+        }
         case csleigh_CPUI_BRANCH: {
             assert(op.output == nullptr && "BRANCH: output is not NULL");
             assert(op.inputs_count == 1 && "BRANCH: inputs_count != 1");
@@ -259,7 +279,9 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                 dst_addr = op.inputs[0].offset;
             } else {
                 err("PCodeExecutor")
-                    << "BRANCH: unhandled case (FIXME)" << std::endl;
+                    << "BRANCH: unexpected space ("
+                    << csleigh_AddrSpace_getName(op.inputs[0].space) << ")"
+                    << std::endl;
                 exit_fail();
             }
 
@@ -280,7 +302,9 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                 dst_addr = op.inputs[0].offset;
             } else {
                 err("PCodeExecutor")
-                    << "CBRANCH: unhandled case (FIXME)" << std::endl;
+                    << "CBRANCH: unexpected space ("
+                    << csleigh_AddrSpace_getName(op.inputs[0].space) << ")"
+                    << std::endl;
                 exit_fail();
             }
 
@@ -311,6 +335,21 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                                     ctx.transl.length);
                 ctx.successors.active.push_back(other_state);
             }
+            break;
+        }
+        case csleigh_CPUI_BRANCHIND: {
+            assert(op.output == nullptr && "BRANCHIND: output is not NULL");
+            assert(op.inputs_count == 1 && "BRANCHIND: inputs_count != 1");
+
+            auto dst = resolve_varnode(ctx, op.inputs[0]);
+            if (dst->kind() != expr::Expr::Kind::CONST) {
+                err("PCodeExecutor")
+                    << "FIXME: unhandled symbolic IP (BRANCHIND)" << std::endl;
+                exit_fail();
+            }
+            auto dst_ = std::static_pointer_cast<const expr::ConstExpr>(dst);
+            ctx.state->set_pc(dst_->val().as_u64());
+            ctx.successors.active.push_back(ctx.state);
             break;
         }
         case csleigh_CPUI_CALLIND: {

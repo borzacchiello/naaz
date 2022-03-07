@@ -76,7 +76,7 @@ std::string ConstExpr::to_string() const { return m_val.to_string(true); }
 
 z3::expr ConstExpr::to_z3(z3::context& ctx) const
 {
-    return ctx.bv_val(to_string().c_str(), size());
+    return ctx.bv_val(m_val.to_string().c_str(), size());
 }
 
 // ***************

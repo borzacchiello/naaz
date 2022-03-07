@@ -34,7 +34,8 @@ class MapMemory
     {
     }
     MapMemory(const MapMemory& other)
-        : m_memory(other.m_memory), m_as(other.m_as)
+        : m_memory(other.m_memory), m_as(other.m_as),
+          m_uninit_behavior(other.m_uninit_behavior)
     {
     }
 

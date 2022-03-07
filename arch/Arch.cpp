@@ -48,6 +48,8 @@ const std::string& x86_64::description() const
 void x86_64::init_state(state::State& s) const
 {
     s.reg_write("RSP", expr::ExprBuilder::The().mk_const(stack_ptr, 64));
+    s.reg_write("FS_OFFSET",
+                expr::ExprBuilder::The().mk_const(fs_base_ptr, 64));
 }
 
 void x86_64::set_return(state::StatePtr s, expr::BVExprPtr addr) const
@@ -59,6 +61,23 @@ void x86_64::set_return(state::StatePtr s, expr::BVExprPtr addr) const
     }
 
     s->write(s->reg_read("RSP"), addr);
+}
+
+void x86_64::handle_return(state::StatePtr           s,
+                           executor::ExecutorResult& o_successors) const
+{
+    auto ret_addr = s->read(s->reg_read("RSP"), 8UL);
+    if (ret_addr->kind() != expr::Expr::Kind::CONST) {
+        err("arch::x86_64")
+            << "handle_return(): FIXME, unhandled return to symbolic address"
+            << std::endl;
+        exit_fail();
+    }
+
+    s->set_pc(std::static_pointer_cast<const expr::ConstExpr>(ret_addr)
+                  ->val()
+                  .as_u64());
+    o_successors.active.push_back(s);
 }
 
 expr::BVExprPtr x86_64::get_int_param(CallConv cv, state::State& s,

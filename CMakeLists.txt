@@ -33,6 +33,7 @@ set ( naaz_src
     models/Linker.cpp
     models/libc/libc_start_main.cpp
     models/libc/exit.cpp
+    models/libc/read.cpp
     arch/Arch.cpp
     lifter/PCodeLifter.cpp
     loader/AddressSpace.cpp
