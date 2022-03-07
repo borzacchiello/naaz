@@ -7,8 +7,8 @@
 namespace naaz::models::libc
 {
 
-void libc_start_main::exec(state::StatePtr           s,
-                           executor::ExecutorResult& o_successors) const
+void __libc_start_main::exec(state::StatePtr           s,
+                             executor::ExecutorResult& o_successors) const
 {
     auto main_addr = s->get_int_param(m_call_conv, 0);
     if (main_addr->kind() != expr::Expr::Kind::CONST) {

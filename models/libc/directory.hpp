@@ -5,41 +5,27 @@
 namespace naaz::models::libc
 {
 
-// FIXME: verbose... Find a way to generate this code
+#define GEN_MODEL_CLASS(model_name, call_conv)                                 \
+    class model_name final : public Model                                      \
+    {                                                                          \
+        model_name() : Model(#model_name, call_conv) {}                        \
+                                                                               \
+      public:                                                                  \
+        static const model_name& The()                                         \
+        {                                                                      \
+            static const model_name v;                                         \
+            return v;                                                          \
+        }                                                                      \
+        virtual void exec(state::StatePtr           s,                         \
+                          executor::ExecutorResult& o_successors) const;       \
+    };
 
-class libc_start_main final : public Model
-{
-    libc_start_main() : Model("__libc_start_main", CallConv::CDECL) {}
-
-  public:
-    static const libc_start_main& The()
-    {
-        static const libc_start_main v;
-        return v;
-    }
-
-    virtual void exec(state::StatePtr           s,
-                      executor::ExecutorResult& o_successors) const;
-};
-
-class exit final : public Model
-{
-    exit() : Model("exit", CallConv::CDECL) {}
-
-  public:
-    static const exit& The()
-    {
-        static const exit v;
-        return v;
-    }
-
-    virtual void exec(state::StatePtr           s,
-                      executor::ExecutorResult& o_successors) const;
-};
+GEN_MODEL_CLASS(__libc_start_main, CallConv::CDECL)
+GEN_MODEL_CLASS(exit, CallConv::CDECL)
 
 } // namespace naaz::models::libc
 
 #define REGISTER_LIBC_FUNCTIONS                                                \
-    l.register_model(libc::libc_start_main::The().name(),                      \
-                     &libc::libc_start_main::The());                           \
+    l.register_model(libc::__libc_start_main::The().name(),                    \
+                     &libc::__libc_start_main::The());                         \
     l.register_model(libc::exit::The().name(), &libc::exit::The());
