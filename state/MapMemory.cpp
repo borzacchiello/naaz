@@ -39,7 +39,7 @@ BVExprPtr MapMemory::read_byte(uint64_t addr)
         switch (m_uninit_behavior) {
             case UninitReadBehavior::RET_SYM: {
                 SymExprPtr sym = ExprBuilder::The().mk_sym(
-                    string_format("mem_0x%lx", addr), 8);
+                    string_format("%s_0x%lx", m_name.c_str(), addr), 8);
                 write_byte(addr, sym);
                 return sym;
             }

@@ -394,7 +394,7 @@ void PCodeExecutor::execute_instruction(state::StatePtr     state,
                                         ExecutorResult&     o_successors)
 {
     state::MapMemory tmp_storage(
-        state::MapMemory::UninitReadBehavior::THROW_ERR);
+        "tmp", state::MapMemory::UninitReadBehavior::THROW_ERR);
     ExecutionContext ctx(state, tmp_storage, t, o_successors);
 
     for (uint32_t i = 0; i < t.ops_count; ++i) {

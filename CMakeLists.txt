@@ -30,6 +30,8 @@ set ( naaz_src
     state/MapMemory.cpp
     state/State.cpp
     state/Solver.cpp
+    state/File.cpp
+    state/FileSystem.cpp
     models/Linker.cpp
     models/libc/libc_start_main.cpp
     models/libc/exit.cpp

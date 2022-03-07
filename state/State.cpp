@@ -10,8 +10,9 @@ State::State(std::shared_ptr<loader::AddressSpace> as,
     : m_as(as), m_lifter(lifter), m_pc(pc)
 {
     m_linked_functions = std::make_shared<models::LinkedFunctions>();
-    m_regs             = std::unique_ptr<MapMemory>(new MapMemory());
-    m_ram              = std::unique_ptr<MapMemory>(new MapMemory(as.get()));
+    m_regs             = std::unique_ptr<MapMemory>(new MapMemory("ram"));
+    m_ram = std::unique_ptr<MapMemory>(new MapMemory("ram", as.get()));
+    m_fs  = std::unique_ptr<FileSystem>(new FileSystem());
 
     // Initialize the state (e.g., stack pointer, linked functions)
     arch().init_state(*this);
@@ -24,6 +25,7 @@ State::State(const State& other)
 {
     m_ram  = other.m_ram->clone();
     m_regs = other.m_regs->clone();
+    m_fs   = other.m_fs->clone();
 }
 
 bool State::get_code_at(uint64_t addr, uint8_t** o_data, uint64_t* o_size)

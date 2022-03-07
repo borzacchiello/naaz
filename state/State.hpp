@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "MapMemory.hpp"
+#include "FileSystem.hpp"
 #include "Solver.hpp"
 #include "../loader/AddressSpace.hpp"
 #include "../lifter/PCodeLifter.hpp"
@@ -20,8 +21,9 @@ class State
 {
     uint64_t m_pc;
 
-    std::unique_ptr<MapMemory> m_regs;
-    std::unique_ptr<MapMemory> m_ram;
+    std::unique_ptr<MapMemory>  m_regs;
+    std::unique_ptr<MapMemory>  m_ram;
+    std::unique_ptr<FileSystem> m_fs;
 
     std::shared_ptr<loader::AddressSpace>    m_as;
     std::shared_ptr<lifter::PCodeLifter>     m_lifter;
@@ -59,6 +61,8 @@ class State
     bool is_linked_function(uint64_t addr);
     const models::Model* get_linked_model(uint64_t addr);
     uint64_t             get_exit_address() const { return m_exit_address; }
+
+    FileSystem& fs() { return *m_fs; }
 
     Solver&           solver() { return m_solver; }
     expr::BoolExprPtr pi() const;

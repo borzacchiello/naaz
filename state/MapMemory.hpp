@@ -19,22 +19,24 @@ class MapMemory
     UninitReadBehavior                  m_uninit_behavior;
     loader::AddressSpace*               m_as;
     std::map<uint64_t, expr::BVExprPtr> m_memory;
+    std::string                         m_name;
 
     expr::BVExprPtr read_byte(uint64_t addr);
     void            write_byte(uint64_t addr, expr::BVExprPtr value);
 
   public:
-    MapMemory(UninitReadBehavior b = UninitReadBehavior::RET_SYM)
-        : m_as(nullptr), m_uninit_behavior(b)
+    MapMemory(const std::string& name,
+              UninitReadBehavior b = UninitReadBehavior::RET_SYM)
+        : m_name(name), m_as(nullptr), m_uninit_behavior(b)
     {
     }
-    MapMemory(loader::AddressSpace* as,
-              UninitReadBehavior    b = UninitReadBehavior::RET_SYM)
-        : m_as(as), m_uninit_behavior(b)
+    MapMemory(const std::string& name, loader::AddressSpace* as,
+              UninitReadBehavior b = UninitReadBehavior::RET_SYM)
+        : m_name(name), m_as(as), m_uninit_behavior(b)
     {
     }
     MapMemory(const MapMemory& other)
-        : m_memory(other.m_memory), m_as(other.m_as),
+        : m_name(other.m_name), m_memory(other.m_memory), m_as(other.m_as),
           m_uninit_behavior(other.m_uninit_behavior)
     {
     }

@@ -37,18 +37,7 @@ void read::exec(state::StatePtr s, executor::ExecutorResult& o_successors) const
     size_t size_ =
         std::static_pointer_cast<const expr::ConstExpr>(size)->val().as_u64();
 
-    if (fd_ != 0) {
-        err("read") << "FIXME: only read from stdin in currently supported"
-                    << std::endl;
-        exit_fail();
-    }
-
-    for (uint64_t i = 0; i < size_; ++i) {
-        std::string sym_name = string_format("read_%d_%lu", fd_, read_idx++);
-        auto        sym      = expr::ExprBuilder::The().mk_sym(sym_name, 8);
-        s->write(buf_ + i, sym);
-    }
-
+    s->write(buf_, s->fs().read(fd_, size_));
     s->arch().handle_return(s, o_successors);
 }
 
