@@ -72,7 +72,7 @@ bool ConstExpr::eq(ExprPtr other) const
     return m_val.eq(other_->m_val);
 }
 
-std::string ConstExpr::to_string() const { return m_val.to_string(); }
+std::string ConstExpr::to_string() const { return m_val.to_string(true); }
 
 z3::expr ConstExpr::to_z3(z3::context& ctx) const
 {

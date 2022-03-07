@@ -19,6 +19,11 @@ std::filesystem::path Arch::getSleighProcessorDir()
         "/home/luca/git/naaz/third_party/sleigh/processors");
 }
 
+void Arch::set_return(state::StatePtr s, uint64_t addr) const
+{
+    set_return(s, expr::ExprBuilder::The().mk_const(addr, ptr_size()));
+}
+
 namespace arch
 {
 
@@ -45,21 +50,15 @@ void x86_64::init_state(state::State& s) const
     s.reg_write("RSP", expr::ExprBuilder::The().mk_const(stack_ptr, 64));
 }
 
-void x86_64::handle_return(state::StatePtr           s,
-                           executor::ExecutorResult& o_result) const
+void x86_64::set_return(state::StatePtr s, expr::BVExprPtr addr) const
 {
-    auto ret_addr = s->read(s->reg_read("RSP"), 8UL);
-    std::cerr << "returning to " << ret_addr->to_string() << std::endl;
-    if (ret_addr->kind() != expr::Expr::Kind::CONST) {
-        // FIXME: eval upto
-        o_result.exited.push_back(s);
-        return;
+    if (addr->size() != ptr_size()) {
+        err("arch::x86_64")
+            << "set_return(): invalid return value" << std::endl;
+        exit_fail();
     }
 
-    auto ret_addr_ = std::static_pointer_cast<const expr::ConstExpr>(ret_addr);
-    s->set_pc(ret_addr_->val().as_u64());
-    o_result.active.push_back(s);
-    return;
+    s->write(s->reg_read("RSP"), addr);
 }
 
 expr::BVExprPtr x86_64::get_int_param(CallConv cv, state::State& s,

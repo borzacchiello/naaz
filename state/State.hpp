@@ -29,6 +29,8 @@ class State
 
     Solver m_solver;
 
+    uint64_t m_exit_address = 0;
+
   public:
     State(std::shared_ptr<loader::AddressSpace> as,
           std::shared_ptr<lifter::PCodeLifter> lifter, uint64_t pc);
@@ -55,8 +57,8 @@ class State
 
     void register_linked_function(uint64_t addr, const models::Model* m);
     bool is_linked_function(uint64_t addr);
-    bool execute_linked_function(uint64_t addr);
-    void handle_return();
+    const models::Model* get_linked_model(uint64_t addr);
+    uint64_t             get_exit_address() const { return m_exit_address; }
 
     Solver&           solver() { return m_solver; }
     expr::BoolExprPtr pi() const;
@@ -65,6 +67,10 @@ class State
     uint64_t pc() const { return m_pc; }
 
     StatePtr clone() const { return std::shared_ptr<State>(new State(*this)); }
+
+    // exited stuff
+    bool    exited  = false;
+    int32_t retcode = 0;
 };
 
 } // namespace naaz::state

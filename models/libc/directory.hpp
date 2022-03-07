@@ -9,17 +9,37 @@ namespace naaz::models::libc
 
 class libc_start_main final : public Model
 {
-    libc_start_main(const std::string& name, CallConv cv) : Model(name, cv) {}
+    libc_start_main() : Model("__libc_start_main", CallConv::CDECL) {}
 
   public:
-    static const libc_start_main& The();
+    static const libc_start_main& The()
+    {
+        static const libc_start_main v;
+        return v;
+    }
 
-    virtual bool returns() const;
-    virtual void exec(state::State& s) const;
+    virtual void exec(state::StatePtr           s,
+                      executor::ExecutorResult& o_successors) const;
+};
+
+class exit final : public Model
+{
+    exit() : Model("exit", CallConv::CDECL) {}
+
+  public:
+    static const exit& The()
+    {
+        static const exit v;
+        return v;
+    }
+
+    virtual void exec(state::StatePtr           s,
+                      executor::ExecutorResult& o_successors) const;
 };
 
 } // namespace naaz::models::libc
 
 #define REGISTER_LIBC_FUNCTIONS                                                \
     l.register_model(libc::libc_start_main::The().name(),                      \
-                     &libc::libc_start_main::The());
+                     &libc::libc_start_main::The());                           \
+    l.register_model(libc::exit::The().name(), &libc::exit::The());

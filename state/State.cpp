@@ -82,6 +82,8 @@ expr::BVExprPtr State::get_int_param(CallConv cv, uint64_t i)
 void State::register_linked_function(uint64_t addr, const models::Model* m)
 {
     m_linked_functions->links[addr] = m;
+    if (m->name() == "exit")
+        m_exit_address = addr;
 }
 
 bool State::is_linked_function(uint64_t addr)
@@ -89,10 +91,9 @@ bool State::is_linked_function(uint64_t addr)
     return m_linked_functions->links.contains(addr);
 }
 
-bool State::execute_linked_function(uint64_t addr)
+const models::Model* State::get_linked_model(uint64_t addr)
 {
-    m_linked_functions->links[addr]->exec(*this);
-    return m_linked_functions->links[addr]->returns();
+    return m_linked_functions->links[addr];
 }
 
 expr::BoolExprPtr State::pi() const { return m_solver.manager().pi(); }

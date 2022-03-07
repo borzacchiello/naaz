@@ -324,18 +324,23 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                 exit_fail();
             }
             auto dst_ = std::static_pointer_cast<const expr::ConstExpr>(dst);
-            if (ctx.state->is_linked_function(dst_->val().as_u64())) {
-                if (ctx.state->execute_linked_function(dst_->val().as_u64())) {
-                    // We must handle the return
-                    ctx.state->arch().handle_return(ctx.state, ctx.successors);
-                } else {
-                    ctx.successors.active.push_back(ctx.state);
-                }
-            }
+            ctx.state->set_pc(dst_->val().as_u64());
+            ctx.successors.active.push_back(ctx.state);
             break;
         }
         case csleigh_CPUI_RETURN: {
-            ctx.state->arch().handle_return(ctx.state, ctx.successors);
+            assert(op.output == nullptr && "RETURN: output is not NULL");
+            assert(op.inputs_count == 1 && "RETURN: inputs_count != 1");
+
+            auto dst = resolve_varnode(ctx, op.inputs[0]);
+            if (dst->kind() != expr::Expr::Kind::CONST) {
+                err("PCodeExecutor")
+                    << "FIXME: unhandled symbolic IP (RETURN)" << std::endl;
+                exit_fail();
+            }
+            auto dst_ = std::static_pointer_cast<const expr::ConstExpr>(dst);
+            ctx.state->set_pc(dst_->val().as_u64());
+            ctx.successors.active.push_back(ctx.state);
             break;
         }
         default:
@@ -361,6 +366,14 @@ void PCodeExecutor::execute_instruction(state::StatePtr     state,
 
 ExecutorResult PCodeExecutor::execute_basic_block(state::StatePtr state)
 {
+    ExecutorResult successors;
+
+    if (state->is_linked_function(state->pc())) {
+        auto model = state->get_linked_model(state->pc());
+        model->exec(state, successors);
+        return successors;
+    }
+
     uint8_t* data;
     uint64_t size;
 
@@ -375,8 +388,6 @@ ExecutorResult PCodeExecutor::execute_basic_block(state::StatePtr state)
     const csleigh_TranslationResult* tr = block->transl();
 
     // block->pp();
-
-    ExecutorResult successors;
 
     for (uint32_t i = 0; i < tr->instructions_count; ++i) {
         csleigh_Translation t = tr->instructions[i];

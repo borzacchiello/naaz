@@ -36,9 +36,9 @@ class Arch
     virtual Endianess             endianess() const      = 0;
     virtual uint64_t              ptr_size() const       = 0;
 
-    virtual void init_state(state::State& s) const                       = 0;
-    virtual void handle_return(state::StatePtr           s,
-                               executor::ExecutorResult& o_result) const = 0;
+    virtual void init_state(state::State& s) const                         = 0;
+    virtual void set_return(state::StatePtr s, expr::BVExprPtr addr) const = 0;
+    virtual void set_return(state::StatePtr s, uint64_t addr) const;
 
     virtual expr::BVExprPtr get_int_param(CallConv cv, state::State& s,
                                           uint32_t i) const                 = 0;
@@ -64,8 +64,7 @@ class x86_64 final : public naaz::Arch
     virtual uint64_t  ptr_size() const { return 64UL; };
 
     virtual void init_state(state::State& s) const;
-    virtual void handle_return(state::StatePtr           s,
-                               executor::ExecutorResult& o_result) const;
+    virtual void set_return(state::StatePtr s, expr::BVExprPtr addr) const;
 
     virtual expr::BVExprPtr get_int_param(CallConv cv, state::State& s,
                                           uint32_t i) const;

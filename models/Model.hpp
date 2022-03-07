@@ -3,6 +3,8 @@
 #include <string>
 #include <map>
 
+#include "../executor/Executor.hpp"
+
 namespace naaz
 {
 
@@ -30,8 +32,8 @@ class Model
   public:
     const std::string& name() const { return m_name; }
 
-    virtual bool returns() const             = 0;
-    virtual void exec(state::State& s) const = 0;
+    virtual void exec(state::StatePtr           s,
+                      executor::ExecutorResult& o_successors) const = 0;
 };
 
 struct LinkedFunctions {

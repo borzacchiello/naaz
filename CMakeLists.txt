@@ -32,6 +32,7 @@ set ( naaz_src
     state/Solver.cpp
     models/Linker.cpp
     models/libc/libc_start_main.cpp
+    models/libc/exit.cpp
     arch/Arch.cpp
     lifter/PCodeLifter.cpp
     loader/AddressSpace.cpp

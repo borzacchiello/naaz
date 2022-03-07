@@ -27,6 +27,10 @@ void Linker::link(state::State& state) const
     // FIXME: should be obtained dynamically
     uint64_t external_addr = 0x5000000;
 
+    // register exit function
+    state.register_linked_function(external_addr, m_models.at("exit"));
+    external_addr += state.arch().ptr_size() / 8;
+
     for (auto const& [addr, syms] : state.address_space()->symbols()) {
         for (auto const& sym : syms) {
             if (sym.type() == loader::Symbol::Type::EXT_FUNCTION) {
