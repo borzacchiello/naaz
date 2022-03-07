@@ -5,7 +5,6 @@
 #include "../expr/ExprBuilder.hpp"
 #include "../executor/ExecutorManager.hpp"
 #include "../executor/DFSExplorationTechnique.hpp"
-#include "../executor/PCodeExecutor.hpp"
 
 using namespace naaz;
 
@@ -28,9 +27,7 @@ int main(int argc, char const* argv[])
     entry_state->reg_write("RSP",
                            expr::ExprBuilder::The().mk_const(0xc0000000, 64));
 
-    executor::ExecutorManager<executor::PCodeExecutor,
-                              executor::DFSExplorationTechnique>
-        em(entry_state);
+    executor::DFSExecutorManager em(entry_state);
 
     std::optional<state::StatePtr> s = em.explore(find_addr);
 

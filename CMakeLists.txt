@@ -40,7 +40,6 @@ set ( naaz_src
     executor/ExplorationTechnique.cpp
     executor/BFSExplorationTechnique.cpp
     executor/DFSExplorationTechnique.cpp
-    executor/ExecutorManager.cpp
     solver/ConstraintManager.cpp
     solver/Z3Solver.cpp )
 

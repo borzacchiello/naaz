@@ -8,7 +8,6 @@
 #include "../loader/AddressSpace.hpp"
 #include "../lifter/PCodeLifter.hpp"
 #include "../executor/PCodeExecutor.hpp"
-#include "../executor/ExecutorManager.hpp"
 #include "../executor/BFSExplorationTechnique.hpp"
 #include "../executor/DFSExplorationTechnique.hpp"
 
@@ -102,9 +101,7 @@ TEST_CASE("Explore BFS 1", "[executor]")
     auto sym   = exprBuilder.mk_sym("sym", 32);
     state->reg_write("EDI", sym);
 
-    executor::ExecutorManager<executor::PCodeExecutor,
-                              executor::BFSExplorationTechnique>
-        em(state);
+    executor::BFSExecutorManager em(state);
 
     std::vector<uint64_t> find;
     find.push_back(0x400012);
@@ -136,9 +133,7 @@ TEST_CASE("Explore DFS 1", "[executor]")
     auto sym   = exprBuilder.mk_sym("sym", 32);
     state->reg_write("EDI", sym);
 
-    executor::ExecutorManager<executor::PCodeExecutor,
-                              executor::DFSExplorationTechnique>
-        em(state);
+    executor::DFSExecutorManager em(state);
 
     std::vector<uint64_t> find;
     find.push_back(0x400012);

@@ -1,4 +1,5 @@
 #include "BFSExplorationTechnique.hpp"
+#include "ExecutorManager.hpp"
 
 namespace naaz::executor
 {

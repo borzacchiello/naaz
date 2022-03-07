@@ -3,6 +3,7 @@
 #include <list>
 
 #include "ExplorationTechnique.hpp"
+#include "ExecutorManager.hpp"
 
 namespace naaz::executor
 {
@@ -21,5 +22,7 @@ class BFSExplorationTechnique final : public ExplorationTechnique
     virtual void add_actives(std::vector<state::StatePtr> states);
     virtual std::optional<state::StatePtr> get_next();
 };
+
+typedef ExecutorManager<BFSExplorationTechnique> BFSExecutorManager;
 
 } // namespace naaz::executor

@@ -19,4 +19,6 @@ std::optional<state::StatePtr> DFSExplorationTechnique::get_next()
     return s;
 }
 
+template class ExecutorManager<DFSExplorationTechnique>;
+
 } // namespace naaz::executor
