@@ -40,5 +40,6 @@ int main(int argc, char const* argv[])
     } else
         fprintf(stdout, "state not found\n");
 
+    fprintf(stdout, "generated states: %lu\n", em.num_states());
     return 0;
 }

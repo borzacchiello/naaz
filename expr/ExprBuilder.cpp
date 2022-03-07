@@ -141,6 +141,8 @@ BVExprPtr ExprBuilder::mk_extract(BVExprPtr expr, uint32_t high, uint32_t low)
         ZextExprPtr expr_ = std::static_pointer_cast<const ZextExpr>(expr);
         if (low == 0 && high == expr_->expr()->size() - 1)
             return expr_->expr();
+        if (low >= expr_->expr()->size())
+            return mk_const(0UL, high - low + 1);
     } else if (expr->kind() == Expr::Kind::SEXT) {
         SextExprPtr expr_ = std::static_pointer_cast<const SextExpr>(expr);
         if (low == 0 && high == expr_->expr()->size() - 1)
@@ -779,6 +781,11 @@ BoolExprPtr ExprBuilder::mk_eq(BVExprPtr lhs, BVExprPtr rhs)
     return std::static_pointer_cast<const BoolExpr>(get_or_create(e));
 }
 
+BoolExprPtr ExprBuilder::mk_neq(BVExprPtr lhs, BVExprPtr rhs)
+{
+    return mk_not(mk_eq(lhs, rhs));
+}
+
 BoolExprPtr ExprBuilder::mk_bool_and(BoolExprPtr e1, BoolExprPtr e2)
 {
     std::set<BoolExprPtr> exprs;
@@ -825,6 +832,55 @@ BoolExprPtr ExprBuilder::mk_bool_and(BoolExprPtr e1, BoolExprPtr e2)
     std::sort(actual_exprs.begin(), actual_exprs.end());
 
     BoolAndExpr e(actual_exprs);
+    return std::static_pointer_cast<const BoolExpr>(get_or_create(e));
+}
+
+BoolExprPtr ExprBuilder::mk_bool_or(BoolExprPtr e1, BoolExprPtr e2)
+{
+    std::set<BoolExprPtr> exprs;
+
+    // flatten args
+    if (e1->kind() == Expr::Kind::BOOL_OR) {
+        auto e1_ = std::static_pointer_cast<const BoolOrExpr>(e1);
+        for (auto e : e1_->exprs())
+            exprs.insert(e);
+    } else {
+        exprs.insert(e1);
+    }
+
+    if (e2->kind() == Expr::Kind::BOOL_OR) {
+        auto e2_ = std::static_pointer_cast<const BoolOrExpr>(e2);
+        for (auto e : e2_->exprs())
+            exprs.insert(e);
+    } else {
+        exprs.insert(e2);
+    }
+
+    std::vector<BoolExprPtr> actual_exprs;
+
+    // constant propagation
+    for (auto e : exprs) {
+        if (e->kind() == Expr::Kind::BOOL_CONST) {
+            auto e_ = std::static_pointer_cast<const BoolConst>(e);
+            if (e_->is_true())
+                return mk_true();
+        } else {
+            actual_exprs.push_back(e);
+        }
+    }
+
+    // final checks
+    if (actual_exprs.size() == 0)
+        return mk_false();
+
+    if (actual_exprs.size() == 1)
+        return actual_exprs.back();
+
+    // sort actual_exprs by address (commutative! We are trying to reduce the
+    // number of equivalent expressions)
+    std::sort(actual_exprs.begin(), actual_exprs.end());
+
+    BoolOrExpr e(actual_exprs);
     return std::static_pointer_cast<const BoolExpr>(get_or_create(e));
 }
 

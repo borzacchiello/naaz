@@ -59,6 +59,8 @@ template <class ExplorationPolicy> class ExecutorManager
         find_addrs.push_back(find_addr);
         return explore(find_addrs, avoid_addrs);
     }
+
+    size_t num_states() const { return m_exploration.num_states(); }
 };
 
 } // namespace naaz::executor

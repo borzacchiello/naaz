@@ -32,6 +32,11 @@ class ExplorationTechnique
     {
         return m_avoided_states;
     }
+
+    virtual size_t num_states() const
+    {
+        return m_exited_states.size() + m_avoided_states.size();
+    }
 };
 
 } // namespace naaz::executor

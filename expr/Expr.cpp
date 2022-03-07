@@ -146,8 +146,8 @@ bool ExtractExpr::eq(ExprPtr other) const
 
 std::string ExtractExpr::to_string() const
 {
-    return m_expr->to_string() + "[" + std::to_string(m_high) + ":" +
-           std::to_string(m_low) + "]";
+    return std::string("(") + m_expr->to_string() + ")[" +
+           std::to_string(m_high) + ":" + std::to_string(m_low) + "]";
 }
 
 z3::expr ExtractExpr::to_z3(z3::context& ctx) const
@@ -730,6 +730,59 @@ z3::expr BoolAndExpr::to_z3(z3::context& ctx) const
 
     for (uint64_t i = 1; i < m_exprs.size(); ++i) {
         e = e && m_exprs.at(i)->to_z3(ctx);
+    }
+    return e;
+}
+
+// ***************
+// * BoolOrExpr
+// ***************
+
+uint64_t BoolOrExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    for (const auto& child : m_exprs) {
+        void* raw_child = (void*)child.get();
+        XXH64_update(&state, raw_child, sizeof(void*));
+    }
+    return XXH64_digest(&state);
+}
+
+bool BoolOrExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const BoolOrExpr>(other);
+    if (m_exprs.size() != other_->m_exprs.size())
+        return false;
+
+    for (uint64_t i = 0; i < m_exprs.size(); ++i)
+        if (m_exprs.at(i) != other_->m_exprs.at(i))
+            return false;
+    return true;
+}
+
+std::string BoolOrExpr::to_string() const
+{
+    std::string res = m_exprs.at(0)->to_string();
+    for (uint64_t i = 1; i < m_exprs.size(); ++i) {
+        res += " || ";
+        res += m_exprs.at(i)->to_string();
+    }
+    return res;
+}
+
+z3::expr BoolOrExpr::to_z3(z3::context& ctx) const
+{
+    // I'm assuming that there is always at least one element in BoolOrExpr.
+    // There should be at least 2 elements in m_exprs, this must be enforced by
+    // ExprBuilder
+    z3::expr e(m_exprs.at(0)->to_z3(ctx));
+
+    for (uint64_t i = 1; i < m_exprs.size(); ++i) {
+        e = e || m_exprs.at(i)->to_z3(ctx);
     }
     return e;
 }

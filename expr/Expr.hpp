@@ -52,7 +52,8 @@ class Expr
         SGE,
         EQ,
 
-        BOOL_AND
+        BOOL_AND,
+        BOOL_OR
     };
 
     virtual const Kind kind() const = 0;
@@ -735,6 +736,44 @@ class BoolAndExpr final : public BoolExpr
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const BoolAndExpr> BoolAndExprPtr;
+
+class BoolOrExpr final : public BoolExpr
+{
+  private:
+    static const Kind ekind = Kind::BOOL_OR;
+
+    std::vector<BoolExprPtr> m_exprs;
+
+  protected:
+    BoolOrExpr(const std::set<BoolExprPtr>& exprs)
+    {
+        for (auto e : exprs)
+            m_exprs.push_back(e);
+    }
+
+    BoolOrExpr(const std::vector<BoolExprPtr>& exprs) : m_exprs(exprs) {}
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual ExprPtr clone() const { return ExprPtr(new BoolOrExpr(m_exprs)); }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::string          to_string() const;
+    virtual z3::expr             to_z3(z3::context& ctx) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        std::vector<ExprPtr> res;
+        for (auto e : m_exprs)
+            res.push_back(e);
+        return res;
+    }
+
+    const std::vector<BoolExprPtr>& exprs() const { return m_exprs; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const BoolOrExpr> BoolOrExprPtr;
 
 #define GEN_BINARY_LOGICAL_EXPR_CLASS(NAME, NAME_SHARED, KIND)                 \
     class NAME final : public BoolExpr                                         \

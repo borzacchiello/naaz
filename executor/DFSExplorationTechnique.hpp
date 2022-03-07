@@ -21,6 +21,11 @@ class DFSExplorationTechnique final : public ExplorationTechnique
 
     virtual void add_actives(std::vector<state::StatePtr> states);
     virtual std::optional<state::StatePtr> get_next();
+
+    virtual size_t num_states() const
+    {
+        return m_active.size() + ExplorationTechnique::num_states();
+    }
 };
 
 typedef ExecutorManager<DFSExplorationTechnique> DFSExecutorManager;

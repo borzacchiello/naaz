@@ -78,6 +78,15 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             write_to_varnode(ctx, *op.output, exprBuilder.bool_to_bv(expr));
             break;
         }
+        case csleigh_CPUI_INT_NOTEQUAL: {
+            assert(op.output != nullptr && "INT_NOTEQUAL: output is NULL");
+            assert(op.inputs_count == 2 && "INT_NOTEQUAL: inputs_count != 2");
+            expr::BoolExprPtr expr =
+                exprBuilder.mk_neq(resolve_varnode(ctx, op.inputs[0]),
+                                   resolve_varnode(ctx, op.inputs[1]));
+            write_to_varnode(ctx, *op.output, exprBuilder.bool_to_bv(expr));
+            break;
+        }
         case csleigh_CPUI_INT_LESS: {
             assert(op.output != nullptr && "INT_LESS: output is NULL");
             assert(op.inputs_count == 2 && "INT_LESS: inputs_count != 2");
@@ -103,6 +112,28 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                              exprBuilder.bool_to_bv(
                                  exprBuilder.mk_not(exprBuilder.bv_to_bool(
                                      resolve_varnode(ctx, op.inputs[0])))));
+            break;
+        }
+        case csleigh_CPUI_BOOL_AND: {
+            assert(op.output != nullptr && "BOOL_AND: output is NULL");
+            assert(op.inputs_count == 2 && "BOOL_AND: inputs_count != 2");
+            write_to_varnode(
+                ctx, *op.output,
+                exprBuilder.bool_to_bv(exprBuilder.mk_bool_and(
+                    exprBuilder.bv_to_bool(resolve_varnode(ctx, op.inputs[0])),
+                    exprBuilder.bv_to_bool(
+                        resolve_varnode(ctx, op.inputs[1])))));
+            break;
+        }
+        case csleigh_CPUI_BOOL_OR: {
+            assert(op.output != nullptr && "BOOL_OR: output is NULL");
+            assert(op.inputs_count == 2 && "BOOL_OR: inputs_count != 2");
+            write_to_varnode(
+                ctx, *op.output,
+                exprBuilder.bool_to_bv(exprBuilder.mk_bool_or(
+                    exprBuilder.bv_to_bool(resolve_varnode(ctx, op.inputs[0])),
+                    exprBuilder.bv_to_bool(
+                        resolve_varnode(ctx, op.inputs[1])))));
             break;
         }
         case csleigh_CPUI_LOAD: {
@@ -145,6 +176,17 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             assert(op.inputs_count == 1 && "COPY: inputs_count != 1");
             write_to_varnode(ctx, *op.output,
                              resolve_varnode(ctx, op.inputs[0]));
+            break;
+        }
+        case csleigh_CPUI_SUBPIECE: {
+            assert(op.output != nullptr && "SUBPIECE: output is NULL");
+            assert(op.inputs_count == 2 && "SUBPIECE: inputs_count != 2");
+            uint32_t high = op.output->size * 8 - 1;
+            uint32_t low  = op.inputs[1].offset * 8;
+            write_to_varnode(
+                ctx, *op.output,
+                exprBuilder.mk_extract(resolve_varnode(ctx, op.inputs[0]), high,
+                                       low));
             break;
         }
         case csleigh_CPUI_INT_ZEXT: {
@@ -190,6 +232,17 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                 exprBuilder.mk_sub(resolve_varnode(ctx, op.inputs[0]),
                                    resolve_varnode(ctx, op.inputs[1]));
             write_to_varnode(ctx, *op.output, expr);
+            break;
+        }
+        case csleigh_CPUI_INT_CARRY: {
+            assert(op.output != nullptr && "INT_CARRY: output is NULL");
+            assert(op.inputs_count == 2 && "INT_CARRY: inputs_count != 2");
+
+            expr::BVExprPtr in1 = resolve_varnode(ctx, op.inputs[0]);
+            expr::BVExprPtr in2 = resolve_varnode(ctx, op.inputs[1]);
+            expr::BVExprPtr res =
+                exprBuilder.bool_to_bv(exprBuilder.mk_uge(in1, in2));
+            write_to_varnode(ctx, *op.output, res);
             break;
         }
         case csleigh_CPUI_INT_SBORROW: {

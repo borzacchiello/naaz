@@ -30,7 +30,7 @@ class ExprBuilder
     void collect_garbage();
 
     const std::string& get_sym_name(uint32_t id) const;
-    uint32_t get_sym_id(const std::string& name) const;
+    uint32_t           get_sym_id(const std::string& name) const;
 
     BoolConstPtr mk_true();
     BoolConstPtr mk_false();
@@ -66,8 +66,10 @@ class ExprBuilder
     BoolExprPtr mk_sgt(BVExprPtr lhs, BVExprPtr rhs);
     BoolExprPtr mk_sge(BVExprPtr lhs, BVExprPtr rhs);
     BoolExprPtr mk_eq(BVExprPtr lhs, BVExprPtr rhs);
+    BoolExprPtr mk_neq(BVExprPtr lhs, BVExprPtr rhs);
 
     BoolExprPtr mk_bool_and(BoolExprPtr e1, BoolExprPtr e2);
+    BoolExprPtr mk_bool_or(BoolExprPtr e1, BoolExprPtr e2);
 
     // util
     BVExprPtr   sign_bit(BVExprPtr expr);

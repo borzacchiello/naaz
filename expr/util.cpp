@@ -8,227 +8,321 @@
 namespace naaz::expr
 {
 
-ExprPtr evaluate(ExprPtr e, const std::map<uint32_t, BVConst>& assignments,
-                 bool model_completion)
+static ExprPtr evaluate_inner(ExprPtr                            e,
+                              const std::map<uint32_t, BVConst>& assignments,
+                              bool                         model_completion,
+                              std::map<uint64_t, ExprPtr>& cache)
 {
+    if (cache.contains((uint64_t)e.get()))
+        return cache.at((uint64_t)e.get());
+
+    ExprPtr res;
     switch (e->kind()) {
         case Expr::Kind::SYM: {
             auto e_ = std::static_pointer_cast<const SymExpr>(e);
             if (assignments.contains(e_->id()))
-                return exprBuilder.mk_const(assignments.at(e_->id()));
-
-            if (model_completion)
-                return exprBuilder.mk_const(0, e_->size());
-            return e;
+                res = exprBuilder.mk_const(assignments.at(e_->id()));
+            else if (model_completion)
+                res = exprBuilder.mk_const(0, e_->size());
+            else
+                res = e;
+            break;
         }
         case Expr::Kind::CONST:
         case Expr::Kind::BOOL_CONST:
-            return e;
+            res = e;
+            break;
         case Expr::Kind::EXTRACT: {
             auto e_     = std::static_pointer_cast<const ExtractExpr>(e);
-            auto eval_e = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->expr(), assignments, model_completion));
-            return exprBuilder.mk_extract(eval_e, e_->high(), e_->low());
+            auto eval_e = std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                e_->expr(), assignments, model_completion, cache));
+            res         = exprBuilder.mk_extract(eval_e, e_->high(), e_->low());
+            break;
         }
         case Expr::Kind::CONCAT: {
-            auto e_       = std::static_pointer_cast<const ConcatExpr>(e);
-            auto eval_lhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->lhs(), assignments, model_completion));
-            auto eval_rhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->rhs(), assignments, model_completion));
-            return exprBuilder.mk_concat(eval_lhs, eval_rhs);
+            auto e_ = std::static_pointer_cast<const ConcatExpr>(e);
+            auto eval_lhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->lhs(), assignments, model_completion, cache));
+            auto eval_rhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->rhs(), assignments, model_completion, cache));
+            res = exprBuilder.mk_concat(eval_lhs, eval_rhs);
+            break;
         }
         case Expr::Kind::ZEXT: {
             auto e_     = std::static_pointer_cast<const ZextExpr>(e);
-            auto eval_e = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->expr(), assignments, model_completion));
-            return exprBuilder.mk_zext(eval_e, e_->size());
+            auto eval_e = std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                e_->expr(), assignments, model_completion, cache));
+            res         = exprBuilder.mk_zext(eval_e, e_->size());
+            break;
         }
         case Expr::Kind::SEXT: {
             auto e_     = std::static_pointer_cast<const SextExpr>(e);
             auto eval_e = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_, assignments, model_completion));
-            return exprBuilder.mk_sext(eval_e, e_->size());
+                evaluate_inner(e_, assignments, model_completion, cache));
+            res = exprBuilder.mk_sext(eval_e, e_->size());
+            break;
         }
         case Expr::Kind::ITE: {
-            auto e_         = std::static_pointer_cast<const ITEExpr>(e);
-            auto eval_guard = std::static_pointer_cast<const BoolExpr>(
-                evaluate(e_->guard(), assignments, model_completion));
-            auto eval_iftrue = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->iftrue(), assignments, model_completion));
-            auto eval_iffalse = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->iffalse(), assignments, model_completion));
-            return exprBuilder.mk_ite(eval_guard, eval_iftrue, eval_iffalse);
+            auto e_ = std::static_pointer_cast<const ITEExpr>(e);
+            auto eval_guard =
+                std::static_pointer_cast<const BoolExpr>(evaluate_inner(
+                    e_->guard(), assignments, model_completion, cache));
+            auto eval_iftrue =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->iftrue(), assignments, model_completion, cache));
+            auto eval_iffalse =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->iffalse(), assignments, model_completion, cache));
+            res = exprBuilder.mk_ite(eval_guard, eval_iftrue, eval_iffalse);
+            break;
         }
         case Expr::Kind::SHL: {
-            auto e_        = std::static_pointer_cast<const ShlExpr>(e);
-            auto eval_expr = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->expr(), assignments, model_completion));
-            auto eval_val = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->val(), assignments, model_completion));
-            return exprBuilder.mk_shl(eval_expr, eval_val);
+            auto e_ = std::static_pointer_cast<const ShlExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->expr(), assignments, model_completion, cache));
+            auto eval_val =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->val(), assignments, model_completion, cache));
+            res = exprBuilder.mk_shl(eval_expr, eval_val);
+            break;
         }
         case Expr::Kind::LSHR: {
-            auto e_        = std::static_pointer_cast<const LShrExpr>(e);
-            auto eval_expr = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->expr(), assignments, model_completion));
-            auto eval_val = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->val(), assignments, model_completion));
-            return exprBuilder.mk_lshr(eval_expr, eval_val);
+            auto e_ = std::static_pointer_cast<const LShrExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->expr(), assignments, model_completion, cache));
+            auto eval_val =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->val(), assignments, model_completion, cache));
+            res = exprBuilder.mk_lshr(eval_expr, eval_val);
+            break;
         }
         case Expr::Kind::ASHR: {
-            auto e_        = std::static_pointer_cast<const AShrExpr>(e);
-            auto eval_expr = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->expr(), assignments, model_completion));
-            auto eval_val = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->val(), assignments, model_completion));
-            return exprBuilder.mk_ashr(eval_expr, eval_val);
+            auto e_ = std::static_pointer_cast<const AShrExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->expr(), assignments, model_completion, cache));
+            auto eval_val =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->val(), assignments, model_completion, cache));
+            res = exprBuilder.mk_ashr(eval_expr, eval_val);
+            break;
         }
         case Expr::Kind::NEG: {
-            auto e_        = std::static_pointer_cast<const NegExpr>(e);
-            auto eval_expr = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->expr(), assignments, model_completion));
-            return exprBuilder.mk_neg(eval_expr);
+            auto e_ = std::static_pointer_cast<const NegExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->expr(), assignments, model_completion, cache));
+            res = exprBuilder.mk_neg(eval_expr);
+            break;
         }
         case Expr::Kind::AND: {
-            auto e_        = std::static_pointer_cast<const AndExpr>(e);
-            auto eval_expr = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->els().at(0), assignments, model_completion));
+            auto e_ = std::static_pointer_cast<const AndExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->els().at(0), assignments, model_completion, cache));
             for (uint32_t i = 1; i < e_->els().size(); ++i)
                 eval_expr = exprBuilder.mk_and(
-                    eval_expr,
-                    std::static_pointer_cast<const BVExpr>(evaluate(
-                        e_->els().at(i), assignments, model_completion)));
-            return eval_expr;
+                    eval_expr, std::static_pointer_cast<const BVExpr>(
+                                   evaluate_inner(e_->els().at(i), assignments,
+                                                  model_completion, cache)));
+            res = eval_expr;
+            break;
         }
         case Expr::Kind::OR: {
-            auto e_        = std::static_pointer_cast<const OrExpr>(e);
-            auto eval_expr = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->els().at(0), assignments, model_completion));
+            auto e_ = std::static_pointer_cast<const OrExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->els().at(0), assignments, model_completion, cache));
             for (uint32_t i = 1; i < e_->els().size(); ++i)
                 eval_expr = exprBuilder.mk_or(
-                    eval_expr,
-                    std::static_pointer_cast<const BVExpr>(evaluate(
-                        e_->els().at(i), assignments, model_completion)));
-            return eval_expr;
+                    eval_expr, std::static_pointer_cast<const BVExpr>(
+                                   evaluate_inner(e_->els().at(i), assignments,
+                                                  model_completion, cache)));
+            res = eval_expr;
+            break;
         }
         case Expr::Kind::XOR: {
-            auto e_        = std::static_pointer_cast<const XorExpr>(e);
-            auto eval_expr = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->els().at(0), assignments, model_completion));
+            auto e_ = std::static_pointer_cast<const XorExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->els().at(0), assignments, model_completion, cache));
             for (uint32_t i = 1; i < e_->els().size(); ++i)
                 eval_expr = exprBuilder.mk_xor(
-                    eval_expr,
-                    std::static_pointer_cast<const BVExpr>(evaluate(
-                        e_->els().at(i), assignments, model_completion)));
-            return eval_expr;
+                    eval_expr, std::static_pointer_cast<const BVExpr>(
+                                   evaluate_inner(e_->els().at(i), assignments,
+                                                  model_completion, cache)));
+            res = eval_expr;
+            break;
         }
         case Expr::Kind::ADD: {
-            auto e_        = std::static_pointer_cast<const AddExpr>(e);
-            auto eval_expr = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->addends().at(0), assignments, model_completion));
+            auto e_ = std::static_pointer_cast<const AddExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->addends().at(0), assignments, model_completion, cache));
             for (uint32_t i = 1; i < e_->addends().size(); ++i)
                 eval_expr = exprBuilder.mk_add(
                     eval_expr,
-                    std::static_pointer_cast<const BVExpr>(evaluate(
-                        e_->addends().at(i), assignments, model_completion)));
-            return eval_expr;
+                    std::static_pointer_cast<const BVExpr>(
+                        evaluate_inner(e_->addends().at(i), assignments,
+                                       model_completion, cache)));
+            res = eval_expr;
+            break;
         }
         case Expr::Kind::NOT: {
-            auto e_        = std::static_pointer_cast<const NotExpr>(e);
-            auto eval_expr = std::static_pointer_cast<const BoolExpr>(
-                evaluate(e_->expr(), assignments, model_completion));
-            return exprBuilder.mk_not(eval_expr);
+            auto e_ = std::static_pointer_cast<const NotExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const BoolExpr>(evaluate_inner(
+                    e_->expr(), assignments, model_completion, cache));
+            res = exprBuilder.mk_not(eval_expr);
+            break;
         }
         case Expr::Kind::ULT: {
-            auto e_       = std::static_pointer_cast<const UltExpr>(e);
-            auto eval_lhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->lhs(), assignments, model_completion));
-            auto eval_rhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->rhs(), assignments, model_completion));
-            return exprBuilder.mk_ult(eval_lhs, eval_rhs);
+            auto e_ = std::static_pointer_cast<const UltExpr>(e);
+            auto eval_lhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->lhs(), assignments, model_completion, cache));
+            auto eval_rhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->rhs(), assignments, model_completion, cache));
+            res = exprBuilder.mk_ult(eval_lhs, eval_rhs);
+            break;
         }
         case Expr::Kind::ULE: {
-            auto e_       = std::static_pointer_cast<const UleExpr>(e);
-            auto eval_lhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->lhs(), assignments, model_completion));
-            auto eval_rhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->rhs(), assignments, model_completion));
-            return exprBuilder.mk_ule(eval_lhs, eval_rhs);
+            auto e_ = std::static_pointer_cast<const UleExpr>(e);
+            auto eval_lhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->lhs(), assignments, model_completion, cache));
+            auto eval_rhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->rhs(), assignments, model_completion, cache));
+            res = exprBuilder.mk_ule(eval_lhs, eval_rhs);
+            break;
         }
         case Expr::Kind::UGT: {
-            auto e_       = std::static_pointer_cast<const UgtExpr>(e);
-            auto eval_lhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->lhs(), assignments, model_completion));
-            auto eval_rhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->rhs(), assignments, model_completion));
-            return exprBuilder.mk_ugt(eval_lhs, eval_rhs);
+            auto e_ = std::static_pointer_cast<const UgtExpr>(e);
+            auto eval_lhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->lhs(), assignments, model_completion, cache));
+            auto eval_rhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->rhs(), assignments, model_completion, cache));
+            res = exprBuilder.mk_ugt(eval_lhs, eval_rhs);
+            break;
         }
         case Expr::Kind::UGE: {
-            auto e_       = std::static_pointer_cast<const UgeExpr>(e);
-            auto eval_lhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->lhs(), assignments, model_completion));
-            auto eval_rhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->rhs(), assignments, model_completion));
-            return exprBuilder.mk_uge(eval_lhs, eval_rhs);
+            auto e_ = std::static_pointer_cast<const UgeExpr>(e);
+            auto eval_lhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->lhs(), assignments, model_completion, cache));
+            auto eval_rhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->rhs(), assignments, model_completion, cache));
+            res = exprBuilder.mk_uge(eval_lhs, eval_rhs);
+            break;
         }
         case Expr::Kind::SLT: {
-            auto e_       = std::static_pointer_cast<const SltExpr>(e);
-            auto eval_lhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->lhs(), assignments, model_completion));
-            auto eval_rhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->rhs(), assignments, model_completion));
-            return exprBuilder.mk_slt(eval_lhs, eval_rhs);
+            auto e_ = std::static_pointer_cast<const SltExpr>(e);
+            auto eval_lhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->lhs(), assignments, model_completion, cache));
+            auto eval_rhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->rhs(), assignments, model_completion, cache));
+            res = exprBuilder.mk_slt(eval_lhs, eval_rhs);
+            break;
         }
         case Expr::Kind::SLE: {
-            auto e_       = std::static_pointer_cast<const SleExpr>(e);
-            auto eval_lhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->lhs(), assignments, model_completion));
-            auto eval_rhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->rhs(), assignments, model_completion));
-            return exprBuilder.mk_sle(eval_lhs, eval_rhs);
+            auto e_ = std::static_pointer_cast<const SleExpr>(e);
+            auto eval_lhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->lhs(), assignments, model_completion, cache));
+            auto eval_rhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->rhs(), assignments, model_completion, cache));
+            res = exprBuilder.mk_sle(eval_lhs, eval_rhs);
+            break;
         }
         case Expr::Kind::SGT: {
-            auto e_       = std::static_pointer_cast<const SgtExpr>(e);
-            auto eval_lhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->lhs(), assignments, model_completion));
-            auto eval_rhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->rhs(), assignments, model_completion));
-            return exprBuilder.mk_sgt(eval_lhs, eval_rhs);
+            auto e_ = std::static_pointer_cast<const SgtExpr>(e);
+            auto eval_lhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->lhs(), assignments, model_completion, cache));
+            auto eval_rhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->rhs(), assignments, model_completion, cache));
+            res = exprBuilder.mk_sgt(eval_lhs, eval_rhs);
+            break;
         }
         case Expr::Kind::SGE: {
-            auto e_       = std::static_pointer_cast<const SgeExpr>(e);
-            auto eval_lhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->lhs(), assignments, model_completion));
-            auto eval_rhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->rhs(), assignments, model_completion));
-            return exprBuilder.mk_sge(eval_lhs, eval_rhs);
+            auto e_ = std::static_pointer_cast<const SgeExpr>(e);
+            auto eval_lhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->lhs(), assignments, model_completion, cache));
+            auto eval_rhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->rhs(), assignments, model_completion, cache));
+            res = exprBuilder.mk_sge(eval_lhs, eval_rhs);
+            break;
         }
         case Expr::Kind::EQ: {
-            auto e_       = std::static_pointer_cast<const EqExpr>(e);
-            auto eval_lhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->lhs(), assignments, model_completion));
-            auto eval_rhs = std::static_pointer_cast<const BVExpr>(
-                evaluate(e_->rhs(), assignments, model_completion));
-            return exprBuilder.mk_eq(eval_lhs, eval_rhs);
+            auto e_ = std::static_pointer_cast<const EqExpr>(e);
+            auto eval_lhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->lhs(), assignments, model_completion, cache));
+            auto eval_rhs =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->rhs(), assignments, model_completion, cache));
+            res = exprBuilder.mk_eq(eval_lhs, eval_rhs);
+            break;
         }
         case Expr::Kind::BOOL_AND: {
-            auto e_        = std::static_pointer_cast<const AddExpr>(e);
-            auto eval_expr = std::static_pointer_cast<const BoolExpr>(
-                evaluate(e_->addends().at(0), assignments, model_completion));
-            for (uint32_t i = 1; i < e_->addends().size(); ++i)
+            auto e_ = std::static_pointer_cast<const BoolAndExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const BoolExpr>(evaluate_inner(
+                    e_->exprs().at(0), assignments, model_completion, cache));
+            for (uint32_t i = 1; i < e_->exprs().size(); ++i)
                 eval_expr = exprBuilder.mk_bool_and(
                     eval_expr,
-                    std::static_pointer_cast<const BoolExpr>(evaluate(
-                        e_->addends().at(i), assignments, model_completion)));
-            return eval_expr;
+                    std::static_pointer_cast<const BoolExpr>(
+                        evaluate_inner(e_->exprs().at(i), assignments,
+                                       model_completion, cache)));
+            res = eval_expr;
+            break;
+        }
+        case Expr::Kind::BOOL_OR: {
+            auto e_ = std::static_pointer_cast<const BoolOrExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const BoolExpr>(evaluate_inner(
+                    e_->exprs().at(0), assignments, model_completion, cache));
+            for (uint32_t i = 1; i < e_->exprs().size(); ++i)
+                eval_expr = exprBuilder.mk_bool_or(
+                    eval_expr,
+                    std::static_pointer_cast<const BoolExpr>(
+                        evaluate_inner(e_->exprs().at(i), assignments,
+                                       model_completion, cache)));
+            res = eval_expr;
+            break;
         }
         default:
-            break;
+            err("expr::evaluate_inner")
+                << "unexpected kind " << e->kind() << std::endl;
+            exit_fail();
     }
 
-    err("expr::evaluate") << "unexpected kind " << e->kind() << std::endl;
-    exit_fail();
+    cache[(uint64_t)e.get()] = res;
+    return res;
+}
+
+ExprPtr evaluate(ExprPtr e, const std::map<uint32_t, BVConst>& assignments,
+                 bool model_completion)
+{
+    std::map<uint64_t, ExprPtr> cache;
+    auto res = evaluate_inner(e, assignments, model_completion, cache);
+    return res;
 }
 
 } // namespace naaz::expr
