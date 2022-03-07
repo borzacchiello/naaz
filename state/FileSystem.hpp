@@ -30,6 +30,7 @@ class FileSystem
 
     // other
     std::unique_ptr<FileSystem> clone() const;
+    std::vector<File*>          files();
 };
 
 }; // namespace naaz::state

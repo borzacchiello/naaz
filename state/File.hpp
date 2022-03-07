@@ -22,10 +22,12 @@ class File
 
     void            seek(uint64_t off);
     expr::BVExprPtr read(size_t size);
+    expr::BVExprPtr read_all();
     void            write(expr::BVExprPtr data);
 
-    size_t size() const { return m_size; }
-    int    fd() const { return m_descriptor; }
+    size_t             size() const { return m_size; }
+    int                fd() const { return m_descriptor; }
+    const std::string& name() const { return m_filename; }
 
     std::unique_ptr<File> clone() const;
 };

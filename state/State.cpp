@@ -1,5 +1,8 @@
 #include "State.hpp"
 
+#include <algorithm>
+#include <fstream>
+
 #include "../models/Linker.hpp"
 
 namespace naaz::state
@@ -54,6 +57,26 @@ void State::write(uint64_t addr, expr::BVExprPtr data)
     m_ram->write(addr, data, arch().endianess());
 }
 
+expr::BVExprPtr State::read_buf(expr::BVExprPtr addr, size_t len)
+{
+    return m_ram->read(addr, len, Endianess::BIG);
+}
+
+expr::BVExprPtr State::read_buf(uint64_t addr, size_t len)
+{
+    return m_ram->read(addr, len, Endianess::BIG);
+}
+
+void State::write_buf(expr::BVExprPtr addr, expr::BVExprPtr data)
+{
+    m_ram->write(addr, data, Endianess::BIG);
+}
+
+void State::write_buf(uint64_t addr, expr::BVExprPtr data)
+{
+    m_ram->write(addr, data, Endianess::BIG);
+}
+
 expr::BVExprPtr State::reg_read(const std::string& name)
 {
     csleigh_Varnode reg_varnode = m_lifter->reg(name);
@@ -99,5 +122,24 @@ const models::Model* State::get_linked_model(uint64_t addr)
 }
 
 expr::BoolExprPtr State::pi() const { return m_solver.manager().pi(); }
+
+void State::dump_fs(std::filesystem::path out_dir)
+{
+    for (File* f : m_fs->files()) {
+        if (f->size() == 0)
+            continue;
+
+        std::string filename(f->name());
+        std::replace(filename.begin(), filename.end(), '/', '_');
+
+        std::filesystem::path out_file = out_dir / (filename + ".bin");
+        auto fout = std::fstream(out_file, std::ios::out | std::ios::binary);
+
+        auto data_expr = f->read_all();
+        auto data      = m_solver.evaluate(data_expr).as_data();
+        fout.write((const char*)data.data(), data.size());
+        fout.close();
+    }
+}
 
 } // namespace naaz::state

@@ -33,6 +33,11 @@ expr::BVExprPtr File::read(size_t size)
     return res;
 }
 
+expr::BVExprPtr File::read_all()
+{
+    return m_content->read(0, m_size, Endianess::BIG);
+}
+
 void File::write(expr::BVExprPtr data)
 {
     m_content->write(m_off, data, Endianess::BIG);

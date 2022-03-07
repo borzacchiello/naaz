@@ -2,6 +2,7 @@
 
 #include <set>
 #include <memory>
+#include <filesystem>
 
 #include "MapMemory.hpp"
 #include "FileSystem.hpp"
@@ -50,6 +51,11 @@ class State
     void            write(expr::BVExprPtr addr, expr::BVExprPtr data);
     void            write(uint64_t addr, expr::BVExprPtr data);
 
+    expr::BVExprPtr read_buf(expr::BVExprPtr addr, size_t len);
+    expr::BVExprPtr read_buf(uint64_t addr, size_t len);
+    void            write_buf(expr::BVExprPtr addr, expr::BVExprPtr data);
+    void            write_buf(uint64_t addr, expr::BVExprPtr data);
+
     expr::BVExprPtr reg_read(const std::string& name);
     expr::BVExprPtr reg_read(uint64_t offset, size_t size);
     void            reg_write(const std::string& name, expr::BVExprPtr data);
@@ -63,6 +69,7 @@ class State
     uint64_t             get_exit_address() const { return m_exit_address; }
 
     FileSystem& fs() { return *m_fs; }
+    void        dump_fs(std::filesystem::path out_dir);
 
     Solver&           solver() { return m_solver; }
     expr::BoolExprPtr pi() const;

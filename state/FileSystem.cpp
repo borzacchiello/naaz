@@ -76,4 +76,13 @@ std::unique_ptr<FileSystem> FileSystem::clone() const
     return std::unique_ptr<FileSystem>(new FileSystem(*this));
 }
 
+std::vector<File*> FileSystem::files()
+{
+    std::vector<File*> res;
+    for (auto const& [fd, file] : m_files) {
+        res.push_back(file.get());
+    }
+    return res;
+}
+
 } // namespace naaz::state

@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdint>
+#include <filesystem>
 
 #include "../loader/BFDLoader.hpp"
 #include "../expr/ExprBuilder.hpp"
@@ -28,7 +29,16 @@ int main(int argc, char const* argv[])
     executor::DFSExecutorManager em(entry_state);
 
     std::optional<state::StatePtr> s = em.explore(find_addr);
+    if (s.has_value()) {
+        std::string out_dir = "/tmp/output";
+        fprintf(stdout, "state found! dumping proof to %s\n", out_dir.c_str());
+        if (!std::filesystem::is_directory(out_dir) ||
+            !std::filesystem::exists(out_dir)) {
+            std::filesystem::create_directory(out_dir);
+        }
+        s.value()->dump_fs(out_dir);
+    } else
+        fprintf(stdout, "state not found\n");
 
-    fprintf(stdout, "found state? %d\n", s.has_value());
     return 0;
 }
