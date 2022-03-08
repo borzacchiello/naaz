@@ -4,32 +4,29 @@
 namespace naaz::state
 {
 
-File::File(const std::string& filename, int fd)
-    : m_filename(filename), m_descriptor(fd), m_off(0), m_size(0)
+File::File(const std::string& filename) : m_filename(filename), m_size(0)
 {
     m_content = std::unique_ptr<MapMemory>(new MapMemory(filename));
 }
 
 File::File(const File& other)
-    : m_filename(other.m_filename), m_descriptor(other.m_descriptor),
-      m_off(other.m_off), m_size(other.m_size)
+    : m_filename(other.m_filename), m_size(other.m_size)
 {
     m_content = other.m_content->clone();
 }
 
-void File::seek(uint64_t off)
+void File::enlarge(uint64_t off)
 {
-    m_off = off;
-    if (m_off > m_size)
-        m_size = m_off;
+    if (off > m_size)
+        m_size = off;
 }
 
-expr::BVExprPtr File::read(size_t size)
+expr::BVExprPtr File::read(uint64_t off, size_t size)
 {
-    auto res = m_content->read(m_off, size, Endianess::BIG);
-    m_off += size;
-    if (m_off > m_size)
-        m_size = m_off;
+    auto res = m_content->read(off, size, Endianess::BIG);
+    off += size;
+    if (off > m_size)
+        m_size = off;
     return res;
 }
 
@@ -38,17 +35,38 @@ expr::BVExprPtr File::read_all()
     return m_content->read(0, m_size, Endianess::BIG);
 }
 
-void File::write(expr::BVExprPtr data)
+void File::write(uint64_t off, expr::BVExprPtr data)
 {
-    m_content->write(m_off, data, Endianess::BIG);
-    m_off += data->size() / 8UL;
-    if (m_off > m_size)
-        m_size = m_off;
+    m_content->write(off, data, Endianess::BIG);
+    off += data->size() / 8UL;
+    if (off > m_size)
+        m_size = off;
 }
 
 std::unique_ptr<File> File::clone() const
 {
     return std::unique_ptr<File>(new File(*this));
+}
+
+FileHandle File::gen_handle(int fd) { return FileHandle(*this, fd); }
+
+void FileHandle::seek(uint64_t off)
+{
+    m_off = off;
+    m_file.enlarge(off);
+}
+
+expr::BVExprPtr FileHandle::read(size_t size)
+{
+    auto res = m_file.read(m_off, size);
+    m_off += size;
+    return res;
+}
+
+void FileHandle::write(expr::BVExprPtr data)
+{
+    m_file.write(m_off, data);
+    m_off += data->size() / 8UL;
 }
 
 } // namespace naaz::state

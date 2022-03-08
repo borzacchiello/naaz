@@ -9,8 +9,6 @@
 namespace naaz::models::libc
 {
 
-static uint64_t read_idx = 0;
-
 void read::exec(state::StatePtr s, executor::ExecutorResult& o_successors) const
 {
     auto fd   = s->get_int_param(m_call_conv, 0);
