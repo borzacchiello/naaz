@@ -39,7 +39,7 @@ BVExprPtr MapMemory::read_byte(uint64_t addr)
         switch (m_uninit_behavior) {
             case UninitReadBehavior::RET_SYM: {
                 SymExprPtr sym = ExprBuilder::The().mk_sym(
-                    string_format("%s_0x%lx", m_name.c_str(), addr), 8);
+                    string_format("%s+0x%lx", m_name.c_str(), addr), 8);
                 write_byte(addr, sym);
                 return sym;
             }
@@ -68,7 +68,7 @@ BVExprPtr MapMemory::read(uint64_t addr, size_t len, Endianess end)
 
     BVExprPtr res = read_byte(addr);
     for (size_t i = 1; i < len; ++i) {
-        if (end == Endianess::LITTLE)
+        if (end == Endianess::BIG)
             res = ExprBuilder::The().mk_concat(res, read_byte(addr + i));
         else
             res = ExprBuilder::The().mk_concat(read_byte(addr + i), res);
@@ -114,7 +114,7 @@ void MapMemory::write(uint64_t addr, BVExprPtr value, Endianess end)
     len = len / 8UL;
     for (size_t i = 0; i < len; ++i) {
         BVExprPtr e =
-            end == Endianess::LITTLE
+            end == Endianess::BIG
                 ? ExprBuilder::The().mk_extract(value, (len - i - 1) * 8 + 7,
                                                 (len - i - 1) * 8)
                 : ExprBuilder::The().mk_extract(value, i * 8 + 7, i * 8);

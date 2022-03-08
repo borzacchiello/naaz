@@ -35,7 +35,8 @@ void read::exec(state::StatePtr s, executor::ExecutorResult& o_successors) const
     size_t size_ =
         std::static_pointer_cast<const expr::ConstExpr>(size)->val().as_u64();
 
-    s->write_buf(buf_, s->fs().read(fd_, size_));
+    auto data = s->fs().read(fd_, size_);
+    s->write_buf(buf_, data);
     s->arch().handle_return(s, o_successors);
 }
 

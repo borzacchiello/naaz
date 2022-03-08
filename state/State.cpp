@@ -85,7 +85,7 @@ expr::BVExprPtr State::reg_read(const std::string& name)
 
 expr::BVExprPtr State::reg_read(uint64_t offset, size_t size)
 {
-    return m_regs->read(offset, size, Endianess::BIG);
+    return m_regs->read(offset, size, Endianess::LITTLE);
 }
 
 void State::reg_write(const std::string& name, expr::BVExprPtr data)
@@ -96,7 +96,7 @@ void State::reg_write(const std::string& name, expr::BVExprPtr data)
 
 void State::reg_write(uint64_t offset, expr::BVExprPtr data)
 {
-    m_regs->write(offset, data, Endianess::BIG);
+    m_regs->write(offset, data, Endianess::LITTLE);
 }
 
 expr::BVExprPtr State::get_int_param(CallConv cv, uint64_t i)

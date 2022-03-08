@@ -198,6 +198,15 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                                     op.output->size * 8));
             break;
         }
+        case csleigh_CPUI_INT_SEXT: {
+            assert(op.output != nullptr && "INT_SEXT: output is NULL");
+            assert(op.inputs_count == 1 && "INT_SEXT: inputs_count != 1");
+            write_to_varnode(
+                ctx, *op.output,
+                exprBuilder.mk_sext(resolve_varnode(ctx, op.inputs[0]),
+                                    op.output->size * 8));
+            break;
+        }
         case csleigh_CPUI_INT_XOR: {
             assert(op.output != nullptr && "INT_XOR: output is NULL");
             assert(op.inputs_count == 2 && "INT_XOR: inputs_count != 2");
@@ -239,6 +248,15 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             assert(op.inputs_count == 2 && "INT_SUB: inputs_count != 2");
             expr::BVExprPtr expr =
                 exprBuilder.mk_sub(resolve_varnode(ctx, op.inputs[0]),
+                                   resolve_varnode(ctx, op.inputs[1]));
+            write_to_varnode(ctx, *op.output, expr);
+            break;
+        }
+        case csleigh_CPUI_INT_MULT: {
+            assert(op.output != nullptr && "INT_MULT: output is NULL");
+            assert(op.inputs_count == 2 && "INT_MULT: inputs_count != 2");
+            expr::BVExprPtr expr =
+                exprBuilder.mk_mul(resolve_varnode(ctx, op.inputs[0]),
                                    resolve_varnode(ctx, op.inputs[1]));
             write_to_varnode(ctx, *op.output, expr);
             break;

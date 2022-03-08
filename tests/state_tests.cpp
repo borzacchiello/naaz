@@ -51,6 +51,20 @@ TEST_CASE("State Read/Write Mem 2", "[state]")
     s.write(0xaabbcc, sym);
     ExprPtr expr = s.read(0xaabbcc, 1);
 
+    REQUIRE(expr == exprBuilder.mk_extract(sym, 7, 0));
+}
+
+TEST_CASE("State Read/Write Mem 3", "[state]")
+{
+    auto lifter = get_x86_64_lifter();
+    auto as     = std::make_shared<AddressSpace>();
+
+    State s(as, lifter, 0);
+
+    BVExprPtr sym = exprBuilder.mk_sym("sym", 32);
+    s.write_buf(0xaabbcc, sym);
+    ExprPtr expr = s.read(0xaabbcc, 1);
+
     REQUIRE(expr == exprBuilder.mk_extract(sym, 31, 24));
 }
 
