@@ -432,6 +432,193 @@ BVExprPtr ExprBuilder::mk_add(BVExprPtr lhs, BVExprPtr rhs)
     return std::static_pointer_cast<const BVExpr>(get_or_create(e));
 }
 
+BVExprPtr ExprBuilder::mk_mul(BVExprPtr lhs, BVExprPtr rhs)
+{
+    check_size_or_fail("mul", lhs, rhs);
+
+    std::vector<BVExprPtr> els;
+
+    // flatten args
+    if (lhs->kind() == Expr::Kind::MUL) {
+        auto lhs_ = std::static_pointer_cast<const MulExpr>(lhs);
+        for (auto child : lhs_->els())
+            els.push_back(child);
+    } else {
+        els.push_back(lhs);
+    }
+
+    if (rhs->kind() == Expr::Kind::MUL) {
+        auto rhs_ = std::static_pointer_cast<const MulExpr>(rhs);
+        for (auto child : rhs_->els())
+            els.push_back(child);
+    } else {
+        els.push_back(rhs);
+    }
+
+    std::vector<BVExprPtr> children;
+
+    // constant propagation
+    BVConst concrete_val(1UL, els.at(0)->size());
+    for (auto addend : els) {
+        if (addend->kind() == Expr::Kind::CONST) {
+            auto addend_ = std::static_pointer_cast<const ConstExpr>(addend);
+            concrete_val.mul(addend_->val());
+        } else {
+            children.push_back(addend);
+        }
+    }
+
+    // final checks
+    if (children.size() == 0)
+        return mk_const(concrete_val);
+
+    if (!concrete_val.is_zero())
+        children.push_back(mk_const(concrete_val));
+
+    if (children.size() == 1)
+        return children.back();
+
+    // sort children by address (commutative! We are trying to reduce the
+    // number of equivalent expressions)
+    std::sort(children.begin(), children.end());
+
+    MulExpr e(children);
+    return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+}
+
+BVExprPtr ExprBuilder::mk_sdiv(BVExprPtr lhs, BVExprPtr rhs)
+{
+    check_size_or_fail("sdiv", lhs, rhs);
+
+    // div zero
+    if (rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        if (rhs_->val().is_zero()) {
+            // we are consistent with Z3...
+            auto zero = mk_const(0UL, lhs->size());
+            auto min1 = mk_const(BVConst("-1", lhs->size()));
+            return mk_ite(mk_sge(lhs, zero), min1, zero);
+        }
+    }
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        BVConst      concrete_val = lhs_->val();
+        concrete_val.sdiv(rhs_->val());
+        ConstExpr e(concrete_val);
+        return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+    }
+
+    // div with myself
+    if (lhs == rhs)
+        return mk_const(1, lhs->size());
+
+    SDivExpr e(lhs, rhs);
+    return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+}
+
+BVExprPtr ExprBuilder::mk_udiv(BVExprPtr lhs, BVExprPtr rhs)
+{
+    check_size_or_fail("udiv", lhs, rhs);
+
+    // div zero
+    if (rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        if (rhs_->val().is_zero()) {
+            // we are consistent with Z3...
+            auto min1 = mk_const(BVConst("-1", lhs->size()));
+            return min1;
+        }
+    }
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        BVConst      concrete_val = lhs_->val();
+        concrete_val.udiv(rhs_->val());
+        ConstExpr e(concrete_val);
+        return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+    }
+
+    // div with myself
+    if (lhs == rhs)
+        return mk_const(1, lhs->size());
+
+    UDivExpr e(lhs, rhs);
+    return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+}
+
+BVExprPtr ExprBuilder::mk_srem(BVExprPtr lhs, BVExprPtr rhs)
+{
+    check_size_or_fail("srem", lhs, rhs);
+
+    // rem zero
+    if (rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        if (rhs_->val().is_zero()) {
+            // we are consistent with Z3...
+            return lhs;
+        }
+    }
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        BVConst      concrete_val = lhs_->val();
+        concrete_val.srem(rhs_->val());
+        ConstExpr e(concrete_val);
+        return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+    }
+
+    // rem with 1
+    if (rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        if (rhs_->val().is_one())
+            return lhs;
+    }
+
+    SRemExpr e(lhs, rhs);
+    return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+}
+
+BVExprPtr ExprBuilder::mk_urem(BVExprPtr lhs, BVExprPtr rhs)
+{
+    check_size_or_fail("urem", lhs, rhs);
+
+    // rem zero
+    if (rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        if (rhs_->val().is_zero()) {
+            // we are consistent with Z3...
+            return lhs;
+        }
+    }
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::CONST && rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        BVConst      concrete_val = lhs_->val();
+        concrete_val.urem(rhs_->val());
+        ConstExpr e(concrete_val);
+        return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+    }
+
+    // rem with 1
+    if (rhs->kind() == Expr::Kind::CONST) {
+        ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        if (rhs_->val().is_one())
+            return lhs;
+    }
+
+    URemExpr e(lhs, rhs);
+    return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+}
+
 BVExprPtr ExprBuilder::mk_and(BVExprPtr lhs, BVExprPtr rhs)
 {
     check_size_or_fail("and", lhs, rhs);

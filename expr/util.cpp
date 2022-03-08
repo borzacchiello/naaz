@@ -172,6 +172,56 @@ static ExprPtr evaluate_inner(ExprPtr                            e,
             res = eval_expr;
             break;
         }
+        case Expr::Kind::MUL: {
+            auto e_ = std::static_pointer_cast<const AddExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->addends().at(0), assignments, model_completion, cache));
+            for (uint32_t i = 1; i < e_->addends().size(); ++i)
+                eval_expr = exprBuilder.mk_mul(
+                    eval_expr,
+                    std::static_pointer_cast<const BVExpr>(
+                        evaluate_inner(e_->addends().at(i), assignments,
+                                       model_completion, cache)));
+            res = eval_expr;
+            break;
+        }
+        case Expr::Kind::SDIV: {
+            auto e_ = std::static_pointer_cast<const SDivExpr>(e);
+            res     = exprBuilder.mk_sdiv(
+                    std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                        e_->lhs(), assignments, model_completion, cache)),
+                    std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                        e_->rhs(), assignments, model_completion, cache)));
+            break;
+        }
+        case Expr::Kind::UDIV: {
+            auto e_ = std::static_pointer_cast<const SDivExpr>(e);
+            res     = exprBuilder.mk_udiv(
+                    std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                        e_->lhs(), assignments, model_completion, cache)),
+                    std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                        e_->rhs(), assignments, model_completion, cache)));
+            break;
+        }
+        case Expr::Kind::SREM: {
+            auto e_ = std::static_pointer_cast<const SDivExpr>(e);
+            res     = exprBuilder.mk_srem(
+                    std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                        e_->lhs(), assignments, model_completion, cache)),
+                    std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                        e_->rhs(), assignments, model_completion, cache)));
+            break;
+        }
+        case Expr::Kind::UREM: {
+            auto e_ = std::static_pointer_cast<const SDivExpr>(e);
+            res     = exprBuilder.mk_urem(
+                    std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                        e_->lhs(), assignments, model_completion, cache)),
+                    std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                        e_->rhs(), assignments, model_completion, cache)));
+            break;
+        }
         case Expr::Kind::NOT: {
             auto e_ = std::static_pointer_cast<const NotExpr>(e);
             auto eval_expr =

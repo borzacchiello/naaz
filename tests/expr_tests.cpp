@@ -65,6 +65,46 @@ TEST_CASE("AddExpr 2", "[expr]")
     REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().is_zero());
 }
 
+TEST_CASE("MulExpr 1", "[expr]")
+{
+    BVExprPtr e = exprBuilder.mk_const(21, 32);
+    e           = exprBuilder.mk_mul(exprBuilder.mk_const(2, 32), e);
+
+    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().as_u64() == 42);
+}
+
+TEST_CASE("MulExpr 2", "[expr]")
+{
+    BVExprPtr s = exprBuilder.mk_sym("sym", 32);
+    BVExprPtr e = exprBuilder.mk_mul(exprBuilder.mk_const(2, 32), s);
+
+    REQUIRE(e->to_string() == "(sym * 0x2)");
+}
+
+TEST_CASE("SDivExpr 1", "[expr]")
+{
+    BVExprPtr e = exprBuilder.mk_const(21, 32);
+    e           = exprBuilder.mk_sdiv(e, exprBuilder.mk_const(2, 32));
+
+    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().as_u64() == 10);
+}
+
+TEST_CASE("SDivExpr 2", "[expr]")
+{
+    BVExprPtr s = exprBuilder.mk_sym("sym", 32);
+    BVExprPtr e = exprBuilder.mk_sdiv(s, exprBuilder.mk_const(2, 32));
+
+    REQUIRE(e->to_string() == "(sym s/ 0x2)");
+}
+
+TEST_CASE("SDivExpr 3", "[expr]")
+{
+    BVExprPtr s = exprBuilder.mk_sym("sym", 32);
+    BVExprPtr e = exprBuilder.mk_sdiv(s, s);
+
+    REQUIRE(std::static_pointer_cast<const ConstExpr>(e)->val().as_u64() == 1);
+}
+
 TEST_CASE("AddExpr 3", "[expr]")
 {
     BVExprPtr s1 = exprBuilder.mk_sym("sym1", 32);

@@ -467,6 +467,239 @@ z3::expr AddExpr::to_z3(z3::context& ctx) const
 }
 
 // ***************
+// * MulExpr
+// ***************
+
+uint64_t MulExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, (void*)&m_size, sizeof(m_size));
+    for (const auto& child : m_children) {
+        void* raw_child = (void*)child.get();
+        XXH64_update(&state, raw_child, sizeof(void*));
+    }
+    return XXH64_digest(&state);
+}
+
+bool MulExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const MulExpr>(other);
+    if (m_size != other_->m_size)
+        return false;
+    if (m_children.size() != other_->m_children.size())
+        return false;
+
+    for (uint64_t i = 0; i < m_children.size(); ++i)
+        if (m_children.at(i) != other_->m_children.at(i))
+            return false;
+    return true;
+}
+
+std::string MulExpr::to_string() const
+{
+    std::string res = "(";
+    res += m_children.at(0)->to_string();
+    for (uint64_t i = 1; i < m_children.size(); ++i) {
+        res += " * ";
+        res += m_children.at(i)->to_string();
+    }
+    res += ")";
+    return res;
+}
+
+z3::expr MulExpr::to_z3(z3::context& ctx) const
+{
+    z3::expr z3expr = m_children.at(0)->to_z3(ctx);
+    for (uint64_t i = 1; i < m_children.size(); ++i)
+        z3expr = z3expr * m_children.at(i)->to_z3(ctx);
+    return z3expr;
+}
+
+// ***************
+// * SDivExpr
+// ***************
+
+uint64_t SDivExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, (void*)&m_size, sizeof(m_size));
+    void* lhs_raw = (void*)m_lhs.get();
+    XXH64_update(&state, lhs_raw, sizeof(void*));
+    void* rhs_raw = (void*)m_rhs.get();
+    XXH64_update(&state, rhs_raw, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool SDivExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const SDivExpr>(other);
+    if (m_size != other_->m_size)
+        return false;
+    if (m_lhs != other_->m_lhs || m_rhs != other_->m_rhs)
+        return false;
+    return true;
+}
+
+std::string SDivExpr::to_string() const
+{
+    std::string res = "(";
+    res += m_lhs->to_string();
+    res += " s/ ";
+    res += m_rhs->to_string();
+    res += ")";
+    return res;
+}
+
+z3::expr SDivExpr::to_z3(z3::context& ctx) const
+{
+    z3::expr z3expr = m_lhs->to_z3(ctx) / m_rhs->to_z3(ctx);
+    return z3expr;
+}
+
+// ***************
+// * UDivExpr
+// ***************
+
+uint64_t UDivExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, (void*)&m_size, sizeof(m_size));
+    void* lhs_raw = (void*)m_lhs.get();
+    XXH64_update(&state, lhs_raw, sizeof(void*));
+    void* rhs_raw = (void*)m_rhs.get();
+    XXH64_update(&state, rhs_raw, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool UDivExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const UDivExpr>(other);
+    if (m_size != other_->m_size)
+        return false;
+    if (m_lhs != other_->m_lhs || m_rhs != other_->m_rhs)
+        return false;
+    return true;
+}
+
+std::string UDivExpr::to_string() const
+{
+    std::string res = "(";
+    res += m_lhs->to_string();
+    res += " u/ ";
+    res += m_rhs->to_string();
+    res += ")";
+    return res;
+}
+
+z3::expr UDivExpr::to_z3(z3::context& ctx) const
+{
+    z3::expr z3expr = z3::udiv(m_lhs->to_z3(ctx), m_rhs->to_z3(ctx));
+    return z3expr;
+}
+
+// ***************
+// * SRemExpr
+// ***************
+
+uint64_t SRemExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, (void*)&m_size, sizeof(m_size));
+    void* lhs_raw = (void*)m_lhs.get();
+    XXH64_update(&state, lhs_raw, sizeof(void*));
+    void* rhs_raw = (void*)m_rhs.get();
+    XXH64_update(&state, rhs_raw, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool SRemExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const SRemExpr>(other);
+    if (m_size != other_->m_size)
+        return false;
+    if (m_lhs != other_->m_lhs || m_rhs != other_->m_rhs)
+        return false;
+    return true;
+}
+
+std::string SRemExpr::to_string() const
+{
+    std::string res = "(";
+    res += m_lhs->to_string();
+    res += " s% ";
+    res += m_rhs->to_string();
+    res += ")";
+    return res;
+}
+
+z3::expr SRemExpr::to_z3(z3::context& ctx) const
+{
+    z3::expr z3expr = m_lhs->to_z3(ctx) % m_rhs->to_z3(ctx);
+    return z3expr;
+}
+
+// ***************
+// * URemExpr
+// ***************
+
+uint64_t URemExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, (void*)&m_size, sizeof(m_size));
+    void* lhs_raw = (void*)m_lhs.get();
+    XXH64_update(&state, lhs_raw, sizeof(void*));
+    void* rhs_raw = (void*)m_rhs.get();
+    XXH64_update(&state, rhs_raw, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool URemExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const URemExpr>(other);
+    if (m_size != other_->m_size)
+        return false;
+    if (m_lhs != other_->m_lhs || m_rhs != other_->m_rhs)
+        return false;
+    return true;
+}
+
+std::string URemExpr::to_string() const
+{
+    std::string res = "(";
+    res += m_lhs->to_string();
+    res += " u% ";
+    res += m_rhs->to_string();
+    res += ")";
+    return res;
+}
+
+z3::expr URemExpr::to_z3(z3::context& ctx) const
+{
+    z3::expr z3expr = z3::urem(m_lhs->to_z3(ctx), m_rhs->to_z3(ctx));
+    return z3expr;
+}
+
+// ***************
 // * AndExpr
 // ***************
 
