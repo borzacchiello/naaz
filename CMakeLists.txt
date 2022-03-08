@@ -2,6 +2,8 @@ cmake_minimum_required ( VERSION 3.18 )
 
 project ( NAAZ )
 
+option ( ASAN "Compile with asan (only for debug builds)" OFF )
+
 # libcsleigh
 include_directories ( ${CMAKE_SOURCE_DIR}/third_party/sleigh )
 link_directories ( ${CMAKE_SOURCE_DIR}/third_party/sleigh/build )
@@ -69,8 +71,10 @@ set_target_properties ( libnaaz_shared PROPERTIES OUTPUT_NAME naaz )
 target_link_libraries ( libnaaz_shared LINK_PUBLIC ${naaz_linked_libs} )
 target_link_libraries ( libnaaz_static LINK_PUBLIC ${naaz_linked_libs} )
 
-set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined" )
-set ( CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined" )
+if ( ASAN )
+    set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined" )
+    set ( CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined" )
+endif ()
 
 add_subdirectory ( tools )
 add_subdirectory ( tests )

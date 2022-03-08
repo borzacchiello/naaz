@@ -1,6 +1,7 @@
 #include "directory.hpp"
 
 #include "../../expr/Expr.hpp"
+#include "../../expr/ExprBuilder.hpp"
 #include "../../state/State.hpp"
 #include "../../util/ioutil.hpp"
 
@@ -9,15 +10,16 @@ namespace naaz::models::libc
 
 void exit::exec(state::StatePtr s, executor::ExecutorResult& o_successors) const
 {
-    auto retcode = s->get_int_param(m_call_conv, 0);
-    if (retcode->kind() != expr::Expr::Kind::CONST) {
-        err("exit") << "retcode is symbolic" << std::endl;
-        exit_fail();
-    }
+    auto retcode = expr::ExprBuilder::The().mk_extract(
+        s->get_int_param(m_call_conv, 0), 31, 0);
 
-    s->retcode = std::static_pointer_cast<const expr::ConstExpr>(retcode)
-                     ->val()
-                     .as_s64();
+    if (retcode->kind() != expr::Expr::Kind::CONST) {
+        s->retcode = 0;
+    } else {
+        s->retcode = std::static_pointer_cast<const expr::ConstExpr>(retcode)
+                         ->val()
+                         .as_s64();
+    }
     s->exited = true;
     o_successors.exited.push_back(s);
 }

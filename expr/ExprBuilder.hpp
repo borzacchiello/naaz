@@ -68,6 +68,7 @@ class ExprBuilder
     BoolExprPtr mk_eq(BVExprPtr lhs, BVExprPtr rhs);
     BoolExprPtr mk_neq(BVExprPtr lhs, BVExprPtr rhs);
 
+    BoolExprPtr mk_bool_and_no_simpl(std::set<BoolExprPtr> exprs);
     BoolExprPtr mk_bool_and(BoolExprPtr e1, BoolExprPtr e2);
     BoolExprPtr mk_bool_or(BoolExprPtr e1, BoolExprPtr e2);
 

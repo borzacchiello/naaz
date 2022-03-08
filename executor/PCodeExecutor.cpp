@@ -216,6 +216,15 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             write_to_varnode(ctx, *op.output, expr);
             break;
         }
+        case csleigh_CPUI_INT_OR: {
+            assert(op.output != nullptr && "INT_OR: output is NULL");
+            assert(op.inputs_count == 2 && "INT_OR: inputs_count != 2");
+            expr::BVExprPtr expr =
+                exprBuilder.mk_or(resolve_varnode(ctx, op.inputs[0]),
+                                  resolve_varnode(ctx, op.inputs[1]));
+            write_to_varnode(ctx, *op.output, expr);
+            break;
+        }
         case csleigh_CPUI_INT_ADD: {
             assert(op.output != nullptr && "INT_ADD: output is NULL");
             assert(op.inputs_count == 2 && "INT_ADD: inputs_count != 2");
@@ -363,6 +372,7 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 
             expr::BoolExprPtr cond =
                 exprBuilder.bv_to_bool(resolve_varnode(ctx, op.inputs[1]));
+            // std::cout << "cond: " << cond->to_string() << std::endl;
 
             state::StatePtr     other_state = ctx.state->clone();
             solver::CheckResult sat_cond = ctx.state->solver().check_sat(cond);

@@ -89,10 +89,9 @@ expr::BoolExprPtr ConstraintManager::pi(expr::ExprPtr expr) const
             constraints.insert(c);
     }
 
-    expr::BoolExprPtr q = exprBuilder.mk_true();
-    for (auto c : constraints)
-        q = exprBuilder.mk_bool_and(q, c);
-    return q;
+    // This is a potential hot function
+    // Use a faster version of mk_bool (no simpl. though!)
+    return exprBuilder.mk_bool_and_no_simpl(constraints);
 }
 
 expr::BoolExprPtr ConstraintManager::pi() const

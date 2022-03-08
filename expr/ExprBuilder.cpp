@@ -786,6 +786,12 @@ BoolExprPtr ExprBuilder::mk_neq(BVExprPtr lhs, BVExprPtr rhs)
     return mk_not(mk_eq(lhs, rhs));
 }
 
+BoolExprPtr ExprBuilder::mk_bool_and_no_simpl(std::set<BoolExprPtr> exprs)
+{
+    BoolAndExpr e(exprs);
+    return std::static_pointer_cast<const BoolExpr>(get_or_create(e));
+}
+
 BoolExprPtr ExprBuilder::mk_bool_and(BoolExprPtr e1, BoolExprPtr e2)
 {
     std::set<BoolExprPtr> exprs;
