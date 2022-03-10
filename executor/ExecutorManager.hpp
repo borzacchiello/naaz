@@ -60,6 +60,24 @@ template <class ExplorationPolicy> class ExecutorManager
         return explore(find_addrs, avoid_addrs);
     }
 
+    void gen_paths(void (*callback)(state::StatePtr))
+    {
+        // Generate states, and call the `callback` when a state exits
+        while (1) {
+            std::optional<state::StatePtr> s = m_exploration.get_next();
+            if (!s.has_value())
+                break;
+
+            ExecutorResult next_states =
+                m_executor.execute_basic_block(s.value());
+
+            for (auto s : next_states.exited)
+                callback(s);
+
+            m_exploration.add_actives(next_states.active);
+        }
+    }
+
     size_t num_states() const { return m_exploration.num_states(); }
 };
 

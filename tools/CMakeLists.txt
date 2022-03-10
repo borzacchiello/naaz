@@ -17,3 +17,8 @@ add_executable ( executor_demo
 executor_demo.cpp )
 
 target_link_libraries ( executor_demo LINK_PUBLIC libnaaz_shared )
+
+add_executable ( gen_path_demo
+gen_path_demo.cpp )
+
+target_link_libraries ( gen_path_demo LINK_PUBLIC libnaaz_shared )
