@@ -5,7 +5,7 @@
 #include "../loader/BFDLoader.hpp"
 #include "../expr/ExprBuilder.hpp"
 #include "../executor/ExecutorManager.hpp"
-#include "../executor/DFSExplorationTechnique.hpp"
+#include "../executor/RandDFSExplorationTechnique.hpp"
 
 using namespace naaz;
 
@@ -26,7 +26,7 @@ int main(int argc, char const* argv[])
     loader::BFDLoader loader(binpath);
     state::StatePtr   entry_state = loader.entry_state();
 
-    executor::DFSExecutorManager em(entry_state);
+    executor::RandDFSExecutorManager em(entry_state);
 
     std::optional<state::StatePtr> s = em.explore(find_addr);
     if (s.has_value()) {
