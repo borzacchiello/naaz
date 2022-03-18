@@ -107,8 +107,8 @@ expr::BVExprPtr State::get_int_param(CallConv cv, uint64_t i)
 void State::register_linked_function(uint64_t addr, const models::Model* m)
 {
     m_linked_functions->links[addr] = m;
-    if (m->name() == "exit")
-        m_exit_address = addr;
+    if (m->name() == "libc_start_main_exit_wrapper")
+        m_libc_start_main_exit_wrapper = addr;
 }
 
 bool State::is_linked_function(uint64_t addr)
@@ -125,6 +125,19 @@ expr::BoolExprPtr State::pi() const { return m_solver.manager().pi(); }
 
 void State::dump_fs(std::filesystem::path out_dir)
 {
+    // dump stacktrace
+    std::filesystem::path out_file = out_dir / "stacktrace.txt";
+    auto stacktrace_file           = std::fstream(out_file, std::ios::out);
+    for (auto addr : m_stacktrace)
+        stacktrace_file << "0x" << std::hex << addr << std::endl;
+    stacktrace_file.close();
+
+    // dump exit code
+    out_file            = out_dir / "exit_code.txt";
+    auto exit_code_file = std::fstream(out_file, std::ios::out);
+    exit_code_file << std::dec << retcode << std::endl;
+    exit_code_file.close();
+
     for (File* f : m_fs->files()) {
         if (f->size() == 0)
             continue;
@@ -132,7 +145,7 @@ void State::dump_fs(std::filesystem::path out_dir)
         std::string filename(f->name());
         std::replace(filename.begin(), filename.end(), '/', '_');
 
-        std::filesystem::path out_file = out_dir / (filename + ".bin");
+        out_file  = out_dir / (filename + ".bin");
         auto fout = std::fstream(out_file, std::ios::out | std::ios::binary);
 
         auto data_expr = f->read_all();

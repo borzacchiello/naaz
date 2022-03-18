@@ -740,7 +740,7 @@ BVExprPtr ExprBuilder::mk_xor(BVExprPtr lhs, BVExprPtr rhs)
     std::vector<BVExprPtr> exprs;
 
     // flatten args
-    if (lhs->kind() == Expr::Kind::OR) {
+    if (lhs->kind() == Expr::Kind::XOR) {
         auto lhs_ = std::static_pointer_cast<const XorExpr>(lhs);
         for (auto child : lhs_->els())
             exprs.push_back(child);
@@ -748,7 +748,7 @@ BVExprPtr ExprBuilder::mk_xor(BVExprPtr lhs, BVExprPtr rhs)
         exprs.push_back(lhs);
     }
 
-    if (rhs->kind() == Expr::Kind::OR) {
+    if (rhs->kind() == Expr::Kind::XOR) {
         auto rhs_ = std::static_pointer_cast<const XorExpr>(rhs);
         for (auto child : rhs_->els())
             exprs.push_back(child);

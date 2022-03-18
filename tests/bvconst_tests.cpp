@@ -564,6 +564,32 @@ TEST_CASE("IntConst as_data 1", "[intconst]")
     REQUIRE(memcmp(data.data(), "\xaa\xbb\xcc\xdd", data.size()) == 0);
 }
 
+TEST_CASE("IntConst as_data 2", "[intconst]")
+{
+    BVConst c("1", 128);
+
+    std::vector<uint8_t> data = c.as_data();
+
+    REQUIRE(
+        memcmp(
+            data.data(),
+            "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01",
+            data.size()) == 0);
+}
+
+TEST_CASE("IntConst as_data 3", "[intconst]")
+{
+    BVConst c("73935311786121847164012202309664012224", 128);
+
+    std::vector<uint8_t> data = c.as_data();
+
+    REQUIRE(
+        memcmp(
+            data.data(),
+            "\x37\x9f\x6c\x4f\xbb\xff\x5b\x30\xb0\x1f\xd2\xad\x95\x66\x77\xc0",
+            data.size()) == 0);
+}
+
 TEST_CASE("IntConst comparisons 1", "[intconst]")
 {
     BVConst c1(0xffUL, 8);

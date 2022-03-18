@@ -22,6 +22,8 @@ class State
 {
     uint64_t m_pc;
 
+    std::vector<uint64_t> m_stacktrace;
+
     std::unique_ptr<MapMemory>  m_regs;
     std::unique_ptr<MapMemory>  m_ram;
     std::unique_ptr<FileSystem> m_fs;
@@ -32,7 +34,7 @@ class State
 
     Solver m_solver;
 
-    uint64_t m_exit_address = 0;
+    uint64_t m_libc_start_main_exit_wrapper = 0;
 
   public:
     State(std::shared_ptr<loader::AddressSpace> as,
@@ -66,7 +68,10 @@ class State
     void register_linked_function(uint64_t addr, const models::Model* m);
     bool is_linked_function(uint64_t addr);
     const models::Model* get_linked_model(uint64_t addr);
-    uint64_t             get_exit_address() const { return m_exit_address; }
+    uint64_t             get_libc_start_main_exit_wrapper_address() const
+    {
+        return m_libc_start_main_exit_wrapper;
+    }
 
     FileSystem& fs() { return *m_fs; }
     void        dump_fs(std::filesystem::path out_dir);
@@ -76,6 +81,14 @@ class State
 
     void     set_pc(uint64_t pc) { m_pc = pc; }
     uint64_t pc() const { return m_pc; }
+
+    void register_call(uint64_t retaddr) { m_stacktrace.push_back(retaddr); }
+    void register_ret()
+    {
+        if (m_stacktrace.empty())
+            return;
+        m_stacktrace.pop_back();
+    }
 
     StatePtr clone() const { return std::shared_ptr<State>(new State(*this)); }
 

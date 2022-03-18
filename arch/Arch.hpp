@@ -47,6 +47,8 @@ class Arch
                                           uint32_t i) const                 = 0;
     virtual void            set_return_int_value(CallConv cv, state::State& s,
                                                  expr::BVExprPtr val) const = 0;
+    virtual expr::BVExprPtr get_return_int_value(CallConv      cv,
+                                                 state::State& s) const     = 0;
 
     virtual const std::string& description() const = 0;
 };
@@ -76,6 +78,8 @@ class x86_64 final : public naaz::Arch
                                           uint32_t i) const;
     virtual void            set_return_int_value(CallConv cv, state::State& s,
                                                  expr::BVExprPtr val) const;
+    virtual expr::BVExprPtr get_return_int_value(CallConv      cv,
+                                                 state::State& s) const;
 
     virtual const std::string& description() const;
 

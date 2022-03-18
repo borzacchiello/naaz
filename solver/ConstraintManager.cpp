@@ -65,6 +65,9 @@ ConstraintManager::get_dependencies(expr::ExprPtr constraint) const
         uint32_t curr = queue.back();
         queue.pop_back();
 
+        if (res.contains(curr))
+            continue;
+
         res.insert(curr);
         if (m_dependencies.contains(curr)) {
             for (uint32_t next : m_dependencies.at(curr)) {

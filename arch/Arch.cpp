@@ -136,5 +136,21 @@ void x86_64::set_return_int_value(CallConv cv, state::State& s,
     exit_fail();
 }
 
+expr::BVExprPtr x86_64::get_return_int_value(CallConv cv, state::State& s) const
+{
+    switch (cv) {
+        case CallConv::CDECL: {
+            return s.reg_read("RAX");
+            ;
+        }
+        default:
+            break;
+    }
+    err("arch::x86_64")
+        << "get_return_int_value(): unsupported calling convention " << cv
+        << std::endl;
+    exit_fail();
+}
+
 } // namespace arch
 } // namespace naaz

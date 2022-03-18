@@ -836,11 +836,13 @@ bool XorExpr::eq(ExprPtr other) const
 
 std::string XorExpr::to_string() const
 {
-    std::string res = m_children.at(0)->to_string();
+    std::string res = "( ";
+    res +=  m_children.at(0)->to_string();
     for (uint64_t i = 1; i < m_children.size(); ++i) {
-        res += " | ";
+        res += " ^ ";
         res += m_children.at(i)->to_string();
     }
+    res += ")";
     return res;
 }
 

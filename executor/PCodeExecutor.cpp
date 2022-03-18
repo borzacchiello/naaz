@@ -330,6 +330,9 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             assert(op.output == nullptr && "CALL: output is not NULL");
             assert(op.inputs_count == 1 && "CALL: inputs_count != 1");
 
+            uint64_t retaddr = ctx.transl.address.offset + ctx.transl.length;
+            ctx.state->register_call(retaddr);
+
             uint64_t dst_addr;
             if (csleigh_AddrSpace_getId(op.inputs[0].space) ==
                 m_lifter->ram_space_id()) {
@@ -437,6 +440,9 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             assert(op.output == nullptr && "CALLIND: output is not NULL");
             assert(op.inputs_count == 1 && "CALLIND: inputs_count != 1");
 
+            uint64_t retaddr = ctx.transl.address.offset + ctx.transl.length;
+            ctx.state->register_call(retaddr);
+
             auto dst = resolve_varnode(ctx, op.inputs[0]);
             if (dst->kind() != expr::Expr::Kind::CONST) {
                 err("PCodeExecutor")
@@ -451,6 +457,8 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
         case csleigh_CPUI_RETURN: {
             assert(op.output == nullptr && "RETURN: output is not NULL");
             assert(op.inputs_count == 1 && "RETURN: inputs_count != 1");
+
+            ctx.state->register_ret();
 
             auto dst = resolve_varnode(ctx, op.inputs[0]);
             if (dst->kind() != expr::Expr::Kind::CONST) {

@@ -14,6 +14,12 @@ void Solver::add(expr::BoolExprPtr c) { m_manager.add(c); }
 
 solver::CheckResult Solver::check_sat(expr::BoolExprPtr c, bool populate_model)
 {
+    if (c->kind() == expr::Expr::Kind::BOOL_CONST) {
+        auto c_ = std::static_pointer_cast<const expr::BoolConst>(c);
+        return c_->is_true() ? solver::CheckResult::SAT
+                             : solver::CheckResult::UNSAT;
+    }
+
     auto expr_in_current_model = expr::evaluate(c, m_model, false);
     if (expr_in_current_model->kind() == expr::Expr::Kind::BOOL_CONST) {
         auto e_ = std::static_pointer_cast<const expr::BoolConst>(

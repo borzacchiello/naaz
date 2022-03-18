@@ -243,7 +243,7 @@ uint8_t BVConst::get_byte(uint64_t idx) const
     if (!is_big())
         return (uint8_t)((m_small_val >> low) & _bitmask(high - low + 1));
 
-    uint8_t res;
+    uint8_t res = 0;
     for (uint64_t i = 0; i < 8; ++i) {
         if (i + low >= m_size)
             // not a multiple of 8

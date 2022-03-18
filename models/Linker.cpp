@@ -27,8 +27,9 @@ void Linker::link(state::State& state) const
     // FIXME: should be obtained dynamically
     uint64_t external_addr = 0x5000000;
 
-    // register exit function
-    state.register_linked_function(external_addr, m_models.at("exit"));
+    // register libc_start_main_exit_wrapper function
+    state.register_linked_function(external_addr,
+                                   m_models.at("libc_start_main_exit_wrapper"));
     external_addr += state.arch().ptr_size() / 8;
 
     for (auto const& [addr, syms] : state.address_space()->symbols()) {
