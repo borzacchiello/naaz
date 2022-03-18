@@ -948,11 +948,13 @@ bool BoolAndExpr::eq(ExprPtr other) const
 
 std::string BoolAndExpr::to_string() const
 {
-    std::string res = m_exprs.at(0)->to_string();
+    std::string res = "( ";
+    res += m_exprs.at(0)->to_string();
     for (uint64_t i = 1; i < m_exprs.size(); ++i) {
         res += " && ";
         res += m_exprs.at(i)->to_string();
     }
+    res += " )";
     return res;
 }
 

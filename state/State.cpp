@@ -149,7 +149,8 @@ void State::dump_fs(std::filesystem::path out_dir)
         auto fout = std::fstream(out_file, std::ios::out | std::ios::binary);
 
         auto data_expr = f->read_all();
-        auto data      = m_solver.evaluate(data_expr).as_data();
+        auto data_eval = m_solver.evaluate(data_expr);
+        auto data      = data_eval.as_data();
         fout.write((const char*)data.data(), data.size());
         fout.close();
     }

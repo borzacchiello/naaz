@@ -4,6 +4,7 @@
 #include "../expr/util.hpp"
 #include "../expr/ExprBuilder.hpp"
 #include "../util/ioutil.hpp"
+#include "../util/strutil.hpp"
 
 #define exprBuilder naaz::expr::ExprBuilder::The()
 

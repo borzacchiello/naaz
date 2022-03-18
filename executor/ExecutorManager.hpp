@@ -75,6 +75,7 @@ template <class ExplorationPolicy> class ExecutorManager
                 callback(s);
 
             m_exploration.add_actives(next_states.active);
+            // std::cout << "num states: " << num_states() << std::endl;
         }
     }
 

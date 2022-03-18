@@ -450,6 +450,20 @@ TEST_CASE("IntConst concat 1", "[intconst]")
                                        "00000000000000000000000000000a") == 0);
 }
 
+TEST_CASE("IntConst concat 2", "[intconst]")
+{
+    BVConst c1(0xabadcafedeadbeef, 64);
+    BVConst c2(0xdeaddeaddeaddead, 64);
+    c1.concat(c2);
+
+    std::vector<uint8_t> data = c1.as_data();
+
+    REQUIRE(memcmp(data.data(),
+                   "\xab\xad\xca\xfe\xde\xad\xbe\xef"
+                   "\xde\xad\xde\xad\xde\xad\xde\xad",
+                   data.size()) == 0);
+}
+
 TEST_CASE("IntConst extract 1", "[intconst]")
 {
     BVConst c(0xaabbccddeeff, 256);

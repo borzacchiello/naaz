@@ -543,7 +543,7 @@ void BVConst::shl(uint32_t v)
 void BVConst::concat(const BVConst& other)
 {
     ssize_t new_size = m_size + other.m_size;
-    if (!is_big()) {
+    if (new_size <= 64) {
         m_small_val = (m_small_val << other.m_size) | other.m_small_val;
     } else {
         mpz_class this_mpz  = as_mpz();
