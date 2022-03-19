@@ -181,8 +181,8 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
         case csleigh_CPUI_SUBPIECE: {
             assert(op.output != nullptr && "SUBPIECE: output is NULL");
             assert(op.inputs_count == 2 && "SUBPIECE: inputs_count != 2");
-            uint32_t high = op.output->size * 8 - 1;
             uint32_t low  = op.inputs[1].offset * 8;
+            uint32_t high = op.output->size * 8 + low - 1;
             write_to_varnode(
                 ctx, *op.output,
                 exprBuilder.mk_extract(resolve_varnode(ctx, op.inputs[0]), high,

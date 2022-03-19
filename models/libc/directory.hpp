@@ -24,6 +24,8 @@ GEN_MODEL_CLASS(libc_start_main_exit_wrapper, CallConv::CDECL)
 GEN_MODEL_CLASS(__libc_start_main, CallConv::CDECL)
 GEN_MODEL_CLASS(exit, CallConv::CDECL)
 GEN_MODEL_CLASS(read, CallConv::CDECL)
+GEN_MODEL_CLASS(open, CallConv::CDECL)
+GEN_MODEL_CLASS(close, CallConv::CDECL)
 
 } // namespace naaz::models::libc
 
@@ -33,4 +35,6 @@ GEN_MODEL_CLASS(read, CallConv::CDECL)
     l.register_model(libc::__libc_start_main::The().name(),                    \
                      &libc::__libc_start_main::The());                         \
     l.register_model(libc::exit::The().name(), &libc::exit::The());            \
-    l.register_model(libc::read::The().name(), &libc::read::The());
+    l.register_model(libc::read::The().name(), &libc::read::The());            \
+    l.register_model(libc::open::The().name(), &libc::open::The());            \
+    l.register_model(libc::close::The().name(), &libc::close::The());

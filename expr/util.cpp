@@ -59,9 +59,9 @@ static ExprPtr evaluate_inner(ExprPtr                            e,
         }
         case Expr::Kind::SEXT: {
             auto e_     = std::static_pointer_cast<const SextExpr>(e);
-            auto eval_e = std::static_pointer_cast<const BVExpr>(
-                evaluate_inner(e_, assignments, model_completion, cache));
-            res = exprBuilder.mk_sext(eval_e, e_->size());
+            auto eval_e = std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                e_->expr(), assignments, model_completion, cache));
+            res         = exprBuilder.mk_sext(eval_e, e_->size());
             break;
         }
         case Expr::Kind::ITE: {

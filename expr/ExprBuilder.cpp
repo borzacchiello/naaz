@@ -108,7 +108,8 @@ ConstExprPtr ExprBuilder::mk_const(uint64_t val, size_t size)
 BVExprPtr ExprBuilder::mk_extract(BVExprPtr expr, uint32_t high, uint32_t low)
 {
     if (high < low) {
-        err("ExprBuilder") << "mk_extract(): high < low" << std::endl;
+        err("ExprBuilder") << "mk_extract(): high (" << high << ") < low ("
+                           << low << ")" << std::endl;
         exit_fail();
     }
 
