@@ -148,6 +148,15 @@ BVExprPtr ExprBuilder::mk_extract(BVExprPtr expr, uint32_t high, uint32_t low)
         SextExprPtr expr_ = std::static_pointer_cast<const SextExpr>(expr);
         if (low == 0 && high == expr_->expr()->size() - 1)
             return expr_->expr();
+        if (low >= expr_->expr()->size()) {
+            auto sign = sign_bit(expr_->expr());
+            if (sign->kind() == Expr::Kind::CONST) {
+                auto sign_ = std::static_pointer_cast<const ConstExpr>(sign);
+                if (sign_->val().is_zero())
+                    return mk_const(0UL, high - low + 1);
+                return mk_const(BVConst("-1", high - low + 1));
+            }
+        }
     }
 
     ExtractExpr e(expr, high, low);

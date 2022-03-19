@@ -17,6 +17,8 @@ typedef std::weak_ptr<const Expr>   WeakExprPtr;
 
 class ExprBuilder;
 
+std::string expr_to_string(ExprPtr e);
+
 class Expr
 {
   public:
@@ -63,10 +65,10 @@ class Expr
 
     virtual const Kind kind() const = 0;
 
-    virtual uint64_t             hash() const                  = 0;
-    virtual bool                 eq(ExprPtr other) const       = 0;
-    virtual ExprPtr              clone() const                 = 0;
-    virtual std::string          to_string() const             = 0;
+    virtual uint64_t    hash() const            = 0;
+    virtual bool        eq(ExprPtr other) const = 0;
+    virtual ExprPtr     clone() const           = 0;
+    virtual std::string to_string() const { return expr_to_string(clone()); }
     virtual std::vector<ExprPtr> children() const              = 0;
     virtual z3::expr             to_z3(z3::context& ctx) const = 0;
 
@@ -103,7 +105,6 @@ class SymExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -136,7 +137,6 @@ class ConstExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -176,7 +176,6 @@ class ITEExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -216,7 +215,6 @@ class ExtractExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -256,7 +254,6 @@ class ConcatExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -291,7 +288,6 @@ class ZextExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -325,7 +321,6 @@ class SextExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -356,7 +351,6 @@ class NegExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -394,7 +388,6 @@ class ShlExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -433,7 +426,6 @@ class LShrExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -472,7 +464,6 @@ class AShrExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -507,7 +498,6 @@ class AddExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -544,7 +534,6 @@ class MulExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -582,7 +571,6 @@ class SDivExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -621,7 +609,6 @@ class UDivExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -660,7 +647,6 @@ class SRemExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -699,7 +685,6 @@ class URemExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -737,7 +722,6 @@ class AndExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -774,7 +758,6 @@ class OrExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -811,7 +794,6 @@ class XorExpr final : public BVExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -855,7 +837,6 @@ class BoolConst final : public BoolExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -884,7 +865,6 @@ class NotExpr final : public BoolExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -919,7 +899,6 @@ class BoolAndExpr final : public BoolExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -957,7 +936,6 @@ class BoolOrExpr final : public BoolExpr
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
-    virtual std::string          to_string() const;
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
@@ -992,7 +970,6 @@ typedef std::shared_ptr<const BoolOrExpr> BoolOrExprPtr;
         }                                                                      \
         virtual uint64_t             hash() const;                             \
         virtual bool                 eq(ExprPtr other) const;                  \
-        virtual std::string          to_string() const;                        \
         virtual z3::expr             to_z3(z3::context& ctx) const;            \
         virtual std::vector<ExprPtr> children() const                          \
         {                                                                      \
