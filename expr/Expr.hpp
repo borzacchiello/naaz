@@ -234,14 +234,15 @@ class ConcatExpr final : public BVExpr
   private:
     static const Kind ekind = Kind::CONCAT;
 
-    BVExprPtr m_lhs;
-    BVExprPtr m_rhs;
-    size_t    m_size;
+    std::vector<BVExprPtr> m_children;
+    size_t                 m_size;
 
   protected:
-    ConcatExpr(BVExprPtr lhs, BVExprPtr rhs)
-        : m_lhs(lhs), m_rhs(rhs), m_size(lhs->size() + rhs->size())
+    ConcatExpr(std::vector<BVExprPtr> children) : m_children(children)
     {
+        m_size = 0;
+        for (auto c : children)
+            m_size += c->size();
     }
 
   public:
@@ -249,7 +250,7 @@ class ConcatExpr final : public BVExpr
     virtual size_t     size() const { return m_size; };
     virtual ExprPtr    clone() const
     {
-        return ExprPtr(new ConcatExpr(m_lhs, m_rhs));
+        return ExprPtr(new ConcatExpr(m_children));
     }
 
     virtual uint64_t             hash() const;
@@ -257,11 +258,13 @@ class ConcatExpr final : public BVExpr
     virtual z3::expr             to_z3(z3::context& ctx) const;
     virtual std::vector<ExprPtr> children() const
     {
-        return std::vector<ExprPtr>{m_lhs, m_rhs};
+        std::vector<ExprPtr> res;
+        for (auto c : m_children)
+            res.push_back(std::static_pointer_cast<const Expr>(c));
+        return res;
     }
 
-    BVExprPtr lhs() const { return m_lhs; }
-    BVExprPtr rhs() const { return m_rhs; }
+    const std::vector<BVExprPtr>& els() const { return m_children; }
 
     friend class ExprBuilder;
 };

@@ -44,13 +44,15 @@ static ExprPtr evaluate_inner(ExprPtr                            e,
         }
         case Expr::Kind::CONCAT: {
             auto e_ = std::static_pointer_cast<const ConcatExpr>(e);
-            auto eval_lhs =
+            auto eval_expr =
                 std::static_pointer_cast<const BVExpr>(evaluate_inner(
-                    e_->lhs(), assignments, model_completion, cache));
-            auto eval_rhs =
-                std::static_pointer_cast<const BVExpr>(evaluate_inner(
-                    e_->rhs(), assignments, model_completion, cache));
-            res = exprBuilder.mk_concat(eval_lhs, eval_rhs);
+                    e_->els().at(0), assignments, model_completion, cache));
+            for (uint32_t i = 1; i < e_->els().size(); ++i)
+                eval_expr = exprBuilder.mk_concat(
+                    eval_expr, std::static_pointer_cast<const BVExpr>(
+                                   evaluate_inner(e_->els().at(i), assignments,
+                                                  model_completion, cache)));
+            res = eval_expr;
             break;
         }
         case Expr::Kind::ZEXT: {
@@ -176,16 +178,15 @@ static ExprPtr evaluate_inner(ExprPtr                            e,
             break;
         }
         case Expr::Kind::MUL: {
-            auto e_ = std::static_pointer_cast<const AddExpr>(e);
+            auto e_ = std::static_pointer_cast<const MulExpr>(e);
             auto eval_expr =
                 std::static_pointer_cast<const BVExpr>(evaluate_inner(
-                    e_->addends().at(0), assignments, model_completion, cache));
-            for (uint32_t i = 1; i < e_->addends().size(); ++i)
+                    e_->els().at(0), assignments, model_completion, cache));
+            for (uint32_t i = 1; i < e_->els().size(); ++i)
                 eval_expr = exprBuilder.mk_mul(
-                    eval_expr,
-                    std::static_pointer_cast<const BVExpr>(
-                        evaluate_inner(e_->addends().at(i), assignments,
-                                       model_completion, cache)));
+                    eval_expr, std::static_pointer_cast<const BVExpr>(
+                                   evaluate_inner(e_->els().at(i), assignments,
+                                                  model_completion, cache)));
             res = eval_expr;
             break;
         }
@@ -410,9 +411,13 @@ static std::string to_string_inner(ExprPtr                         e,
         }
         case Expr::Kind::CONCAT: {
             auto e_ = std::static_pointer_cast<const ConcatExpr>(e);
-            res     = string_format("( %s # %s )",
-                                    to_string_inner(e_->lhs(), cache).c_str(),
-                                    to_string_inner(e_->rhs(), cache).c_str());
+            res     = "( ";
+            res += to_string_inner(e_->els().at(0), cache);
+            for (uint32_t i = 1; i < e_->els().size(); ++i) {
+                res += " # ";
+                res += to_string_inner(e_->els().at(i), cache);
+            }
+            res += " )";
             break;
         }
         case Expr::Kind::ZEXT: {
@@ -508,12 +513,12 @@ static std::string to_string_inner(ExprPtr                         e,
             break;
         }
         case Expr::Kind::MUL: {
-            auto e_ = std::static_pointer_cast<const AddExpr>(e);
+            auto e_ = std::static_pointer_cast<const MulExpr>(e);
             res     = "( ";
-            res += to_string_inner(e_->addends().at(0), cache);
-            for (uint32_t i = 1; i < e_->addends().size(); ++i) {
+            res += to_string_inner(e_->els().at(0), cache);
+            for (uint32_t i = 1; i < e_->els().size(); ++i) {
                 res += " * ";
-                res += to_string_inner(e_->addends().at(i), cache);
+                res += to_string_inner(e_->els().at(i), cache);
             }
             res += " )";
             break;

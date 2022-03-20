@@ -12,7 +12,7 @@ int main()
 
     read(fd, &buf, sizeof buf);
 
-    int i, chk = 0;
+    int i, chk = 1;
     for (i = 0; i < sizeof(buf) / sizeof(int); ++i)
         chk *= buf[i];
 

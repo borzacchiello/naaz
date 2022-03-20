@@ -145,10 +145,10 @@ uint64_t ConcatExpr::hash() const
     XXH64_state_t state;
     XXH64_reset(&state, 0);
     XXH64_update(&state, &m_size, sizeof(m_size));
-    void* raw_lhs = (void*)m_lhs.get();
-    void* raw_rhs = (void*)m_rhs.get();
-    XXH64_update(&state, raw_lhs, sizeof(void*));
-    XXH64_update(&state, raw_rhs, sizeof(void*));
+    for (const auto& child : m_children) {
+        void* raw_child = (void*)child.get();
+        XXH64_update(&state, raw_child, sizeof(void*));
+    }
     return XXH64_digest(&state);
 }
 
@@ -158,13 +158,23 @@ bool ConcatExpr::eq(ExprPtr other) const
         return false;
 
     auto other_ = std::static_pointer_cast<const ConcatExpr>(other);
-    return m_size == other_->m_size && m_lhs == other_->m_lhs &&
-           m_rhs == other_->m_rhs;
+    if (m_size != other_->m_size)
+        return false;
+    if (m_children.size() != other_->m_children.size())
+        return false;
+
+    for (uint64_t i = 0; i < m_children.size(); ++i)
+        if (m_children.at(i) != other_->m_children.at(i))
+            return false;
+    return true;
 }
 
 z3::expr ConcatExpr::to_z3(z3::context& ctx) const
 {
-    return z3::concat(m_lhs->to_z3(ctx), m_rhs->to_z3(ctx));
+    z3::expr z3expr = m_children.at(0)->to_z3(ctx);
+    for (uint64_t i = 1; i < m_children.size(); ++i)
+        z3expr = z3::concat(z3expr, m_children.at(i)->to_z3(ctx));
+    return z3expr;
 }
 
 // ***************

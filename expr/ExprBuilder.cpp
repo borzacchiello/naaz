@@ -129,11 +129,16 @@ BVExprPtr ExprBuilder::mk_extract(BVExprPtr expr, uint32_t high, uint32_t low)
     // extract of concat
     if (expr->kind() == Expr::Kind::CONCAT) {
         ConcatExprPtr expr_ = std::static_pointer_cast<const ConcatExpr>(expr);
-        if (high < expr_->rhs()->size()) {
-            return mk_extract(expr_->rhs(), high, low);
-        } else if (low >= expr_->rhs()->size()) {
-            uint32_t off = expr_->rhs()->size();
-            return mk_extract(expr_->lhs(), high - off, low - off);
+
+        uint32_t off = 0;
+        for (auto e : expr_->els()) {
+            uint32_t concat_high = e->size() + off - 1;
+            uint32_t concat_low  = off;
+
+            if (concat_high >= high && low >= concat_low)
+                return mk_extract(e, high - off, low - off);
+
+            off += e->size();
         }
     }
 
@@ -226,27 +231,80 @@ BVExprPtr ExprBuilder::mk_ite(BoolExprPtr guard, BVExprPtr iftrue,
 
 BVExprPtr ExprBuilder::mk_concat(BVExprPtr left, BVExprPtr right)
 {
+    std::vector<BVExprPtr> exprs;
+
+    // flatten args
+    if (left->kind() == Expr::Kind::CONCAT) {
+        auto lhs_ = std::static_pointer_cast<const ConcatExpr>(left);
+        for (auto child : lhs_->els())
+            exprs.push_back(child);
+    } else {
+        exprs.push_back(left);
+    }
+
+    if (right->kind() == Expr::Kind::CONCAT) {
+        auto rhs_ = std::static_pointer_cast<const ConcatExpr>(right);
+        for (auto child : rhs_->els())
+            exprs.push_back(child);
+    } else {
+        exprs.push_back(right);
+    }
+
     // constant propagation
-    if (left->kind() == Expr::Kind::CONST &&
-        right->kind() == Expr::Kind::CONST) {
-        auto    left_  = std::static_pointer_cast<const ConstExpr>(left);
-        auto    right_ = std::static_pointer_cast<const ConstExpr>(right);
-        BVConst tmp(left_->val());
-        tmp.concat(right_->val());
-        return mk_const(tmp);
+    std::vector<BVExprPtr> const_prop_exprs;
+    for (uint64_t i = 0; i < exprs.size(); ++i) {
+        auto e = exprs.at(i);
+        if (e->kind() == Expr::Kind::CONST) {
+            auto e_   = std::static_pointer_cast<const ConstExpr>(e);
+            auto conc = e_->val();
+
+            uint64_t j;
+            for (j = i + 1; j < exprs.size(); ++j) {
+                auto next = exprs.at(j);
+                if (next->kind() != Expr::Kind::CONST)
+                    break;
+
+                auto next_ = std::static_pointer_cast<const ConstExpr>(next);
+                conc.concat(next_->val());
+            }
+            i = j - 1;
+            const_prop_exprs.push_back(mk_const(conc));
+        } else
+            const_prop_exprs.push_back(e);
     }
 
     // concat of extract
-    if (left->kind() == Expr::Kind::EXTRACT &&
-        right->kind() == Expr::Kind::EXTRACT) {
-        auto left_  = std::static_pointer_cast<const ExtractExpr>(left);
-        auto right_ = std::static_pointer_cast<const ExtractExpr>(right);
-        if (left_->expr() == right_->expr() &&
-            left_->low() - 1 == right_->high())
-            return mk_extract(left_->expr(), left_->high(), right_->low());
+    std::vector<BVExprPtr> children;
+    for (uint64_t i = 0; i < const_prop_exprs.size(); ++i) {
+        auto e = const_prop_exprs.at(i);
+        if (e->kind() == Expr::Kind::EXTRACT) {
+            auto e_ = std::static_pointer_cast<const ExtractExpr>(e);
+
+            uint32_t high = e_->high();
+            uint32_t low  = e_->low();
+
+            uint64_t j;
+            for (j = i + 1; j < exprs.size(); ++j) {
+                auto next = exprs.at(j);
+                if (next->kind() != Expr::Kind::EXTRACT)
+                    break;
+
+                auto next_ = std::static_pointer_cast<const ExtractExpr>(next);
+                if (next_->expr() != e_->expr() || low != next_->high() + 1)
+                    break;
+
+                low = next_->low();
+            }
+            i = j - 1;
+            children.push_back(mk_extract(e_->expr(), high, low));
+        } else
+            children.push_back(e);
     }
 
-    ConcatExpr e(left, right);
+    if (children.size() == 1)
+        return children.back();
+
+    ConcatExpr e(children);
     return std::static_pointer_cast<const BVExpr>(get_or_create(e));
 }
 
@@ -469,20 +527,20 @@ BVExprPtr ExprBuilder::mk_mul(BVExprPtr lhs, BVExprPtr rhs)
 
     // constant propagation
     BVConst concrete_val(1UL, els.at(0)->size());
-    for (auto addend : els) {
-        if (addend->kind() == Expr::Kind::CONST) {
-            auto addend_ = std::static_pointer_cast<const ConstExpr>(addend);
-            concrete_val.mul(addend_->val());
+    for (auto e : els) {
+        if (e->kind() == Expr::Kind::CONST) {
+            auto e_ = std::static_pointer_cast<const ConstExpr>(e);
+            concrete_val.mul(e_->val());
         } else {
-            children.push_back(addend);
+            children.push_back(e);
         }
     }
 
     // final checks
-    if (children.size() == 0)
+    if (children.size() == 0 || concrete_val.is_zero())
         return mk_const(concrete_val);
 
-    if (!concrete_val.is_zero())
+    if (!concrete_val.is_one())
         children.push_back(mk_const(concrete_val));
 
     if (children.size() == 1)
@@ -985,6 +1043,11 @@ BoolExprPtr ExprBuilder::mk_neq(BVExprPtr lhs, BVExprPtr rhs)
 
 BoolExprPtr ExprBuilder::mk_bool_and_no_simpl(std::set<BoolExprPtr> exprs)
 {
+    if (exprs.size() == 0)
+        return mk_true();
+    if (exprs.size() == 1)
+        return *exprs.begin();
+
     BoolAndExpr e(exprs);
     return std::static_pointer_cast<const BoolExpr>(get_or_create(e));
 }

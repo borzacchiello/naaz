@@ -78,7 +78,7 @@ TEST_CASE("MulExpr 2", "[expr]")
     BVExprPtr s = exprBuilder.mk_sym("sym", 32);
     BVExprPtr e = exprBuilder.mk_mul(exprBuilder.mk_const(2, 32), s);
 
-    REQUIRE(e->to_string() == "(sym * 0x2)");
+    REQUIRE(e->to_string() == "( sym * 0x2 )");
 }
 
 TEST_CASE("SDivExpr 1", "[expr]")
@@ -94,7 +94,7 @@ TEST_CASE("SDivExpr 2", "[expr]")
     BVExprPtr s = exprBuilder.mk_sym("sym", 32);
     BVExprPtr e = exprBuilder.mk_sdiv(s, exprBuilder.mk_const(2, 32));
 
-    REQUIRE(e->to_string() == "(sym s/ 0x2)");
+    REQUIRE(e->to_string() == "( sym s/ 0x2 )");
 }
 
 TEST_CASE("SDivExpr 3", "[expr]")
@@ -214,8 +214,8 @@ TEST_CASE("ConcatExpr 1", "[expr]")
     REQUIRE(c->kind() == Expr::Kind::CONCAT);
 
     ConcatExprPtr c_ = std::static_pointer_cast<const ConcatExpr>(c);
-    REQUIRE(c_->lhs() == s1);
-    REQUIRE(c_->rhs() == s2);
+    REQUIRE(c_->els().at(0) == s1);
+    REQUIRE(c_->els().at(1) == s2);
 }
 
 TEST_CASE("ExtractExpr 1", "[expr]")
