@@ -126,6 +126,16 @@ BVExprPtr ExprBuilder::mk_extract(BVExprPtr expr, uint32_t high, uint32_t low)
         return mk_const(tmp);
     }
 
+    // extract of extract
+    if (expr->kind() == Expr::Kind::EXTRACT) {
+        auto expr_ = std::static_pointer_cast<const ExtractExpr>(expr);
+
+        uint32_t    new_low  = low + expr_->low();
+        uint32_t    new_high = high + expr_->low();
+        ExtractExpr e(expr_->expr(), new_high, new_low);
+        return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+    }
+
     // extract of concat
     if (expr->kind() == Expr::Kind::CONCAT) {
         ConcatExprPtr expr_ = std::static_pointer_cast<const ConcatExpr>(expr);
@@ -231,6 +241,32 @@ BVExprPtr ExprBuilder::mk_ite(BoolExprPtr guard, BVExprPtr iftrue,
 
 BVExprPtr ExprBuilder::mk_concat(BVExprPtr left, BVExprPtr right)
 {
+    // pattern sext(EXPR)[high:EXPR.size] # EXPR ==> sext(EXPR)
+    if (left->kind() == Expr::Kind::EXTRACT) {
+        auto left_ = std::static_pointer_cast<const ExtractExpr>(left);
+        if (left_->low() == right->size() &&
+            left_->expr()->kind() == Expr::Kind::SEXT) {
+            auto sext_expr =
+                std::static_pointer_cast<const SextExpr>(left_->expr());
+            if (sext_expr->expr() == right)
+                return mk_sext(right, left->size() + right->size());
+        }
+    }
+
+    // pattern sext(EXPR)[high:N] # sext(EXPR, N) ==> sext(EXPR)
+    if (left->kind() == Expr::Kind::EXTRACT &&
+        right->kind() == Expr::Kind::SEXT) {
+        auto left_  = std::static_pointer_cast<const ExtractExpr>(left);
+        auto right_ = std::static_pointer_cast<const SextExpr>(right);
+        if (left_->low() == right_->size() &&
+            left_->expr()->kind() == Expr::Kind::SEXT) {
+            auto sext_expr =
+                std::static_pointer_cast<const SextExpr>(left_->expr());
+            if (sext_expr->expr() == right_->expr())
+                return mk_sext(right_->expr(), left->size() + right->size());
+        }
+    }
+
     std::vector<BVExprPtr> exprs;
 
     // flatten args

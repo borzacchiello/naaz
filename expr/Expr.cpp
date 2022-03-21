@@ -37,11 +37,6 @@ const std::string& SymExpr::name() const
     return ExprBuilder::The().get_sym_name(m_id);
 }
 
-z3::expr SymExpr::to_z3(z3::context& ctx) const
-{
-    return ctx.bv_const(ExprBuilder::The().get_sym_name(m_id).c_str(), m_size);
-}
-
 // ***************
 // * ConstExpr
 // ***************
@@ -65,11 +60,6 @@ bool ConstExpr::eq(ExprPtr other) const
     if (size() != other_->size())
         return false;
     return m_val.eq(other_->m_val);
-}
-
-z3::expr ConstExpr::to_z3(z3::context& ctx) const
-{
-    return ctx.bv_val(m_val.to_string().c_str(), size());
 }
 
 // ***************
@@ -100,12 +90,6 @@ bool ITEExpr::eq(ExprPtr other) const
            m_iftrue == other_->m_iftrue && m_iffalse == other_->m_iffalse;
 }
 
-z3::expr ITEExpr::to_z3(z3::context& ctx) const
-{
-    return z3::ite(m_guard->to_z3(ctx), m_iftrue->to_z3(ctx),
-                   m_iffalse->to_z3(ctx));
-}
-
 // ***************
 // * ExtractExpr
 // ***************
@@ -129,11 +113,6 @@ bool ExtractExpr::eq(ExprPtr other) const
     auto other_ = std::static_pointer_cast<const ExtractExpr>(other);
     return m_high == other_->m_high && m_low == other_->m_low &&
            m_expr == other_->m_expr;
-}
-
-z3::expr ExtractExpr::to_z3(z3::context& ctx) const
-{
-    return m_expr->to_z3(ctx).extract(m_high, m_low);
 }
 
 // ***************
@@ -169,14 +148,6 @@ bool ConcatExpr::eq(ExprPtr other) const
     return true;
 }
 
-z3::expr ConcatExpr::to_z3(z3::context& ctx) const
-{
-    z3::expr z3expr = m_children.at(0)->to_z3(ctx);
-    for (uint64_t i = 1; i < m_children.size(); ++i)
-        z3expr = z3::concat(z3expr, m_children.at(i)->to_z3(ctx));
-    return z3expr;
-}
-
 // ***************
 // * ZextExpr
 // ***************
@@ -206,11 +177,6 @@ bool ZextExpr::eq(ExprPtr other) const
 
     auto other_ = std::static_pointer_cast<const ZextExpr>(other);
     return m_size == other_->m_size && m_expr == other_->m_expr;
-}
-
-z3::expr ZextExpr::to_z3(z3::context& ctx) const
-{
-    return z3::zext(m_expr->to_z3(ctx), m_size - m_expr->size());
 }
 
 // ***************
@@ -244,11 +210,6 @@ bool SextExpr::eq(ExprPtr other) const
     return m_size == other_->m_size && m_expr == other_->m_expr;
 }
 
-z3::expr SextExpr::to_z3(z3::context& ctx) const
-{
-    return z3::sext(m_expr->to_z3(ctx), m_size - m_expr->size());
-}
-
 // ***************
 // * NegExpr
 // ***************
@@ -271,8 +232,6 @@ bool NegExpr::eq(ExprPtr other) const
     auto other_ = std::static_pointer_cast<const NegExpr>(other);
     return m_size == other_->m_size && m_expr == other_->m_expr;
 }
-
-z3::expr NegExpr::to_z3(z3::context& ctx) const { return -m_expr->to_z3(ctx); }
 
 // ***************
 // * ShlExpr
@@ -298,11 +257,6 @@ bool ShlExpr::eq(ExprPtr other) const
     auto other_ = std::static_pointer_cast<const ShlExpr>(other);
     return m_size == other_->m_size && m_expr == other_->m_expr &&
            m_val == other_->m_val;
-}
-
-z3::expr ShlExpr::to_z3(z3::context& ctx) const
-{
-    return z3::shl(m_expr->to_z3(ctx), m_val->to_z3(ctx));
 }
 
 // ***************
@@ -331,11 +285,6 @@ bool LShrExpr::eq(ExprPtr other) const
            m_val == other_->m_val;
 }
 
-z3::expr LShrExpr::to_z3(z3::context& ctx) const
-{
-    return z3::lshr(m_expr->to_z3(ctx), m_val->to_z3(ctx));
-}
-
 // ***************
 // * AShrExpr
 // ***************
@@ -360,11 +309,6 @@ bool AShrExpr::eq(ExprPtr other) const
     auto other_ = std::static_pointer_cast<const AShrExpr>(other);
     return m_size == other_->m_size && m_expr == other_->m_expr &&
            m_val == other_->m_val;
-}
-
-z3::expr AShrExpr::to_z3(z3::context& ctx) const
-{
-    return z3::ashr(m_expr->to_z3(ctx), m_val->to_z3(ctx));
 }
 
 // ***************
@@ -400,14 +344,6 @@ bool AddExpr::eq(ExprPtr other) const
     return true;
 }
 
-z3::expr AddExpr::to_z3(z3::context& ctx) const
-{
-    z3::expr z3expr = m_children.at(0)->to_z3(ctx);
-    for (uint64_t i = 1; i < m_children.size(); ++i)
-        z3expr = z3expr + m_children.at(i)->to_z3(ctx);
-    return z3expr;
-}
-
 // ***************
 // * MulExpr
 // ***************
@@ -441,14 +377,6 @@ bool MulExpr::eq(ExprPtr other) const
     return true;
 }
 
-z3::expr MulExpr::to_z3(z3::context& ctx) const
-{
-    z3::expr z3expr = m_children.at(0)->to_z3(ctx);
-    for (uint64_t i = 1; i < m_children.size(); ++i)
-        z3expr = z3expr * m_children.at(i)->to_z3(ctx);
-    return z3expr;
-}
-
 // ***************
 // * SDivExpr
 // ***************
@@ -476,12 +404,6 @@ bool SDivExpr::eq(ExprPtr other) const
     if (m_lhs != other_->m_lhs || m_rhs != other_->m_rhs)
         return false;
     return true;
-}
-
-z3::expr SDivExpr::to_z3(z3::context& ctx) const
-{
-    z3::expr z3expr = m_lhs->to_z3(ctx) / m_rhs->to_z3(ctx);
-    return z3expr;
 }
 
 // ***************
@@ -513,12 +435,6 @@ bool UDivExpr::eq(ExprPtr other) const
     return true;
 }
 
-z3::expr UDivExpr::to_z3(z3::context& ctx) const
-{
-    z3::expr z3expr = z3::udiv(m_lhs->to_z3(ctx), m_rhs->to_z3(ctx));
-    return z3expr;
-}
-
 // ***************
 // * SRemExpr
 // ***************
@@ -548,12 +464,6 @@ bool SRemExpr::eq(ExprPtr other) const
     return true;
 }
 
-z3::expr SRemExpr::to_z3(z3::context& ctx) const
-{
-    z3::expr z3expr = m_lhs->to_z3(ctx) % m_rhs->to_z3(ctx);
-    return z3expr;
-}
-
 // ***************
 // * URemExpr
 // ***************
@@ -581,12 +491,6 @@ bool URemExpr::eq(ExprPtr other) const
     if (m_lhs != other_->m_lhs || m_rhs != other_->m_rhs)
         return false;
     return true;
-}
-
-z3::expr URemExpr::to_z3(z3::context& ctx) const
-{
-    z3::expr z3expr = z3::urem(m_lhs->to_z3(ctx), m_rhs->to_z3(ctx));
-    return z3expr;
 }
 
 // ***************
@@ -622,14 +526,6 @@ bool AndExpr::eq(ExprPtr other) const
     return true;
 }
 
-z3::expr AndExpr::to_z3(z3::context& ctx) const
-{
-    z3::expr z3expr = m_children.at(0)->to_z3(ctx);
-    for (uint64_t i = 1; i < m_children.size(); ++i)
-        z3expr = z3expr & m_children.at(i)->to_z3(ctx);
-    return z3expr;
-}
-
 // ***************
 // * OrExpr
 // ***************
@@ -661,14 +557,6 @@ bool OrExpr::eq(ExprPtr other) const
         if (m_children.at(i) != other_->m_children.at(i))
             return false;
     return true;
-}
-
-z3::expr OrExpr::to_z3(z3::context& ctx) const
-{
-    z3::expr z3expr = m_children.at(0)->to_z3(ctx);
-    for (uint64_t i = 1; i < m_children.size(); ++i)
-        z3expr = z3expr | m_children.at(i)->to_z3(ctx);
-    return z3expr;
 }
 
 // ***************
@@ -704,14 +592,6 @@ bool XorExpr::eq(ExprPtr other) const
     return true;
 }
 
-z3::expr XorExpr::to_z3(z3::context& ctx) const
-{
-    z3::expr z3expr = m_children.at(0)->to_z3(ctx);
-    for (uint64_t i = 1; i < m_children.size(); ++i)
-        z3expr = z3expr ^ m_children.at(i)->to_z3(ctx);
-    return z3expr;
-}
-
 // ***************
 // * BoolConst
 // ***************
@@ -729,13 +609,6 @@ bool BoolConst::eq(ExprPtr other) const
         return false;
     auto other_ = std::static_pointer_cast<const BoolConst>(other);
     return m_is_true == other_->m_is_true;
-}
-
-z3::expr BoolConst::to_z3(z3::context& ctx) const
-{
-    if (m_is_true)
-        return ctx.bool_val(true);
-    return ctx.bool_val(false);
 }
 
 // ***************
@@ -759,8 +632,6 @@ bool NotExpr::eq(ExprPtr other) const
     auto other_ = std::static_pointer_cast<const NotExpr>(other);
     return m_expr == other_->m_expr;
 }
-
-z3::expr NotExpr::to_z3(z3::context& ctx) const { return !m_expr->to_z3(ctx); }
 
 // ***************
 // * BoolAndExpr
@@ -790,19 +661,6 @@ bool BoolAndExpr::eq(ExprPtr other) const
         if (m_exprs.at(i) != other_->m_exprs.at(i))
             return false;
     return true;
-}
-
-z3::expr BoolAndExpr::to_z3(z3::context& ctx) const
-{
-    // I'm assuming that there is always at least one element in BoolAndExpr.
-    // There should be at least 2 elements in m_exprs, this must be enforced by
-    // ExprBuilder
-    z3::expr e(m_exprs.at(0)->to_z3(ctx));
-
-    for (uint64_t i = 1; i < m_exprs.size(); ++i) {
-        e = e && m_exprs.at(i)->to_z3(ctx);
-    }
-    return e;
 }
 
 // ***************
@@ -835,19 +693,6 @@ bool BoolOrExpr::eq(ExprPtr other) const
     return true;
 }
 
-z3::expr BoolOrExpr::to_z3(z3::context& ctx) const
-{
-    // I'm assuming that there is always at least one element in BoolOrExpr.
-    // There should be at least 2 elements in m_exprs, this must be enforced by
-    // ExprBuilder
-    z3::expr e(m_exprs.at(0)->to_z3(ctx));
-
-    for (uint64_t i = 1; i < m_exprs.size(); ++i) {
-        e = e || m_exprs.at(i)->to_z3(ctx);
-    }
-    return e;
-}
-
 // ***************
 // * LogicalExprs
 // ***************
@@ -872,57 +717,13 @@ z3::expr BoolOrExpr::to_z3(z3::context& ctx) const
     }
 
 GEN_BINARY_LOGICAL_EXPR_IMPL(UltExpr)
-z3::expr UltExpr::to_z3(z3::context& ctx) const
-{
-    return z3::ult(m_lhs->to_z3(ctx), m_rhs->to_z3(ctx));
-}
-
 GEN_BINARY_LOGICAL_EXPR_IMPL(UleExpr)
-z3::expr UleExpr::to_z3(z3::context& ctx) const
-{
-    return z3::ule(m_lhs->to_z3(ctx), m_rhs->to_z3(ctx));
-}
-
 GEN_BINARY_LOGICAL_EXPR_IMPL(UgtExpr)
-z3::expr UgtExpr::to_z3(z3::context& ctx) const
-{
-    return z3::ugt(m_lhs->to_z3(ctx), m_rhs->to_z3(ctx));
-}
-
 GEN_BINARY_LOGICAL_EXPR_IMPL(UgeExpr)
-z3::expr UgeExpr::to_z3(z3::context& ctx) const
-{
-    return z3::uge(m_lhs->to_z3(ctx), m_rhs->to_z3(ctx));
-}
-
 GEN_BINARY_LOGICAL_EXPR_IMPL(SltExpr)
-z3::expr SltExpr::to_z3(z3::context& ctx) const
-{
-    return z3::slt(m_lhs->to_z3(ctx), m_rhs->to_z3(ctx));
-}
-
 GEN_BINARY_LOGICAL_EXPR_IMPL(SleExpr)
-z3::expr SleExpr::to_z3(z3::context& ctx) const
-{
-    return z3::sle(m_lhs->to_z3(ctx), m_rhs->to_z3(ctx));
-}
-
 GEN_BINARY_LOGICAL_EXPR_IMPL(SgtExpr)
-z3::expr SgtExpr::to_z3(z3::context& ctx) const
-{
-    return z3::sgt(m_lhs->to_z3(ctx), m_rhs->to_z3(ctx));
-}
-
 GEN_BINARY_LOGICAL_EXPR_IMPL(SgeExpr)
-z3::expr SgeExpr::to_z3(z3::context& ctx) const
-{
-    return z3::sge(m_lhs->to_z3(ctx), m_rhs->to_z3(ctx));
-}
-
 GEN_BINARY_LOGICAL_EXPR_IMPL(EqExpr)
-z3::expr EqExpr::to_z3(z3::context& ctx) const
-{
-    return m_lhs->to_z3(ctx) == m_rhs->to_z3(ctx);
-}
 
 } // namespace naaz::expr

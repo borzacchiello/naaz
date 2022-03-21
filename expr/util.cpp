@@ -531,7 +531,7 @@ static std::string to_string_inner(ExprPtr                         e,
             break;
         }
         case Expr::Kind::UDIV: {
-            auto e_ = std::static_pointer_cast<const SDivExpr>(e);
+            auto e_ = std::static_pointer_cast<const UDivExpr>(e);
             res     = string_format("( %s /u %s )",
                                     to_string_inner(e_->lhs(), cache).c_str(),
                                     to_string_inner(e_->rhs(), cache).c_str());
@@ -553,7 +553,7 @@ static std::string to_string_inner(ExprPtr                         e,
         }
         case Expr::Kind::NOT: {
             auto e_ = std::static_pointer_cast<const NotExpr>(e);
-            res     = string_format("~%s", to_string_inner(e_->expr(), cache));
+            res     = string_format("!%s", to_string_inner(e_->expr(), cache));
             break;
         }
         case Expr::Kind::ULT: {

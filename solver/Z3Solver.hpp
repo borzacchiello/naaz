@@ -22,6 +22,8 @@ class Z3Solver
         return solv;
     }
 
+    z3::expr to_z3(expr::ExprPtr e);
+
     CheckResult check(expr::BoolExprPtr query);
 
     std::map<uint32_t, expr::BVConst> model();
