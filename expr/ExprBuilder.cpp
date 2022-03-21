@@ -140,7 +140,7 @@ BVExprPtr ExprBuilder::mk_extract(BVExprPtr expr, uint32_t high, uint32_t low)
     if (expr->kind() == Expr::Kind::CONCAT) {
         ConcatExprPtr expr_ = std::static_pointer_cast<const ConcatExpr>(expr);
 
-        uint32_t off = 0;
+        uint32_t off = expr_->els().size() * 8 - 8;
         for (auto e : expr_->els()) {
             uint32_t concat_high = e->size() + off - 1;
             uint32_t concat_low  = off;
@@ -148,7 +148,7 @@ BVExprPtr ExprBuilder::mk_extract(BVExprPtr expr, uint32_t high, uint32_t low)
             if (concat_high >= high && low >= concat_low)
                 return mk_extract(e, high - off, low - off);
 
-            off += e->size();
+            off -= e->size();
         }
     }
 

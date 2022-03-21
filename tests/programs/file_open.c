@@ -6,7 +6,7 @@ int buf[128];
 
 int main()
 {
-    int fd = open("foo.txt", O_RDONLY);
+    int fd = open("foo.dat", O_RDONLY);
     if (fd < 0)
         return -1;
 
