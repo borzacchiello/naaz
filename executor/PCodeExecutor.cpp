@@ -234,6 +234,16 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             write_to_varnode(ctx, *op.output, expr);
             break;
         }
+        case csleigh_CPUI_INT_LEFT: {
+            assert(op.output != nullptr && "INT_LEFT: output is NULL");
+            assert(op.inputs_count == 2 && "INT_LEFT: inputs_count != 2");
+            expr::BVExprPtr expr = exprBuilder.mk_shl(
+                resolve_varnode(ctx, op.inputs[0]),
+                exprBuilder.mk_zext(resolve_varnode(ctx, op.inputs[1]),
+                                    op.inputs[0].size * 8));
+            write_to_varnode(ctx, *op.output, expr);
+            break;
+        }
         case csleigh_CPUI_INT_ADD: {
             assert(op.output != nullptr && "INT_ADD: output is NULL");
             assert(op.inputs_count == 2 && "INT_ADD: inputs_count != 2");
