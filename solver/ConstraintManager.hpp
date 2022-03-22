@@ -24,10 +24,6 @@ class ConstraintManager
     // symbol depencency graph
     std::map<uint32_t, std::set<uint32_t>> m_dependencies;
 
-    void get_dependencies_inner(expr::ExprPtr           constraint,
-                                std::set<expr::ExprPtr> cache,
-                                std::set<uint32_t>      o_res) const;
-
   public:
     ConstraintManager() {}
     ConstraintManager(const ConstraintManager& other);

@@ -10,25 +10,21 @@ const std::string& Symbol::type_to_string(Type t)
 {
     switch (t) {
         case Type::FUNCTION: {
-            static const std::string name = "function    ";
-            return name;
-        }
-        case Type::EXT_FUNCTION: {
-            static const std::string name = "ext_function";
+            static const std::string name = "function";
             return name;
         }
         case Type::LOCAL: {
-            static const std::string name = "local       ";
+            static const std::string name = "local";
             return name;
         }
         case Type::GLOBAL: {
-            static const std::string name = "global      ";
+            static const std::string name = "global";
             return name;
         }
         default:
             break;
     }
-    static const std::string name = "unknown     ";
+    static const std::string name = "unknown";
     return name;
 }
 
@@ -179,17 +175,10 @@ void AddressSpace::register_symbol(uint64_t addr, const std::string& name,
     m_symbols.emplace(addr, syms);
 }
 
-std::optional<const Symbol*>
-AddressSpace::ext_function_symbol_at(uint64_t addr) const
+void AddressSpace::register_relocation(uint64_t addr, const std::string& name,
+                                       Relocation::Type t)
 {
-    if (!m_symbols.contains(addr))
-        return {};
-
-    for (auto& sym : m_symbols.at(addr)) {
-        if (sym.type() == Symbol::Type::EXT_FUNCTION)
-            return &sym;
-    }
-    return {};
+    m_relocs.push_back(Relocation(addr, name, t));
 }
 
 } // namespace naaz::loader

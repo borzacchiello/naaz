@@ -32,21 +32,18 @@ void Linker::link(state::State& state) const
                                    m_models.at("libc_start_main_exit_wrapper"));
     external_addr += state.arch().ptr_size() / 8;
 
-    for (auto const& [addr, syms] : state.address_space()->symbols()) {
-        for (auto const& sym : syms) {
-            if (sym.type() == loader::Symbol::Type::EXT_FUNCTION) {
-                if (!m_models.contains(sym.name()))
-                    info("Linker") << "link(): unmodeled linked function "
-                                   << sym.name() << std::endl;
-                else {
-                    auto fun_addr = expr::ExprBuilder::The().mk_const(
-                        external_addr, state.arch().ptr_size());
-                    state.write(addr, fun_addr);
-                    state.register_linked_function(external_addr,
-                                                   m_models.at(sym.name()));
-                    external_addr += state.arch().ptr_size() / 8;
-                }
-                break;
+    for (auto const& reloc : state.address_space()->relocations()) {
+        if (reloc.type() == loader::Relocation::Type::FUNC) {
+            if (!m_models.contains(reloc.name()))
+                info("Linker") << "link(): unmodeled linked function "
+                               << reloc.name() << std::endl;
+            else {
+                auto fun_addr = expr::ExprBuilder::The().mk_const(
+                    external_addr, state.arch().ptr_size());
+                state.write(reloc.addr(), fun_addr);
+                state.register_linked_function(external_addr,
+                                               m_models.at(reloc.name()));
+                external_addr += state.arch().ptr_size() / 8;
             }
         }
     }

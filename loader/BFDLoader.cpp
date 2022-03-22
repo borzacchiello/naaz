@@ -86,7 +86,8 @@ void BFDLoader::load_sections()
             exit_fail();
         }
 
-        bfd_get_section_contents(m_obj, bfd_sec, seg_data, 0, seg_size);
+        bfd_simple_get_relocated_section_contents(m_obj, bfd_sec, seg_data,
+                                                  NULL);
     }
 }
 
@@ -195,8 +196,13 @@ void BFDLoader::load_dyn_relocs()
         if ((*reloc->sym_ptr_ptr)->flags & BSF_FUNCTION) {
             std::string fname((*reloc->sym_ptr_ptr)->name);
             uint64_t    addr = reloc->address;
-            m_address_space->register_symbol(addr, fname,
-                                             Symbol::Type::EXT_FUNCTION);
+            m_address_space->register_relocation(addr, fname,
+                                                 Relocation::Type::FUNC);
+        } else if ((*reloc->sym_ptr_ptr)->flags & BSF_GLOBAL) {
+            std::string fname((*reloc->sym_ptr_ptr)->name);
+            uint64_t    addr = reloc->address;
+            m_address_space->register_relocation(addr, fname,
+                                                 Relocation::Type::DATA);
         }
     }
 }

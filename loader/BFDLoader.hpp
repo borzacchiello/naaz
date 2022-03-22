@@ -28,6 +28,7 @@ class BFDLoader : public Loader
     void process_symtable(asymbol* symtab[], size_t number_of_symbols);
     void load_symtab();
     void load_dyn_symtab();
+    void load_relocs();
     void load_dyn_relocs();
 
   public:

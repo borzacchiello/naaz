@@ -17,7 +17,7 @@ namespace naaz::loader
 class Symbol
 {
   public:
-    enum Type { FUNCTION, EXT_FUNCTION, LOCAL, GLOBAL, UNKNOWN };
+    enum Type { FUNCTION, LOCAL, GLOBAL, UNKNOWN };
 
   private:
     uint64_t    m_addr;
@@ -58,11 +58,33 @@ class Segment
     size_t             size() const { return m_size; }
 };
 
+class Relocation
+{
+  public:
+    enum Type { FUNC, DATA };
+
+  private:
+    uint64_t    m_addr;
+    std::string m_name;
+    Type        m_type;
+
+  public:
+    Relocation(uint64_t addr, const std::string& name, Type t)
+        : m_addr(addr), m_name(name), m_type(t)
+    {
+    }
+
+    uint64_t           addr() const { return m_addr; }
+    const std::string& name() const { return m_name; }
+    Type               type() const { return m_type; }
+};
+
 class AddressSpace
 {
   private:
     std::vector<Segment>                    m_segments;
     std::map<uint64_t, std::vector<Symbol>> m_symbols;
+    std::vector<Relocation>                 m_relocs;
 
   public:
     AddressSpace() {}
@@ -86,12 +108,14 @@ class AddressSpace
 
     void register_symbol(uint64_t addr, const std::string& name,
                          Symbol::Type type);
-    std::optional<const Symbol*> ext_function_symbol_at(uint64_t addr) const;
+    void register_relocation(uint64_t addr, const std::string& name,
+                             Relocation::Type type);
     const std::map<uint64_t, std::vector<Symbol>>& symbols() const
     {
         return m_symbols;
     }
-    const std::vector<Segment>& segments() const { return m_segments; }
+    const std::vector<Relocation>& relocations() const { return m_relocs; }
+    const std::vector<Segment>&    segments() const { return m_segments; }
 };
 
 } // namespace naaz::loader
