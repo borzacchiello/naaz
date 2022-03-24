@@ -38,6 +38,7 @@ set ( naaz_src
     models/libc/libc_start_main.cpp
     models/libc/exit.cpp
     models/libc/posix_file_handling.cpp
+    models/libc/string.cpp
     arch/Arch.cpp
     lifter/PCodeLifter.cpp
     loader/AddressSpace.cpp
