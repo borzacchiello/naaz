@@ -1,4 +1,5 @@
 #include "../expr/ExprBuilder.hpp"
+#include "../expr/util.hpp"
 #include "../util/ioutil.hpp"
 
 #include "Z3Solver.hpp"
@@ -23,6 +24,31 @@ CheckResult Z3Solver::check(expr::BoolExprPtr query)
         case z3::sat:
             res = CheckResult::SAT;
             break;
+    }
+
+    return res;
+}
+
+std::vector<expr::BVConst> Z3Solver::eval_upto(expr::BVExprPtr   val,
+                                               expr::BoolExprPtr pi, int32_t n)
+{
+    std::vector<expr::BVConst> res;
+
+    auto val_z3 = to_z3(val);
+    auto pi_z3  = to_z3(pi);
+
+    m_solver.reset();
+    m_solver.add(pi_z3);
+    while (n-- > 0) {
+        auto r = m_solver.check();
+        if (r != z3::sat)
+            break;
+
+        auto m        = model();
+        auto val_conc = std::static_pointer_cast<const expr::ConstExpr>(
+            expr::evaluate(val, m, true));
+        res.push_back(val_conc->val());
+        m_solver.add(to_z3(val_conc) != val_z3);
     }
 
     return res;

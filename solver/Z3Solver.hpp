@@ -24,7 +24,9 @@ class Z3Solver
 
     z3::expr to_z3(expr::ExprPtr e);
 
-    CheckResult check(expr::BoolExprPtr query);
+    CheckResult                check(expr::BoolExprPtr query);
+    std::vector<expr::BVConst> eval_upto(expr::BVExprPtr   val,
+                                         expr::BoolExprPtr pi, int32_t n);
 
     std::map<uint32_t, expr::BVConst> model();
 };

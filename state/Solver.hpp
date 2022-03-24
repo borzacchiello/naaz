@@ -25,7 +25,8 @@ class Solver
     solver::CheckResult check_sat(expr::BoolExprPtr c,
                                   bool              populate_model = true);
 
-    expr::BVConst evaluate(expr::ExprPtr e);
+    expr::BVConst              evaluate(expr::ExprPtr e);
+    std::vector<expr::BVConst> evaluate_upto(expr::BVExprPtr e, int n);
 };
 
 } // namespace naaz::state

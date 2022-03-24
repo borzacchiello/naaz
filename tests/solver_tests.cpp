@@ -62,3 +62,17 @@ TEST_CASE("Z3Solver 1", "[solver]")
     REQUIRE(sym1_val > 0);
     REQUIRE(sym1_val < 3);
 }
+
+TEST_CASE("Z3Solver eval_upto 1", "[solver]")
+{
+    ConstraintManager manager;
+
+    auto sym  = exprBuilder.mk_sym("sym", 32);
+    auto expr = exprBuilder.mk_mul(sym, exprBuilder.mk_const(2, 32));
+
+    manager.add(exprBuilder.mk_sgt(sym, exprBuilder.mk_const(0, 32)));
+    manager.add(exprBuilder.mk_sle(sym, exprBuilder.mk_const(16, 32)));
+
+    auto vals = Z3Solver::The().eval_upto(sym, manager.pi(sym), 32);
+    REQUIRE(vals.size() == 16);
+}

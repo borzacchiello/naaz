@@ -67,4 +67,9 @@ expr::BVConst Solver::evaluate(expr::ExprPtr e)
                : expr::BVConst(0UL, 1);
 }
 
+std::vector<expr::BVConst> Solver::evaluate_upto(expr::BVExprPtr e, int n)
+{
+    return solver::Z3Solver::The().eval_upto(e, m_manager.pi(e), n);
+}
+
 } // namespace naaz::state
