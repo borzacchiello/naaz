@@ -404,6 +404,16 @@ void BVConst::neg()
     adjust_bits();
 }
 
+void BVConst::bit_not()
+{
+    if (m_size <= 64) {
+        m_small_val = ~m_small_val;
+    } else {
+        m_big_val = ~m_big_val;
+    }
+    adjust_bits();
+}
+
 void BVConst::band(const BVConst& other)
 {
     check_size_or_die(*this, other);

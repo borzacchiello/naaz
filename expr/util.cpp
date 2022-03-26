@@ -124,6 +124,14 @@ static ExprPtr evaluate_inner(ExprPtr                            e,
             res = exprBuilder.mk_neg(eval_expr);
             break;
         }
+        case Expr::Kind::NOT: {
+            auto e_ = std::static_pointer_cast<const NotExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                    e_->expr(), assignments, model_completion, cache));
+            res = exprBuilder.mk_not(eval_expr);
+            break;
+        }
         case Expr::Kind::AND: {
             auto e_ = std::static_pointer_cast<const AndExpr>(e);
             auto eval_expr =
@@ -226,8 +234,8 @@ static ExprPtr evaluate_inner(ExprPtr                            e,
                         e_->rhs(), assignments, model_completion, cache)));
             break;
         }
-        case Expr::Kind::NOT: {
-            auto e_ = std::static_pointer_cast<const NotExpr>(e);
+        case Expr::Kind::BOOL_NOT: {
+            auto e_ = std::static_pointer_cast<const BoolNotExpr>(e);
             auto eval_expr =
                 std::static_pointer_cast<const BoolExpr>(evaluate_inner(
                     e_->expr(), assignments, model_completion, cache));
@@ -468,6 +476,11 @@ static std::string to_string_inner(ExprPtr                         e,
             res     = string_format("-%s", to_string_inner(e_->expr(), cache));
             break;
         }
+        case Expr::Kind::NOT: {
+            auto e_ = std::static_pointer_cast<const NotExpr>(e);
+            res     = string_format("~%s", to_string_inner(e_->expr(), cache));
+            break;
+        }
         case Expr::Kind::AND: {
             auto e_ = std::static_pointer_cast<const AndExpr>(e);
             res     = "( ";
@@ -551,8 +564,8 @@ static std::string to_string_inner(ExprPtr                         e,
                                     to_string_inner(e_->rhs(), cache).c_str());
             break;
         }
-        case Expr::Kind::NOT: {
-            auto e_ = std::static_pointer_cast<const NotExpr>(e);
+        case Expr::Kind::BOOL_NOT: {
+            auto e_ = std::static_pointer_cast<const BoolNotExpr>(e);
             res     = string_format("!%s",
                                     to_string_inner(e_->expr(), cache).c_str());
             break;

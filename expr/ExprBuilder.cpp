@@ -457,10 +457,22 @@ BVExprPtr ExprBuilder::mk_neg(BVExprPtr expr)
     return std::static_pointer_cast<const BVExpr>(get_or_create(e));
 }
 
+BVExprPtr ExprBuilder::mk_not(BVExprPtr expr)
+{
+    // constant propagation
+    if (expr->kind() == Expr::Kind::CONST) {
+        ConstExprPtr expr_ = std::static_pointer_cast<const ConstExpr>(expr);
+        BVConst      tmp(expr_->val());
+        tmp.bit_not();
+        return mk_const(tmp);
+    }
+
+    NotExpr e(expr);
+    return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+}
+
 BVExprPtr ExprBuilder::mk_add(BVExprPtr lhs, BVExprPtr rhs)
 {
-    // FIXME: add simplification 'add with negated'
-
     check_size_or_fail("add", lhs, rhs);
 
     std::vector<BVExprPtr> addends;
@@ -928,12 +940,12 @@ BoolExprPtr ExprBuilder::mk_not(BoolExprPtr expr)
     }
 
     // double not
-    if (expr->kind() == Expr::Kind::NOT) {
-        auto expr_ = std::static_pointer_cast<const NotExpr>(expr);
+    if (expr->kind() == Expr::Kind::BOOL_NOT) {
+        auto expr_ = std::static_pointer_cast<const BoolNotExpr>(expr);
         return expr_->expr();
     }
 
-    NotExpr e(expr);
+    BoolNotExpr e(expr);
     return std::static_pointer_cast<const BoolExpr>(get_or_create(e));
 }
 

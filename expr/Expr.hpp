@@ -37,6 +37,7 @@ class Expr
         LSHR,
         ASHR,
         NEG,
+        NOT,
         AND,
         OR,
         XOR,
@@ -48,7 +49,7 @@ class Expr
         UREM,
 
         // logical
-        NOT,
+        BOOL_NOT,
         ULT,
         ULE,
         UGT,
@@ -356,6 +357,35 @@ class NegExpr final : public BVExpr
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const NegExpr> NegExprPtr;
+
+class NotExpr final : public BVExpr
+{
+  private:
+    static const Kind ekind = Kind::NOT;
+
+    BVExprPtr m_expr;
+    size_t    m_size;
+
+  protected:
+    NotExpr(BVExprPtr expr) : m_expr(expr), m_size(m_expr->size()) {}
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return m_size; };
+    virtual ExprPtr    clone() const { return ExprPtr(new NotExpr(m_expr)); }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        return std::vector<ExprPtr>{m_expr};
+    }
+
+    BVExprPtr expr() const { return m_expr; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const NotExpr> NotExprPtr;
 
 class ShlExpr final : public BVExpr
 {
@@ -830,19 +860,19 @@ class BoolConst final : public BoolExpr
 };
 typedef std::shared_ptr<const BoolConst> BoolConstPtr;
 
-class NotExpr final : public BoolExpr
+class BoolNotExpr final : public BoolExpr
 {
   private:
-    static const Kind ekind = Kind::NOT;
+    static const Kind ekind = Kind::BOOL_NOT;
 
     BoolExprPtr m_expr;
 
   protected:
-    NotExpr(BoolExprPtr expr) : m_expr(expr) {}
+    BoolNotExpr(BoolExprPtr expr) : m_expr(expr) {}
 
   public:
     virtual const Kind kind() const { return ekind; };
-    virtual ExprPtr    clone() const { return ExprPtr(new NotExpr(m_expr)); }
+    virtual ExprPtr clone() const { return ExprPtr(new BoolNotExpr(m_expr)); }
 
     virtual uint64_t             hash() const;
     virtual bool                 eq(ExprPtr other) const;
@@ -855,7 +885,7 @@ class NotExpr final : public BoolExpr
 
     friend class ExprBuilder;
 };
-typedef std::shared_ptr<const NotExpr> NotExprPtr;
+typedef std::shared_ptr<const BoolNotExpr> BoolNotExprPtr;
 
 class BoolAndExpr final : public BoolExpr
 {

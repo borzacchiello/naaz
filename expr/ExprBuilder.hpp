@@ -49,6 +49,7 @@ class ExprBuilder
     BVExprPtr mk_lshr(BVExprPtr expr, BVExprPtr val);
     BVExprPtr mk_ashr(BVExprPtr expr, BVExprPtr val);
     BVExprPtr mk_neg(BVExprPtr expr);
+    BVExprPtr mk_not(BVExprPtr expr);
     BVExprPtr mk_add(BVExprPtr lhs, BVExprPtr rhs);
     BVExprPtr mk_sub(BVExprPtr lhs, BVExprPtr rhs);
     BVExprPtr mk_mul(BVExprPtr lhs, BVExprPtr rhs);

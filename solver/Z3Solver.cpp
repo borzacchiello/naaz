@@ -153,6 +153,11 @@ static z3::expr to_z3_inner(z3::context& ctx, expr::ExprPtr e,
             res     = -to_z3_inner(ctx, e_->expr(), cache);
             break;
         }
+        case expr::Expr::Kind::NOT: {
+            auto e_ = std::static_pointer_cast<const expr::NotExpr>(e);
+            res     = ~to_z3_inner(ctx, e_->expr(), cache);
+            break;
+        }
         case expr::Expr::Kind::AND: {
             auto e_ = std::static_pointer_cast<const expr::AndExpr>(e);
             res     = to_z3_inner(ctx, e_->els().at(0), cache);
@@ -212,8 +217,8 @@ static z3::expr to_z3_inner(z3::context& ctx, expr::ExprPtr e,
                                to_z3_inner(ctx, e_->rhs(), cache));
             break;
         }
-        case expr::Expr::Kind::NOT: {
-            auto e_ = std::static_pointer_cast<const expr::NotExpr>(e);
+        case expr::Expr::Kind::BOOL_NOT: {
+            auto e_ = std::static_pointer_cast<const expr::BoolNotExpr>(e);
             res     = !to_z3_inner(ctx, e_->expr(), cache);
             break;
         }

@@ -66,6 +66,7 @@ class BVConst
     void srem(const BVConst& other);
     void urem(const BVConst& other);
     void neg();
+    void bit_not();
 
     void band(const BVConst& other);
     void bor(const BVConst& other);

@@ -234,6 +234,29 @@ bool NegExpr::eq(ExprPtr other) const
 }
 
 // ***************
+// * NotExpr
+// ***************
+
+uint64_t NotExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, &m_size, sizeof(m_size));
+    void* raw_expr = (void*)m_expr.get();
+    XXH64_update(&state, raw_expr, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool NotExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const NotExpr>(other);
+    return m_size == other_->m_size && m_expr == other_->m_expr;
+}
+
+// ***************
 // * ShlExpr
 // ***************
 
@@ -612,10 +635,10 @@ bool BoolConst::eq(ExprPtr other) const
 }
 
 // ***************
-// * NotExpr
+// * BoolNotExpr
 // ***************
 
-uint64_t NotExpr::hash() const
+uint64_t BoolNotExpr::hash() const
 {
     XXH64_state_t state;
     XXH64_reset(&state, 0);
@@ -624,12 +647,12 @@ uint64_t NotExpr::hash() const
     return XXH64_digest(&state);
 }
 
-bool NotExpr::eq(ExprPtr other) const
+bool BoolNotExpr::eq(ExprPtr other) const
 {
     if (other->kind() != ekind)
         return false;
 
-    auto other_ = std::static_pointer_cast<const NotExpr>(other);
+    auto other_ = std::static_pointer_cast<const BoolNotExpr>(other);
     return m_expr == other_->m_expr;
 }
 
