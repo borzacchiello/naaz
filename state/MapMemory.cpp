@@ -4,19 +4,56 @@
 #include "../util/ioutil.hpp"
 #include "../util/strutil.hpp"
 
+#define exprBuilder ExprBuilder::The()
+
 namespace naaz::state
 {
 
 using namespace naaz::expr;
 
+MapMemory::MapMemory(const std::string& name, loader::AddressSpace* as,
+                     SymAccessBehavior ab, UninitReadBehavior b)
+    : m_name(name), m_as(as), m_uninit_behavior(b), m_sym_access_behavior(ab)
+{
+    if (m_sym_access_behavior.max_n_eval_read == 0 ||
+        m_sym_access_behavior.max_n_eval_write == 0) {
+        err("MapMemory")
+            << "m_sym_access_behavior cannot have zeroed parameters"
+            << std::endl;
+        exit_fail();
+    }
+}
+
 BVExprPtr MapMemory::read(BVExprPtr addr, size_t len, Endianess end)
 {
     if (addr->kind() != Expr::Kind::CONST) {
-        // FIXME: implement this
-        err("MapMemory")
-            << "read(): symbolic memory accesses are not implemented"
-            << std::endl;
-        exit_fail();
+        if (!m_solver) {
+            err("MapMemory")
+                << "read(): symbolic memory accesses without solver"
+                << std::endl;
+            exit_fail();
+        }
+
+        auto addrs = m_solver->evaluate_upto(
+            addr, m_sym_access_behavior.max_n_eval_read);
+        if (addrs.size() == m_sym_access_behavior.max_n_eval_read) {
+            // We have to add the constraint to PI
+            auto cond =
+                exprBuilder.mk_eq(exprBuilder.mk_const(addrs.at(0)), addr);
+            for (int i = 1; i < addrs.size(); ++i)
+                cond = exprBuilder.mk_bool_or(
+                    exprBuilder.mk_eq(exprBuilder.mk_const(addrs.at(i)), addr),
+                    cond);
+            m_solver->add(cond);
+        }
+
+        auto res = read(addrs.at(0).as_u64(), len, end);
+        for (int i = 1; i < addrs.size(); ++i) {
+            res = exprBuilder.mk_ite(
+                exprBuilder.mk_eq(exprBuilder.mk_const(addrs.at(i)), addr),
+                read(addrs.at(i).as_u64(), len, end), res);
+        }
+        return res;
     }
 
     ConstExprPtr addr_ = std::static_pointer_cast<const ConstExpr>(addr);
@@ -79,11 +116,36 @@ BVExprPtr MapMemory::read(uint64_t addr, size_t len, Endianess end)
 void MapMemory::write(BVExprPtr addr, BVExprPtr value, Endianess end)
 {
     if (addr->kind() != Expr::Kind::CONST) {
-        // FIXME: implement this
-        err("MapMemory") << "write(): symbolic memory accesses are "
-                            "not implemented"
-                         << std::endl;
-        exit_fail();
+        if (!m_solver) {
+            err("MapMemory")
+                << "write(): symbolic memory accesses without solver"
+                << std::endl;
+            exit_fail();
+        }
+
+        auto addrs = m_solver->evaluate_upto(
+            addr, m_sym_access_behavior.max_n_eval_read);
+        if (addrs.size() == m_sym_access_behavior.max_n_eval_read) {
+            // We have to add the constraint to PI
+            auto cond =
+                exprBuilder.mk_eq(exprBuilder.mk_const(addrs.at(0)), addr);
+            for (int i = 1; i < addrs.size(); ++i)
+                cond = exprBuilder.mk_bool_or(
+                    exprBuilder.mk_eq(exprBuilder.mk_const(addrs.at(i)), addr),
+                    cond);
+            m_solver->add(cond);
+        }
+
+        for (int i = 0; i < addrs.size(); ++i) {
+            auto addr_conc = addrs.at(i).as_u64();
+            write(
+                addr_conc,
+                exprBuilder.mk_ite(
+                    exprBuilder.mk_eq(exprBuilder.mk_const(addrs.at(i)), addr),
+                    value, read(addr_conc, value->size() / 8, end)),
+                end);
+        }
+        return;
     }
 
     ConstExprPtr addr_ = std::static_pointer_cast<const ConstExpr>(addr);

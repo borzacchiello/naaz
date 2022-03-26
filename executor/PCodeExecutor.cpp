@@ -66,6 +66,23 @@ void PCodeExecutor::write_to_varnode(ExecutionContext& ctx,
     }
 }
 
+void PCodeExecutor::handle_symbolic_ip(ExecutionContext& ctx,
+                                       expr::BVExprPtr   ip)
+{
+    auto dests = ctx.state->solver().evaluate_upto(ip, 256);
+    if (dests.size() == 256) {
+        info("PCodeExecutor")
+            << "handle_symbolic_ip(): unconstrained IP" << std::endl;
+        ctx.successors.exited.push_back(ctx.state);
+    } else {
+        for (auto dst : dests) {
+            auto successor = ctx.state->clone();
+            successor->set_pc(dst.as_u64());
+            ctx.successors.active.push_back(successor);
+        }
+    }
+}
+
 void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 {
     switch (op.opcode) {
@@ -437,13 +454,13 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 
             auto dst = resolve_varnode(ctx, op.inputs[0]);
             if (dst->kind() != expr::Expr::Kind::CONST) {
-                err("PCodeExecutor")
-                    << "FIXME: unhandled symbolic IP (BRANCHIND)" << std::endl;
-                exit_fail();
+                handle_symbolic_ip(ctx, dst);
+            } else {
+                auto dst_ =
+                    std::static_pointer_cast<const expr::ConstExpr>(dst);
+                ctx.state->set_pc(dst_->val().as_u64());
+                ctx.successors.active.push_back(ctx.state);
             }
-            auto dst_ = std::static_pointer_cast<const expr::ConstExpr>(dst);
-            ctx.state->set_pc(dst_->val().as_u64());
-            ctx.successors.active.push_back(ctx.state);
             break;
         }
         case csleigh_CPUI_CALLIND: {
@@ -455,13 +472,13 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 
             auto dst = resolve_varnode(ctx, op.inputs[0]);
             if (dst->kind() != expr::Expr::Kind::CONST) {
-                err("PCodeExecutor")
-                    << "FIXME: unhandled symbolic IP (CALLIND)" << std::endl;
-                exit_fail();
+                handle_symbolic_ip(ctx, dst);
+            } else {
+                auto dst_ =
+                    std::static_pointer_cast<const expr::ConstExpr>(dst);
+                ctx.state->set_pc(dst_->val().as_u64());
+                ctx.successors.active.push_back(ctx.state);
             }
-            auto dst_ = std::static_pointer_cast<const expr::ConstExpr>(dst);
-            ctx.state->set_pc(dst_->val().as_u64());
-            ctx.successors.active.push_back(ctx.state);
             break;
         }
         case csleigh_CPUI_RETURN: {
@@ -472,13 +489,13 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 
             auto dst = resolve_varnode(ctx, op.inputs[0]);
             if (dst->kind() != expr::Expr::Kind::CONST) {
-                err("PCodeExecutor")
-                    << "FIXME: unhandled symbolic IP (RETURN)" << std::endl;
-                exit_fail();
+                handle_symbolic_ip(ctx, dst);
+            } else {
+                auto dst_ =
+                    std::static_pointer_cast<const expr::ConstExpr>(dst);
+                ctx.state->set_pc(dst_->val().as_u64());
+                ctx.successors.active.push_back(ctx.state);
             }
-            auto dst_ = std::static_pointer_cast<const expr::ConstExpr>(dst);
-            ctx.state->set_pc(dst_->val().as_u64());
-            ctx.successors.active.push_back(ctx.state);
             break;
         }
         default:

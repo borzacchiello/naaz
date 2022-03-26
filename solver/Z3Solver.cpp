@@ -94,7 +94,8 @@ static z3::expr to_z3_inner(z3::context& ctx, expr::ExprPtr e,
             auto e_ = std::static_pointer_cast<const expr::BoolConst>(e);
             if (e_->is_true())
                 res = ctx.bool_val(true);
-            res = ctx.bool_val(false);
+            else
+                res = ctx.bool_val(false);
             break;
         }
         case expr::Expr::Kind::EXTRACT: {

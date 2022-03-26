@@ -1,5 +1,6 @@
-SRCS  = $(wildcard *.c)
-PROGS = $(patsubst %.c,%.elf,$(SRCS))
+SRCS   = $(wildcard *.c)
+PROGS  = $(patsubst %.c,%.elf,$(SRCS))
+CFLAGS = -O0
 
 all: $(PROGS)
 
