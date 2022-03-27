@@ -501,7 +501,7 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 
             expr::BoolExprPtr cond =
                 exprBuilder.bv_to_bool(resolve_varnode(ctx, op.inputs[1]));
-            std::cout << "cond: " << cond->to_string() << std::endl;
+            // std::cout << "cond: " << cond->to_string() << std::endl;
 
             state::StatePtr     other_state = ctx.state->clone();
             solver::CheckResult sat_cond = ctx.state->solver().check_sat(cond);
