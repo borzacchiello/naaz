@@ -3,6 +3,7 @@
 #include "../util/ioutil.hpp"
 #include "../expr/Expr.hpp"
 #include "../expr/ExprBuilder.hpp"
+#include "../expr/util.hpp"
 
 using namespace naaz::expr;
 
@@ -267,4 +268,32 @@ TEST_CASE("Sgt 1", "[expr]")
     BoolExprPtr e = exprBuilder.mk_sgt(exprBuilder.mk_const(-10, 8),
                                        exprBuilder.mk_const(0, 8));
     REQUIRE(e == exprBuilder.mk_false());
+}
+
+TEST_CASE("FPConst 1", "[expr]")
+{
+    FloatFormatPtr ff = std::make_shared<const FloatFormat>(8);
+    auto           e  = exprBuilder.mk_fp_const(ff, 42.42);
+
+    REQUIRE(e->to_string() == "42.420000");
+}
+
+TEST_CASE("bv_to_fp 1", "[expr]")
+{
+    FloatFormatPtr ff = std::make_shared<const FloatFormat>(8);
+
+    auto bv = exprBuilder.mk_const(0x404535C28F5C28F6UL, 64);
+    auto fp = exprBuilder.mk_bv_to_fp(ff, bv);
+
+    REQUIRE(fp->to_string() == "42.420000");
+}
+
+TEST_CASE("fp_to_bv 1", "[expr]")
+{
+    FloatFormatPtr ff = std::make_shared<const FloatFormat>(8);
+
+    auto fp = exprBuilder.mk_fp_const(ff, 42.42);
+    auto bv = exprBuilder.mk_fp_to_bv(fp);
+
+    REQUIRE(bv->to_string() == "0x404535c28f5c28f6");
 }

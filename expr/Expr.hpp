@@ -7,6 +7,7 @@
 #include <z3++.h>
 
 #include "BVConst.hpp"
+#include "FPConst.hpp"
 
 namespace naaz::expr
 {
@@ -61,7 +62,16 @@ class Expr
         EQ,
 
         BOOL_AND,
-        BOOL_OR
+        BOOL_OR,
+
+        // floating point
+        FP_CONST,
+        BV_TO_FP,
+        FP_TO_BV,
+        FP_CONVERT,
+        FP_IS_NAN,
+        FP_LT,
+        FP_EQ
     };
 
     virtual const Kind kind() const = 0;
@@ -997,5 +1007,192 @@ GEN_BINARY_LOGICAL_EXPR_CLASS(SleExpr, SleExprPtr, Kind::SLE)
 GEN_BINARY_LOGICAL_EXPR_CLASS(SgtExpr, SgtExprPtr, Kind::SGT)
 GEN_BINARY_LOGICAL_EXPR_CLASS(SgeExpr, SgeExprPtr, Kind::SGE)
 GEN_BINARY_LOGICAL_EXPR_CLASS(EqExpr, EqExprPtr, Kind::EQ)
+
+class FPExpr : public Expr
+{
+  protected:
+    FloatFormatPtr m_ff;
+
+    FPExpr(FloatFormatPtr ff) : m_ff(ff) {}
+
+  public:
+    FloatFormatPtr ff() const { return m_ff; }
+};
+typedef std::shared_ptr<const FPExpr> FPExprPtr;
+
+class FPConstExpr final : public FPExpr
+{
+  private:
+    static const Kind ekind = Kind::FP_CONST;
+
+    FPConst m_val;
+
+  protected:
+    FPConstExpr(FPConst c) : FPExpr(c.ff()), m_val(c) {}
+    FPConstExpr(FloatFormatPtr ff, double val) : FPExpr(ff), m_val(ff, val) {}
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual ExprPtr    clone() const { return ExprPtr(new FPConstExpr(m_val)); }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        return std::vector<ExprPtr>();
+    }
+
+    FPConst val() const { return m_val; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const FPConstExpr> FPConstExprPtr;
+
+class BVToFPExpr final : public FPExpr
+{
+  private:
+    static const Kind ekind = Kind::BV_TO_FP;
+
+    BVExprPtr m_expr;
+
+  protected:
+    BVToFPExpr(FloatFormatPtr ff, BVExprPtr expr) : FPExpr(ff), m_expr(expr) {}
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual ExprPtr    clone() const
+    {
+        return ExprPtr(new BVToFPExpr(m_ff, m_expr));
+    }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        return std::vector<ExprPtr>{m_expr};
+    }
+
+    BVExprPtr expr() const { return m_expr; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const BVToFPExpr> BVToFPExprPtr;
+
+class FPToBVExpr final : public BVExpr
+{
+  private:
+    static const Kind ekind = Kind::FP_TO_BV;
+
+    FPExprPtr m_expr;
+
+  protected:
+    FPToBVExpr(FPExprPtr expr) : m_expr(expr) {}
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual size_t     size() const { return m_expr->ff()->getSize() * 8; }
+    virtual ExprPtr    clone() const { return ExprPtr(new FPToBVExpr(m_expr)); }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        return std::vector<ExprPtr>{m_expr};
+    }
+
+    FPExprPtr expr() const { return m_expr; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const FPToBVExpr> FPToBVExprPtr;
+
+class FPConvert final : public FPExpr
+{
+  private:
+    static const Kind ekind = Kind::FP_CONVERT;
+
+    FPExprPtr m_expr;
+
+  protected:
+    FPConvert(FPExprPtr expr, FloatFormatPtr ff) : FPExpr(ff), m_expr(expr) {}
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual ExprPtr    clone() const
+    {
+        return ExprPtr(new FPConvert(m_expr, m_ff));
+    }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        return std::vector<ExprPtr>{m_expr};
+    }
+
+    FPExprPtr expr() const { return m_expr; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const FPConvert> FPConvertPtr;
+
+class FPIsNAN final : public BoolExpr
+{
+  private:
+    static const Kind ekind = Kind::FP_IS_NAN;
+
+    FPExprPtr m_expr;
+
+  protected:
+    FPIsNAN(FPExprPtr expr) : m_expr(expr) {}
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual ExprPtr    clone() const { return ExprPtr(new FPIsNAN(m_expr)); }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        return std::vector<ExprPtr>{m_expr};
+    }
+
+    FPExprPtr expr() const { return m_expr; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const FPIsNAN> FPIsNANPtr;
+
+#define GEN_FP_BINARY_LOGICAL_EXPR_CLASS(NAME, NAME_SHARED, KIND)              \
+    class NAME final : public BoolExpr                                         \
+    {                                                                          \
+      private:                                                                 \
+        static const Kind ekind = KIND;                                        \
+        FPExprPtr         m_lhs;                                               \
+        FPExprPtr         m_rhs;                                               \
+                                                                               \
+      protected:                                                               \
+        NAME(FPExprPtr lhs, FPExprPtr rhs) : m_lhs(lhs), m_rhs(rhs) {}         \
+                                                                               \
+      public:                                                                  \
+        virtual const Kind kind() const { return ekind; };                     \
+        virtual ExprPtr    clone() const                                       \
+        {                                                                      \
+            return ExprPtr(new NAME(m_lhs, m_rhs));                            \
+        }                                                                      \
+        virtual uint64_t             hash() const;                             \
+        virtual bool                 eq(ExprPtr other) const;                  \
+        virtual std::vector<ExprPtr> children() const                          \
+        {                                                                      \
+            return std::vector<ExprPtr>{m_lhs, m_rhs};                         \
+        }                                                                      \
+        FPExprPtr lhs() const { return m_lhs; }                                \
+        FPExprPtr rhs() const { return m_rhs; }                                \
+        friend class ExprBuilder;                                              \
+    };                                                                         \
+    typedef std::shared_ptr<const NAME> NAME_SHARED;
+
+GEN_FP_BINARY_LOGICAL_EXPR_CLASS(FPEqExpr, FPEqExprPtr, Kind::FP_EQ)
+GEN_FP_BINARY_LOGICAL_EXPR_CLASS(FPLtExpr, FPLtExprPtr, Kind::FP_LT)
 
 } // namespace naaz::expr

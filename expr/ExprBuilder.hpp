@@ -78,6 +78,15 @@ class ExprBuilder
     BoolExprPtr mk_bool_and(BoolExprPtr e1, BoolExprPtr e2);
     BoolExprPtr mk_bool_or(BoolExprPtr e1, BoolExprPtr e2);
 
+    // floating point
+    FPConstExprPtr mk_fp_const(FloatFormatPtr ff, double v);
+    FPExprPtr      mk_bv_to_fp(FloatFormatPtr ff, BVExprPtr expr);
+    BVExprPtr      mk_fp_to_bv(FPExprPtr expr);
+    FPExprPtr      mk_fp_convert(FPExprPtr expr, FloatFormatPtr ff);
+    BoolExprPtr    mk_fp_is_nan(FPExprPtr expr);
+    BoolExprPtr    mk_fp_lt(FPExprPtr lhs, FPExprPtr rhs);
+    BoolExprPtr    mk_fp_eq(FPExprPtr lhs, FPExprPtr rhs);
+
     // util
     BVExprPtr   sign_bit(BVExprPtr expr);
     BVExprPtr   bool_to_bv(BoolExprPtr expr);

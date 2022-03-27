@@ -1226,4 +1226,112 @@ BoolExprPtr ExprBuilder::bv_to_bool(BVExprPtr expr)
     return mk_ugt(expr, mk_const(0, expr->size()));
 }
 
+FPConstExprPtr ExprBuilder::mk_fp_const(FloatFormatPtr ff, double v)
+{
+    FPConstExpr c(ff, v);
+    return std::static_pointer_cast<const FPConstExpr>(get_or_create(c));
+}
+
+FPExprPtr ExprBuilder::mk_bv_to_fp(FloatFormatPtr ff, BVExprPtr expr)
+{
+    if (ff->getSize() * 8 != expr->size()) {
+        err("ExprBuilder") << "mk_bv_to_fp(): inconsistent size" << std::endl;
+        exit_fail();
+    }
+
+    // constant propagation
+    if (expr->kind() == Expr::Kind::CONST) {
+        auto        expr_ = std::static_pointer_cast<const ConstExpr>(expr);
+        FPConstExpr c(FPConst(ff, expr_->val().as_u64()));
+        return std::static_pointer_cast<const FPConstExpr>(get_or_create(c));
+    }
+
+    // bv_to_fp of fp_to_bv
+    if (expr->kind() == Expr::Kind::FP_TO_BV) {
+        auto expr_ = std::static_pointer_cast<const FPToBVExpr>(expr);
+        return expr_->expr();
+    }
+
+    BVToFPExpr e(ff, expr);
+    return std::static_pointer_cast<const FPExpr>(get_or_create(e));
+}
+
+BVExprPtr ExprBuilder::mk_fp_to_bv(FPExprPtr expr)
+{
+    // constant propagation
+    if (expr->kind() == Expr::Kind::FP_CONST) {
+        auto expr_ = std::static_pointer_cast<const FPConstExpr>(expr);
+        return mk_const(expr_->val().val(), expr_->val().size());
+    }
+
+    // fp_to_bv of bv_to_fp
+    if (expr->kind() == Expr::Kind::BV_TO_FP) {
+        auto expr_ = std::static_pointer_cast<const BVToFPExpr>(expr);
+        return expr_->expr();
+    }
+
+    FPToBVExpr e(expr);
+    return std::static_pointer_cast<const BVExpr>(get_or_create(e));
+}
+
+FPExprPtr ExprBuilder::mk_fp_convert(FPExprPtr expr, FloatFormatPtr ff)
+{
+    // unuseful op
+    if (ff == expr->ff())
+        return expr;
+
+    // constant propagation
+    if (expr->kind() == Expr::Kind::FP_CONST) {
+        auto expr_ = std::static_pointer_cast<const FPConstExpr>(expr);
+        auto val   = expr_->val();
+        val.convert(ff);
+        FPConstExpr c(val);
+        return std::static_pointer_cast<const FPConstExpr>(get_or_create(c));
+    }
+
+    FPConvert e(expr, ff);
+    return std::static_pointer_cast<const FPExpr>(get_or_create(e));
+}
+
+BoolExprPtr ExprBuilder::mk_fp_is_nan(FPExprPtr expr)
+{
+    // constant propagation
+    if (expr->kind() == Expr::Kind::FP_CONST) {
+        auto expr_ = std::static_pointer_cast<const FPConstExpr>(expr);
+        auto val   = expr_->val();
+        return val.is_nan() ? mk_true() : mk_false();
+    }
+
+    FPIsNAN e(expr);
+    return std::static_pointer_cast<const FPIsNAN>(get_or_create(e));
+}
+
+BoolExprPtr ExprBuilder::mk_fp_lt(FPExprPtr lhs, FPExprPtr rhs)
+{
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::FP_CONST &&
+        rhs->kind() == Expr::Kind::FP_CONST) {
+        auto lhs_ = std::static_pointer_cast<const FPConstExpr>(lhs);
+        auto rhs_ = std::static_pointer_cast<const FPConstExpr>(rhs);
+        return lhs_->val().lt(rhs_->val()) ? mk_true() : mk_false();
+    }
+
+    FPLtExpr e(lhs, rhs);
+    return std::static_pointer_cast<const FPLtExpr>(get_or_create(e));
+}
+
+BoolExprPtr ExprBuilder::mk_fp_eq(FPExprPtr lhs, FPExprPtr rhs)
+{
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::FP_CONST &&
+        rhs->kind() == Expr::Kind::FP_CONST) {
+        auto lhs_ = std::static_pointer_cast<const FPConstExpr>(lhs);
+        auto rhs_ = std::static_pointer_cast<const FPConstExpr>(rhs);
+        return lhs_->val().eq(rhs_->val()) ? mk_true() : mk_false();
+    }
+
+    FPEqExpr e(lhs, rhs);
+    return std::static_pointer_cast<const FPEqExpr>(get_or_create(e));
+}
+
 } // namespace naaz::expr

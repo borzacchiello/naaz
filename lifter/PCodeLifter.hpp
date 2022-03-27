@@ -36,6 +36,7 @@ class PCodeLifter
   private:
     csleigh_Context                                 m_ctx;
     const Arch&                                     m_arch;
+    std::vector<FloatFormatPtr>                     m_float_formats;
     std::map<uint64_t, std::unique_ptr<PCodeBlock>> m_blocks;
 
   public:
@@ -47,6 +48,8 @@ class PCodeLifter
     std::string       reg_name(csleigh_Varnode v) const;
     csleigh_Varnode   reg(const std::string& name) const;
     const Arch&       arch() const { return m_arch; }
+
+    FloatFormatPtr get_float_format(int32_t size) const;
 
     void clear_block_cache();
 

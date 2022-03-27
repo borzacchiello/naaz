@@ -369,6 +369,58 @@ static ExprPtr evaluate_inner(ExprPtr                            e,
             res = eval_expr;
             break;
         }
+        case Expr::Kind::FP_CONST: {
+            res = e;
+            break;
+        }
+        case Expr::Kind::BV_TO_FP: {
+            auto e_ = std::static_pointer_cast<const BVToFPExpr>(e);
+            res     = exprBuilder.mk_bv_to_fp(
+                    e_->ff(),
+                    std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                        e_->expr(), assignments, model_completion, cache)));
+            break;
+        }
+        case Expr::Kind::FP_TO_BV: {
+            auto e_ = std::static_pointer_cast<const FPToBVExpr>(e);
+            res     = exprBuilder.mk_fp_to_bv(
+                    std::static_pointer_cast<const FPExpr>(evaluate_inner(
+                        e_->expr(), assignments, model_completion, cache)));
+            break;
+        }
+        case Expr::Kind::FP_CONVERT: {
+            auto e_ = std::static_pointer_cast<const FPConvert>(e);
+            res     = exprBuilder.mk_fp_convert(
+                    std::static_pointer_cast<const FPExpr>(evaluate_inner(
+                        e_->expr(), assignments, model_completion, cache)),
+                    e_->ff());
+            break;
+        }
+        case Expr::Kind::FP_IS_NAN: {
+            auto e_ = std::static_pointer_cast<const FPIsNAN>(e);
+            res     = exprBuilder.mk_fp_is_nan(
+                    std::static_pointer_cast<const FPExpr>(evaluate_inner(
+                        e_->expr(), assignments, model_completion, cache)));
+            break;
+        }
+        case Expr::Kind::FP_LT: {
+            auto e_ = std::static_pointer_cast<const FPLtExpr>(e);
+            res     = exprBuilder.mk_fp_lt(
+                    std::static_pointer_cast<const FPExpr>(evaluate_inner(
+                        e_->lhs(), assignments, model_completion, cache)),
+                    std::static_pointer_cast<const FPExpr>(evaluate_inner(
+                        e_->rhs(), assignments, model_completion, cache)));
+            break;
+        }
+        case Expr::Kind::FP_EQ: {
+            auto e_ = std::static_pointer_cast<const FPEqExpr>(e);
+            res     = exprBuilder.mk_fp_eq(
+                    std::static_pointer_cast<const FPExpr>(evaluate_inner(
+                        e_->lhs(), assignments, model_completion, cache)),
+                    std::static_pointer_cast<const FPExpr>(evaluate_inner(
+                        e_->rhs(), assignments, model_completion, cache)));
+            break;
+        }
         default:
             err("expr::evaluate_inner")
                 << "unexpected kind " << e->kind() << std::endl;
@@ -653,6 +705,52 @@ static std::string to_string_inner(ExprPtr                         e,
                 res += to_string_inner(e_->exprs().at(i), cache);
             }
             res += " )";
+            break;
+        }
+        case Expr::Kind::FP_CONST: {
+            auto e_  = std::static_pointer_cast<const FPConstExpr>(e);
+            auto val = e_->val();
+            res      = string_format("%lf", val.as_double());
+            break;
+        }
+        case Expr::Kind::BV_TO_FP: {
+            auto e_ = std::static_pointer_cast<const BVToFPExpr>(e);
+            res     = string_format("BVToFP(%s)",
+                                    to_string_inner(e_->expr(), cache).c_str());
+            break;
+        }
+        case Expr::Kind::FP_TO_BV: {
+            auto e_ = std::static_pointer_cast<const FPToBVExpr>(e);
+            res     = string_format("FPToBV(%s)",
+                                    to_string_inner(e_->expr(), cache).c_str());
+            break;
+        }
+        case Expr::Kind::FP_CONVERT: {
+            auto e_ = std::static_pointer_cast<const FPConvert>(e);
+            res     = string_format("FPConvert(%s, %d, %d)",
+                                    to_string_inner(e_->expr(), cache).c_str(),
+                                    e_->expr()->ff()->getSize() * 8,
+                                    e_->ff()->getSize() * 8);
+            break;
+        }
+        case Expr::Kind::FP_IS_NAN: {
+            auto e_ = std::static_pointer_cast<const FPIsNAN>(e);
+            res     = string_format("FPIsNAN(%s)",
+                                    to_string_inner(e_->expr(), cache).c_str());
+            break;
+        }
+        case Expr::Kind::FP_LT: {
+            auto e_ = std::static_pointer_cast<const FPLtExpr>(e);
+            res     = string_format("( %s < %s )",
+                                    to_string_inner(e_->lhs(), cache).c_str(),
+                                    to_string_inner(e_->rhs(), cache).c_str());
+            break;
+        }
+        case Expr::Kind::FP_EQ: {
+            auto e_ = std::static_pointer_cast<const FPEqExpr>(e);
+            res     = string_format("( %s == %s )",
+                                    to_string_inner(e_->lhs(), cache).c_str(),
+                                    to_string_inner(e_->rhs(), cache).c_str());
             break;
         }
         default:

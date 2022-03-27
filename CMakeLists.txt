@@ -26,6 +26,7 @@ set ( naaz_src
     util/ioutil.cpp
     util/strutil.cpp
     expr/BVConst.cpp
+    expr/FPConst.cpp
     expr/Expr.cpp
     expr/ExprBuilder.cpp
     expr/util.cpp

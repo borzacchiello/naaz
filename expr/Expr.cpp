@@ -749,4 +749,119 @@ GEN_BINARY_LOGICAL_EXPR_IMPL(SgtExpr)
 GEN_BINARY_LOGICAL_EXPR_IMPL(SgeExpr)
 GEN_BINARY_LOGICAL_EXPR_IMPL(EqExpr)
 
+// ***************
+// * FPConstExpr
+// ***************
+
+uint64_t FPConstExpr::hash() const { return m_val.hash(); }
+
+bool FPConstExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const FPConstExpr>(other);
+    if (m_ff != other_->m_ff)
+        return false;
+
+    return m_val.eq(other_->m_val);
+}
+
+// ***************
+// * BVToFPExpr
+// ***************
+
+uint64_t BVToFPExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, (void*)m_ff.get(), sizeof(void*));
+    void* raw_expr = (void*)m_expr.get();
+    XXH64_update(&state, raw_expr, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool BVToFPExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const BVToFPExpr>(other);
+    return m_ff == other_->m_ff && m_expr == other_->m_expr;
+}
+
+// ***************
+// * FPToBVExpr
+// ***************
+
+uint64_t FPToBVExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    void* raw_expr = (void*)m_expr.get();
+    XXH64_update(&state, raw_expr, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool FPToBVExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const FPToBVExpr>(other);
+    return size() == other_->size() && m_expr == other_->m_expr;
+}
+
+// ***************
+// * FPConvert
+// ***************
+
+uint64_t FPConvert::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    void* raw_expr = (void*)m_expr.get();
+    XXH64_update(&state, raw_expr, sizeof(void*));
+    XXH64_update(&state, (void*)m_ff.get(), sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool FPConvert::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const FPConvert>(other);
+    return m_ff == other_->m_ff && m_expr == other_->m_expr;
+}
+
+// ***************
+// * FPIsNAN
+// ***************
+
+uint64_t FPIsNAN::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    void* raw_expr = (void*)m_expr.get();
+    XXH64_update(&state, raw_expr, sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool FPIsNAN::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const FPIsNAN>(other);
+    return m_expr == other_->m_expr;
+}
+
+// ***************
+// * FPLogicalExprs
+// ***************
+
+GEN_BINARY_LOGICAL_EXPR_IMPL(FPEqExpr)
+GEN_BINARY_LOGICAL_EXPR_IMPL(FPLtExpr)
+
 } // namespace naaz::expr

@@ -113,6 +113,10 @@ PCodeLifter::PCodeLifter(const Arch& arch) : m_arch(arch)
 
         csleigh_setVariableDefault(m_ctx, name.c_str(), val);
     }
+
+    auto ffs = csleigh_Sleigh_getFloatFormats(m_ctx);
+    for (auto ff : ffs)
+        m_float_formats.push_back(FloatFormatPtr(new FloatFormat(*ff)));
 }
 
 PCodeLifter::~PCodeLifter() { csleigh_destroyContext(m_ctx); }
@@ -146,6 +150,15 @@ std::string PCodeLifter::reg_name(csleigh_Varnode v) const
 
     return std::string(
         csleigh_Sleigh_getRegisterName(m_ctx, v.space, v.offset, v.size));
+}
+
+FloatFormatPtr PCodeLifter::get_float_format(int32_t size) const
+{
+    for (auto ff : m_float_formats) {
+        if (ff->getSize() == size)
+            return ff;
+    }
+    return nullptr;
 }
 
 csleigh_Varnode PCodeLifter::reg(const std::string& name) const

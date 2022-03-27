@@ -16,6 +16,8 @@ CheckResult Z3Solver::check(expr::BoolExprPtr query)
     m_solver.reset();
     m_solver.add(to_z3(query));
 
+    std::cout << std::endl << m_solver.to_smt2() << std::endl;
+
     CheckResult res = CheckResult::UNKNOWN;
     switch (m_solver.check()) {
         case z3::unsat:
@@ -70,6 +72,25 @@ std::map<uint32_t, expr::BVConst> Z3Solver::model()
         res.emplace(exprBuilder.get_sym_id(v.name().str()), bv);
     }
     return res;
+}
+
+static uint32_t countSetBits(uint64_t n)
+{
+    uint32_t count = 0;
+    while (n) {
+        count += n & 1;
+        n >>= 1;
+    }
+    return count;
+}
+
+static z3::sort get_fp_sort(z3::context& ctx, FloatFormatPtr ff)
+{
+    const uint64_t mask       = (2UL << (63UL)) - 1UL;
+    uint32_t       fract_size = countSetBits(ff->extractFractionalCode(mask));
+    uint32_t       exp_size   = ff->getSize() * 8UL - 1UL - fract_size;
+
+    return ctx.fpa_sort(exp_size, fract_size);
 }
 
 static z3::expr to_z3_inner(z3::context& ctx, expr::ExprPtr e,
@@ -288,6 +309,49 @@ static z3::expr to_z3_inner(z3::context& ctx, expr::ExprPtr e,
             res     = to_z3_inner(ctx, e_->exprs().at(0), cache);
             for (uint64_t i = 1; i < e_->exprs().size(); ++i)
                 res = res || to_z3_inner(ctx, e_->exprs().at(i), cache);
+            break;
+        }
+        case expr::Expr::Kind::FP_CONST: {
+            auto     e_ = std::static_pointer_cast<const expr::FPConstExpr>(e);
+            z3::sort s  = get_fp_sort(ctx, e_->ff());
+            Z3_ast r = Z3_mk_fpa_numeral_double(ctx, e_->val().as_double(), s);
+            res      = z3::expr(ctx, r);
+            break;
+        }
+        case expr::Expr::Kind::BV_TO_FP: {
+            auto e_ = std::static_pointer_cast<const expr::BVToFPExpr>(e);
+            res     = z3::ubv_to_fpa(to_z3_inner(ctx, e_->expr(), cache),
+                                     get_fp_sort(ctx, e_->ff()));
+            break;
+        }
+        case expr::Expr::Kind::FP_TO_BV: {
+            auto e_ = std::static_pointer_cast<const expr::FPToBVExpr>(e);
+            res =
+                z3::fpa_to_ubv(to_z3_inner(ctx, e_->expr(), cache), e_->size());
+            break;
+        }
+        case expr::Expr::Kind::FP_CONVERT: {
+            auto e_ = std::static_pointer_cast<const expr::FPConvert>(e);
+            res     = z3::fpa_to_fpa(to_z3_inner(ctx, e_->expr(), cache),
+                                     get_fp_sort(ctx, e_->ff()));
+            break;
+        }
+        case expr::Expr::Kind::FP_IS_NAN: {
+            auto e_ = std::static_pointer_cast<const expr::FPIsNAN>(e);
+            res     = to_z3_inner(ctx, e_->expr(), cache) ==
+                  ctx.fpa_nan(get_fp_sort(ctx, e_->expr()->ff()));
+            break;
+        }
+        case expr::Expr::Kind::FP_EQ: {
+            auto e_ = std::static_pointer_cast<const expr::FPEqExpr>(e);
+            res     = to_z3_inner(ctx, e_->lhs(), cache) ==
+                  to_z3_inner(ctx, e_->rhs(), cache);
+            break;
+        }
+        case expr::Expr::Kind::FP_LT: {
+            auto e_ = std::static_pointer_cast<const expr::FPLtExpr>(e);
+            res     = to_z3_inner(ctx, e_->lhs(), cache) <
+                  to_z3_inner(ctx, e_->rhs(), cache);
             break;
         }
         default:
