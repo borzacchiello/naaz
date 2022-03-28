@@ -12,7 +12,7 @@ using namespace naaz;
 
 static void usage(const char* name)
 {
-    fprintf(stderr, "%s <binary>\n", name);
+    fprintf(stderr, "%s <binary> [<arg> ...]\n", name);
     exit(1);
 }
 
@@ -23,8 +23,14 @@ int main(int argc, char const* argv[])
 
     const char* binpath = argv[1];
 
+    std::vector<std::string> state_argv;
+    for (int i = 1; i < argc; ++i) {
+        state_argv.push_back(argv[i]);
+    }
+
     loader::BFDLoader loader(binpath);
     state::StatePtr   entry_state = loader.entry_state();
+    entry_state->set_argv(state_argv);
 
     executor::RandDFSExecutorManager em(entry_state);
 

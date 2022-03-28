@@ -24,8 +24,7 @@ void Linker::register_model(const std::string& name, const Model* m)
 
 void Linker::link(state::State& state) const
 {
-    // FIXME: should be obtained dynamically
-    uint64_t external_addr = 0x5000000;
+    uint64_t external_addr = state.arch().get_ext_func_base();
 
     // register libc_start_main_exit_wrapper function
     state.register_linked_function(external_addr,

@@ -21,8 +21,10 @@ typedef std::shared_ptr<State> StatePtr;
 class State
 {
     uint64_t m_pc;
+    uint64_t m_heap_ptr;
 
-    std::vector<uint64_t> m_stacktrace;
+    std::vector<uint64_t>        m_stacktrace;
+    std::vector<expr::BVExprPtr> m_argv;
 
     std::unique_ptr<MapMemory>  m_regs;
     std::unique_ptr<MapMemory>  m_ram;
@@ -91,6 +93,13 @@ class State
     }
 
     StatePtr clone() const { return std::shared_ptr<State>(new State(*this)); }
+
+    uint64_t allocate(uint64_t size);
+    uint64_t allocate(expr::ExprPtr size);
+
+    const std::vector<expr::BVExprPtr>& get_argv() const { return m_argv; }
+    void set_argv(const std::vector<std::string>& argv);
+    void set_argv(const std::vector<expr::BVExprPtr>& argv) { m_argv = argv; }
 
     // exited stuff
     bool    exited  = false;

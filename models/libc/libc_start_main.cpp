@@ -1,6 +1,7 @@
 #include "directory.hpp"
 
 #include "../../expr/Expr.hpp"
+#include "../../expr/ExprBuilder.hpp"
 #include "../../state/State.hpp"
 #include "../../util/ioutil.hpp"
 
@@ -33,6 +34,22 @@ void __libc_start_main::exec(state::StatePtr           s,
 
     // The return address of libc_start_main is the exit function
     s->arch().set_return(s, s->get_libc_start_main_exit_wrapper_address());
+
+    // Set argv (if defined)
+    uint32_t    i    = 0;
+    const auto& argv = s->get_argv();
+    for (auto arg : argv) {
+        if (arg->size() % 8UL != 0) {
+            err("__libc_start_main") << "invalid argv" << std::endl;
+            exit_fail();
+        }
+
+        auto arg_ptr = s->allocate(arg->size() / 8UL);
+        s->write_buf(arg_ptr, arg);
+        s->arch().set_int_param(
+            m_call_conv, *s, i++,
+            expr::ExprBuilder::The().mk_const(arg_ptr, s->arch().ptr_size()));
+    }
 
     auto main_addr_conc =
         std::static_pointer_cast<const expr::ConstExpr>(main_addr)

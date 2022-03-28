@@ -118,6 +118,45 @@ expr::BVExprPtr x86_64::get_int_param(CallConv cv, state::State& s,
     exit_fail();
 }
 
+void x86_64::set_int_param(CallConv cv, state::State& s, uint32_t i,
+                           expr::BVExprPtr val) const
+{
+    switch (cv) {
+        case CallConv::CDECL: {
+            switch (i) {
+                case 0:
+                    s.reg_write("RDI", val);
+                    return;
+                case 1:
+                    s.reg_write("RSI", val);
+                case 2:
+                    s.reg_write("RDX", val);
+                case 3:
+                    s.reg_write("RCX", val);
+                case 4:
+                    s.reg_write("R8", val);
+                case 5:
+                    s.reg_write("R9", val);
+                default: {
+                    uint64_t stack_off = (i + 1UL - 6UL) * 8UL;
+                    auto     stack_off_expr =
+                        expr::ExprBuilder::The().mk_const(stack_off, 64);
+                    auto addr = expr::ExprBuilder::The().mk_add(
+                        s.reg_read("RSP"), stack_off_expr);
+                    return s.write(addr, val);
+                }
+            }
+            break;
+        }
+        default:
+            break;
+    }
+
+    err("arch::x86_64") << "set_int_param(): unsupported calling convention "
+                        << cv << std::endl;
+    exit_fail();
+}
+
 void x86_64::set_return_int_value(CallConv cv, state::State& s,
                                   expr::BVExprPtr val) const
 {

@@ -4,6 +4,9 @@
 #include <fstream>
 
 #include "../models/Linker.hpp"
+#include "../expr/ExprBuilder.hpp"
+#include "../util/ioutil.hpp"
+#include "../util/strutil.hpp"
 
 namespace naaz::state
 {
@@ -20,12 +23,15 @@ State::State(std::shared_ptr<loader::AddressSpace> as,
     m_ram->set_solver(&m_solver);
 
     // Initialize the state (e.g., stack pointer, linked functions)
+    m_heap_ptr = arch().get_heap_ptr();
+
     arch().init_state(*this);
     models::Linker::The().link(*this);
 }
 
 State::State(const State& other)
-    : m_as(other.m_as), m_lifter(other.m_lifter),
+    : m_as(other.m_as), m_lifter(other.m_lifter), m_pc(other.m_pc),
+      m_heap_ptr(other.m_heap_ptr), m_argv(other.m_argv),
       m_linked_functions(other.m_linked_functions), m_solver(other.m_solver)
 {
     m_ram  = other.m_ram->clone();
@@ -156,6 +162,67 @@ void State::dump_fs(std::filesystem::path out_dir)
         auto data      = data_eval.as_data();
         fout.write((const char*)data.data(), data.size());
         fout.close();
+    }
+}
+
+uint64_t State::allocate(uint64_t size)
+{
+    auto res = m_heap_ptr;
+    m_heap_ptr += size;
+    return m_heap_ptr;
+}
+
+uint64_t State::allocate(expr::ExprPtr size)
+{
+    if (size->kind() != expr::Expr::Kind::CONST) {
+        err("State") << "allocate(): symbolic size is not supported"
+                     << std::endl;
+        exit_fail();
+    }
+
+    auto size_ = std::static_pointer_cast<const expr::ConstExpr>(size);
+    return allocate(size_->val().as_u64());
+}
+
+static bool parse_uint32(const char* arg, uint64_t* out)
+{
+    const char* needle = arg;
+    while (*needle == ' ' || *needle == '\t')
+        needle++;
+
+    char*    res;
+    uint64_t num = strtoul(needle, &res, 0);
+    if (needle == res)
+        return false; // no character
+    if (errno != 0)
+        return false; // error while parsing
+
+    *out = num;
+    return res;
+}
+
+void State::set_argv(const std::vector<std::string>& argv)
+{
+    m_argv.clear();
+
+    static int argv_sym_idx = 0;
+    for (const auto& s : argv) {
+        if (s.starts_with("@@:")) {
+            auto     size_str = s.substr(3, s.size() - 3);
+            uint64_t size;
+            if (!parse_uint32(size_str.c_str(), &size)) {
+                err("State")
+                    << "set_argv(): invalid '@@:<size>' directive" << std::endl;
+                exit_fail();
+            }
+            auto sym = expr::ExprBuilder::The().mk_sym(
+                string_format("argv_%d", argv_sym_idx++), size * 8);
+            auto sym_nullterm = expr::ExprBuilder::The().mk_concat(
+                sym, expr::ExprBuilder::The().mk_const(0UL, 8));
+            m_argv.push_back(sym_nullterm);
+        } else
+            m_argv.push_back(expr::ExprBuilder::The().mk_const(
+                expr::BVConst((const uint8_t*)s.data(), s.size() + 1)));
     }
 }
 
