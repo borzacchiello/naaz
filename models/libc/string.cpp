@@ -77,4 +77,58 @@ void memcmp::exec(state::StatePtr           s,
     s->arch().handle_return(s, o_successors);
 }
 
+void strlen::exec(state::StatePtr           s,
+                  executor::ExecutorResult& o_successors) const
+{
+    auto str = s->get_int_param(m_call_conv, 0);
+
+    if (str->kind() != expr::Expr::Kind::CONST) {
+        err("strlen") << "str is symbolic" << std::endl;
+        exit_fail();
+    }
+
+    int  max_forks = 32;
+    auto curr =
+        std::static_pointer_cast<const expr::ConstExpr>(str)->val().as_u64();
+    auto start = curr;
+    while (1) {
+        auto b = s->read(curr, 1);
+
+        if (b->kind() == expr::Expr::Kind::CONST) {
+            auto b_ = std::static_pointer_cast<const expr::ConstExpr>(b);
+            if (b_->val().is_zero())
+                break;
+        } else {
+            auto is_zero_expr = expr::ExprBuilder::The().mk_eq(
+                b, expr::ExprBuilder::The().mk_const(0UL, 8));
+            if (s->solver().may_be_true(is_zero_expr) ==
+                solver::CheckResult::SAT) {
+                state::StatePtr succ = max_forks <= 0 ? s : s->clone();
+                succ->solver().add(is_zero_expr);
+                succ->write(curr, expr::ExprBuilder::The().mk_const(0UL, 8));
+                s->arch().set_return_int_value(
+                    m_call_conv, *succ,
+                    expr::ExprBuilder::The().mk_const(curr - start,
+                                                      s->arch().ptr_size()));
+                s->arch().handle_return(succ, o_successors);
+
+                if (max_forks <= 0)
+                    return;
+                s->solver().add(expr::ExprBuilder::The().mk_not(is_zero_expr));
+                max_forks--;
+            } else {
+                // is symbolic but can only be zero
+                s->write(curr, expr::ExprBuilder::The().mk_const(0UL, 8));
+                break;
+            }
+        }
+        curr += 1;
+    }
+
+    s->arch().set_return_int_value(
+        m_call_conv, *s,
+        expr::ExprBuilder::The().mk_const(curr - start, s->arch().ptr_size()));
+    s->arch().handle_return(s, o_successors);
+}
+
 } // namespace naaz::models::libc

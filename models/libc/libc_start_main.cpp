@@ -36,19 +36,31 @@ void __libc_start_main::exec(state::StatePtr           s,
     s->arch().set_return(s, s->get_libc_start_main_exit_wrapper_address());
 
     // Set argv (if defined)
-    uint32_t    i    = 0;
     const auto& argv = s->get_argv();
-    for (auto arg : argv) {
-        if (arg->size() % 8UL != 0) {
-            err("__libc_start_main") << "invalid argv" << std::endl;
-            exit_fail();
-        }
-
-        auto arg_ptr = s->allocate(arg->size() / 8UL);
-        s->write_buf(arg_ptr, arg);
+    s->arch().set_int_param(
+        m_call_conv, *s, 0,
+        expr::ExprBuilder::The().mk_const(argv.size(), s->arch().ptr_size()));
+    if (argv.size() > 0) {
+        auto vec_size = argv.size() * (s->arch().ptr_size() / 8UL);
+        auto vec_ptr  = s->allocate(vec_size);
         s->arch().set_int_param(
-            m_call_conv, *s, i++,
-            expr::ExprBuilder::The().mk_const(arg_ptr, s->arch().ptr_size()));
+            m_call_conv, *s, 1,
+            expr::ExprBuilder::The().mk_const(vec_ptr, s->arch().ptr_size()));
+
+        uint32_t i = 0;
+        for (auto arg : argv) {
+            if (arg->size() % 8UL != 0) {
+                err("__libc_start_main") << "invalid argv" << std::endl;
+                exit_fail();
+            }
+
+            auto arg_ptr = s->allocate(arg->size() / 8UL);
+            s->write_buf(arg_ptr, arg);
+            s->write(vec_ptr + i * (s->arch().ptr_size() / 8UL),
+                     expr::ExprBuilder::The().mk_const(arg_ptr,
+                                                       s->arch().ptr_size()));
+            i += 1;
+        }
     }
 
     auto main_addr_conc =

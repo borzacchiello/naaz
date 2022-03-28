@@ -504,13 +504,15 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             // std::cout << "cond: " << cond->to_string() << std::endl;
 
             state::StatePtr     other_state = ctx.state->clone();
-            solver::CheckResult sat_cond = ctx.state->solver().check_sat(cond);
+            solver::CheckResult sat_cond =
+                ctx.state->solver().check_sat_and_add_if_sat(cond);
             if (sat_cond == solver::CheckResult::UNKNOWN) {
                 err("PCodeExecutor") << "unknown from solver" << std::endl;
                 exit_fail();
             }
             solver::CheckResult sat_not_cond =
-                other_state->solver().check_sat(exprBuilder.mk_not(cond));
+                other_state->solver().check_sat_and_add_if_sat(
+                    exprBuilder.mk_not(cond));
             if (sat_not_cond == solver::CheckResult::UNKNOWN) {
                 err("PCodeExecutor") << "unknown from solver" << std::endl;
                 exit_fail();
@@ -518,11 +520,9 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 
             if (sat_cond == solver::CheckResult::SAT) {
                 ctx.state->set_pc(dst_addr);
-                ctx.state->solver().add(cond);
                 ctx.successors.active.push_back(ctx.state);
             }
             if (sat_not_cond == solver::CheckResult::SAT) {
-                other_state->solver().add(exprBuilder.mk_not(cond));
                 other_state->set_pc(ctx.transl.address.offset +
                                     ctx.transl.length);
                 ctx.successors.active.push_back(other_state);
@@ -623,7 +623,7 @@ ExecutorResult PCodeExecutor::execute_basic_block(state::StatePtr state)
     const auto block = m_lifter->lift(state->pc(), data, size);
     const csleigh_TranslationResult* tr = block->transl();
 
-    // block->pp();
+    // block->pp();expr
 
     for (uint32_t i = 0; i < tr->instructions_count; ++i) {
         csleigh_Translation t = tr->instructions[i];

@@ -147,6 +147,26 @@ void State::dump_fs(std::filesystem::path out_dir)
     exit_code_file << std::dec << retcode << std::endl;
     exit_code_file.close();
 
+    // dump argv
+    out_file       = out_dir / "argv.txt";
+    auto argv_file = std::fstream(out_file, std::ios::out);
+    int  i         = 0;
+    for (auto arg : m_argv) {
+        argv_file << std::dec << i++ << ": ";
+        auto arg_eval = m_solver.evaluate(arg);
+        auto arg_data = arg_eval.as_data();
+        for (int j = 0; j < arg_eval.size() / 8U; ++j) {
+            if ((int)arg_data[j] >= 32 && (int)arg_data[j] <= 126) {
+                argv_file << arg_data[j];
+            } else {
+                argv_file << "\\x" << std::setw(2) << std::setfill('0')
+                          << std::hex << (int)arg_data[j];
+            }
+        }
+        argv_file << std::endl;
+    }
+    argv_file.close();
+
     for (File* f : m_fs->files()) {
         if (f->size() == 0)
             continue;

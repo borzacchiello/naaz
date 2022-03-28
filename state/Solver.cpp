@@ -43,6 +43,19 @@ solver::CheckResult Solver::check_sat(expr::BoolExprPtr c, bool populate_model)
     return res;
 }
 
+solver::CheckResult Solver::check_sat_and_add_if_sat(expr::BoolExprPtr c)
+{
+    auto r = check_sat(c, true);
+    if (r == solver::CheckResult::SAT)
+        add(c);
+    return r;
+}
+
+solver::CheckResult Solver::may_be_true(expr::BoolExprPtr c)
+{
+    return check_sat(c, false);
+}
+
 expr::BVConst Solver::evaluate(expr::ExprPtr e)
 {
     std::set<uint32_t> involved_symbols = m_manager.get_dependencies(e);

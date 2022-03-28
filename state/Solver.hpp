@@ -12,6 +12,9 @@ class Solver
     solver::ConstraintManager         m_manager;
     std::map<uint32_t, expr::BVConst> m_model;
 
+    solver::CheckResult check_sat(expr::BoolExprPtr c,
+                                  bool              populate_model = true);
+
   public:
     Solver() {}
     Solver(const Solver& other)
@@ -22,8 +25,8 @@ class Solver
     const solver::ConstraintManager& manager() const { return m_manager; }
 
     void                add(expr::BoolExprPtr c);
-    solver::CheckResult check_sat(expr::BoolExprPtr c,
-                                  bool              populate_model = true);
+    solver::CheckResult check_sat_and_add_if_sat(expr::BoolExprPtr c);
+    solver::CheckResult may_be_true(expr::BoolExprPtr c);
 
     expr::BVConst              evaluate(expr::ExprPtr e);
     std::vector<expr::BVConst> evaluate_upto(expr::BVExprPtr e, int n);
