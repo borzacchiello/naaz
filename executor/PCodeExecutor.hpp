@@ -42,8 +42,9 @@ class PCodeExecutor
     void write_to_varnode(ExecutionContext& ctx, csleigh_Varnode node,
                           expr::BVExprPtr value);
     void execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op);
-    void execute_instruction(state::StatePtr state, csleigh_Translation t,
-                             ExecutorResult& o_successors);
+    state::StatePtr execute_instruction(state::StatePtr     state,
+                                        csleigh_Translation t,
+                                        ExecutorResult&     o_successors);
 
   public:
     PCodeExecutor(std::shared_ptr<lifter::PCodeLifter> lifter);

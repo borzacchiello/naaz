@@ -9,6 +9,30 @@
 namespace naaz::models
 {
 
+class UnmodelledFunction final : public Model
+{
+    UnmodelledFunction()
+        : Model(std::string("unmodelled_function"), CallConv::CDECL)
+    {
+    }
+
+  public:
+    static const UnmodelledFunction& The()
+    {
+        static const UnmodelledFunction v;
+        return v;
+    }
+
+    virtual void exec(state::StatePtr           s,
+                      executor::ExecutorResult& o_successors) const
+    {
+        info("Linker") << "called unmodeled function" << std::endl;
+        s->exited  = true;
+        s->retcode = 309;
+        o_successors.exited.push_back(s);
+    }
+};
+
 Linker& Linker::The()
 {
     static Linker l;
@@ -33,17 +57,19 @@ void Linker::link(state::State& state) const
 
     for (auto const& reloc : state.address_space()->relocations()) {
         if (reloc.type() == loader::Relocation::Type::FUNC) {
-            if (!m_models.contains(reloc.name()))
+            const Model* model;
+            if (!m_models.contains(reloc.name())) {
                 info("Linker") << "link(): unmodeled linked function "
                                << reloc.name() << std::endl;
-            else {
-                auto fun_addr = expr::ExprBuilder::The().mk_const(
-                    external_addr, state.arch().ptr_size());
-                state.write(reloc.addr(), fun_addr);
-                state.register_linked_function(external_addr,
-                                               m_models.at(reloc.name()));
-                external_addr += state.arch().ptr_size() / 8;
+                model = &UnmodelledFunction::The();
+            } else {
+                model = m_models.at(reloc.name());
             }
+            auto fun_addr = expr::ExprBuilder::The().mk_const(
+                external_addr, state.arch().ptr_size());
+            state.write(reloc.addr(), fun_addr);
+            state.register_linked_function(external_addr, model);
+            external_addr += state.arch().ptr_size() / 8;
         }
     }
 }

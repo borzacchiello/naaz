@@ -58,7 +58,8 @@ void FileSystem::seek(int fd, uint64_t off)
         exit_fail();
     }
 
-    m_open_files.at(fd).seek(off);
+    auto& handle = m_open_files.at(fd);
+    handle.seek(*m_files.at(handle.filename()), off);
 }
 
 expr::BVExprPtr FileSystem::read(int fd, ssize_t size)
@@ -68,7 +69,8 @@ expr::BVExprPtr FileSystem::read(int fd, ssize_t size)
         exit_fail();
     }
 
-    return m_open_files.at(fd).read(size);
+    auto& handle = m_open_files.at(fd);
+    return handle.read(*m_files.at(handle.filename()), size);
 }
 
 void FileSystem::write(int fd, expr::BVExprPtr data)
@@ -78,7 +80,8 @@ void FileSystem::write(int fd, expr::BVExprPtr data)
         exit_fail();
     }
 
-    return m_open_files.at(fd).write(data);
+    auto& handle = m_open_files.at(fd);
+    handle.write(*m_files.at(handle.filename()), data);
 }
 
 std::unique_ptr<FileSystem> FileSystem::clone() const

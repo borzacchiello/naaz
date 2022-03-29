@@ -119,6 +119,8 @@ static inline int64_t _sext(uint64_t v, ssize_t size)
         err() << "sext(): size > 64 is not supported" << std::endl;
         exit_fail();
     }
+    if (size == 64)
+        return (int64_t)v;
 
     int64_t res = (int64_t)v;
     if (res & (1UL << (size - 1)))

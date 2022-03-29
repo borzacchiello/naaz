@@ -34,20 +34,23 @@ class File
 
 class FileHandle
 {
-    File&    m_file;
-    uint64_t m_off;
-    int      m_descriptor;
+    std::string m_filename;
+    uint64_t    m_off;
+    int         m_descriptor;
 
-    FileHandle(File& f, int fd) : m_file(f), m_descriptor(fd), m_off(0) {}
+    FileHandle(const std::string& filename, int fd)
+        : m_filename(filename), m_descriptor(fd), m_off(0)
+    {
+    }
 
   public:
-    void            seek(uint64_t off);
-    expr::BVExprPtr read(size_t size);
-    void            write(expr::BVExprPtr data);
+    void            seek(File& file, uint64_t off);
+    expr::BVExprPtr read(File& file, size_t size);
+    void            write(File& file, expr::BVExprPtr data);
 
-    int      fd() const { return m_descriptor; }
-    uint64_t off() const { return m_off; }
-    File&    file() { return m_file; }
+    int                fd() const { return m_descriptor; }
+    uint64_t           off() const { return m_off; }
+    const std::string& filename() const { return m_filename; }
 
     friend class File;
 };

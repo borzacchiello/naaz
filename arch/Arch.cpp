@@ -50,6 +50,14 @@ void x86_64::init_state(state::State& s) const
     s.reg_write("RSP", expr::ExprBuilder::The().mk_const(stack_ptr, 64));
     s.reg_write("FS_OFFSET",
                 expr::ExprBuilder::The().mk_const(fs_base_ptr, 64));
+
+    s.reg_write("PF", expr::ExprBuilder::The().mk_const(0UL, 8));
+    s.reg_write("AF", expr::ExprBuilder::The().mk_const(0UL, 8));
+    s.reg_write("ZF", expr::ExprBuilder::The().mk_const(0UL, 8));
+    s.reg_write("SF", expr::ExprBuilder::The().mk_const(0UL, 8));
+    s.reg_write("IF", expr::ExprBuilder::The().mk_const(0UL, 8));
+    s.reg_write("DF", expr::ExprBuilder::The().mk_const(0UL, 8));
+    s.reg_write("OF", expr::ExprBuilder::The().mk_const(0UL, 8));
 }
 
 void x86_64::set_return(state::StatePtr s, expr::BVExprPtr addr) const
@@ -74,6 +82,7 @@ void x86_64::handle_return(state::StatePtr           s,
         exit_fail();
     }
 
+    s->register_ret();
     s->set_pc(std::static_pointer_cast<const expr::ConstExpr>(ret_addr)
                   ->val()
                   .as_u64());

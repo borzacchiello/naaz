@@ -455,6 +455,7 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 
             ctx.state->set_pc(dst_addr);
             ctx.successors.active.push_back(ctx.state);
+            ctx.state = nullptr;
             break;
         }
         case csleigh_CPUI_BRANCH: {
@@ -478,9 +479,13 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 
             ctx.state->set_pc(dst_addr);
             ctx.successors.active.push_back(ctx.state);
+            ctx.state = nullptr;
             break;
         }
         case csleigh_CPUI_CBRANCH: {
+            // NOTE: a CBRANCH can be either in the middle of a basic block, or
+            // at the end.
+
             assert(op.output == nullptr && "CBRANCH: output is not NULL");
             assert(op.inputs_count == 2 && "CBRANCH: inputs_count != 2");
             assert(csleigh_AddrSpace_getId(op.inputs[0].space) ==
@@ -505,26 +510,27 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 
             state::StatePtr     other_state = ctx.state->clone();
             solver::CheckResult sat_cond =
-                ctx.state->solver().check_sat_and_add_if_sat(cond);
+                other_state->solver().check_sat_and_add_if_sat(cond);
             if (sat_cond == solver::CheckResult::UNKNOWN) {
                 err("PCodeExecutor") << "unknown from solver" << std::endl;
                 exit_fail();
             }
             solver::CheckResult sat_not_cond =
-                other_state->solver().check_sat_and_add_if_sat(
+                ctx.state->solver().check_sat_and_add_if_sat(
                     exprBuilder.mk_not(cond));
             if (sat_not_cond == solver::CheckResult::UNKNOWN) {
                 err("PCodeExecutor") << "unknown from solver" << std::endl;
                 exit_fail();
             }
 
-            if (sat_cond == solver::CheckResult::SAT) {
-                ctx.state->set_pc(dst_addr);
-                ctx.successors.active.push_back(ctx.state);
+            if (sat_not_cond != solver::CheckResult::SAT) {
+                // The fallthrough is NOT satisfiable, if the CBRANCH is in the
+                // middle of a basic block, the execution must be aborted
+                ctx.state = nullptr;
             }
-            if (sat_not_cond == solver::CheckResult::SAT) {
-                other_state->set_pc(ctx.transl.address.offset +
-                                    ctx.transl.length);
+
+            if (sat_cond == solver::CheckResult::SAT) {
+                other_state->set_pc(dst_addr);
                 ctx.successors.active.push_back(other_state);
             }
             break;
@@ -542,6 +548,7 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                 ctx.state->set_pc(dst_->val().as_u64());
                 ctx.successors.active.push_back(ctx.state);
             }
+            ctx.state = nullptr;
             break;
         }
         case csleigh_CPUI_CALLIND: {
@@ -560,6 +567,7 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                 ctx.state->set_pc(dst_->val().as_u64());
                 ctx.successors.active.push_back(ctx.state);
             }
+            ctx.state = nullptr;
             break;
         }
         case csleigh_CPUI_RETURN: {
@@ -577,6 +585,7 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                 ctx.state->set_pc(dst_->val().as_u64());
                 ctx.successors.active.push_back(ctx.state);
             }
+            ctx.state = nullptr;
             break;
         }
         default:
@@ -586,18 +595,21 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
     }
 }
 
-void PCodeExecutor::execute_instruction(state::StatePtr     state,
-                                        csleigh_Translation t,
-                                        ExecutorResult&     o_successors)
+state::StatePtr PCodeExecutor::execute_instruction(state::StatePtr     state,
+                                                   csleigh_Translation t,
+                                                   ExecutorResult& o_successors)
 {
     state::MapMemory tmp_storage(
         "tmp", state::MapMemory::UninitReadBehavior::THROW_ERR);
     ExecutionContext ctx(state, tmp_storage, t, o_successors);
 
     for (uint32_t i = 0; i < t.ops_count; ++i) {
+        if (ctx.state == nullptr)
+            break;
         csleigh_PcodeOp op = t.ops[i];
         execute_pcodeop(ctx, op);
     }
+    return ctx.state;
 }
 
 ExecutorResult PCodeExecutor::execute_basic_block(state::StatePtr state)
@@ -623,12 +635,23 @@ ExecutorResult PCodeExecutor::execute_basic_block(state::StatePtr state)
     const auto block = m_lifter->lift(state->pc(), data, size);
     const csleigh_TranslationResult* tr = block->transl();
 
-    // block->pp();expr
+    // block->pp();
 
     for (uint32_t i = 0; i < tr->instructions_count; ++i) {
         csleigh_Translation t = tr->instructions[i];
         state->set_pc(t.address.offset);
-        execute_instruction(state, t, successors);
+        state = execute_instruction(state, t, successors);
+        if (state == nullptr)
+            break;
+    }
+
+    if (state != nullptr) {
+        // There was a CBRANCH at the end of the basic block, and the
+        // fallthrough is SAT. The state is a (fallthrough) successor!
+        auto last_instruction = tr->instructions[tr->instructions_count - 1];
+        state->set_pc(last_instruction.address.offset +
+                      last_instruction.length);
+        successors.active.push_back(state);
     }
 
     return successors;

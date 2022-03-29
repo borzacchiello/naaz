@@ -525,12 +525,14 @@ static std::string to_string_inner(ExprPtr                         e,
         }
         case Expr::Kind::NEG: {
             auto e_ = std::static_pointer_cast<const NegExpr>(e);
-            res     = string_format("-%s", to_string_inner(e_->expr(), cache));
+            res     = string_format("-%s",
+                                    to_string_inner(e_->expr(), cache).c_str());
             break;
         }
         case Expr::Kind::NOT: {
             auto e_ = std::static_pointer_cast<const NotExpr>(e);
-            res     = string_format("~%s", to_string_inner(e_->expr(), cache));
+            res     = string_format("~%s",
+                                    to_string_inner(e_->expr(), cache).c_str());
             break;
         }
         case Expr::Kind::AND: {

@@ -48,24 +48,24 @@ std::unique_ptr<File> File::clone() const
     return std::unique_ptr<File>(new File(*this));
 }
 
-FileHandle File::gen_handle(int fd) { return FileHandle(*this, fd); }
+FileHandle File::gen_handle(int fd) { return FileHandle(m_filename, fd); }
 
-void FileHandle::seek(uint64_t off)
+void FileHandle::seek(File& file, uint64_t off)
 {
     m_off = off;
-    m_file.enlarge(off);
+    file.enlarge(off);
 }
 
-expr::BVExprPtr FileHandle::read(size_t size)
+expr::BVExprPtr FileHandle::read(File& file, size_t size)
 {
-    auto res = m_file.read(m_off, size);
+    auto res = file.read(m_off, size);
     m_off += size;
     return res;
 }
 
-void FileHandle::write(expr::BVExprPtr data)
+void FileHandle::write(File& file, expr::BVExprPtr data)
 {
-    m_file.write(m_off, data);
+    file.write(m_off, data);
     m_off += data->size() / 8UL;
 }
 
