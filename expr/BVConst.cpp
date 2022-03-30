@@ -100,8 +100,8 @@ uint64_t BVConst::hash() const
     if (!is_big())
         return m_small_val ^ (m_size << 32);
 
-    std::vector<uint8_t> data = as_data();
-    return XXH3_64bits(data.data(), data.size());
+    return (get_byte(0) << 24) | (get_byte(1) << 16) | (get_byte(2) << 8) |
+           get_byte(3);
 }
 
 void BVConst::check_size_or_die(const BVConst& lhs, const BVConst& rhs) const

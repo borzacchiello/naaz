@@ -11,12 +11,14 @@ namespace naaz::expr
 class ExprBuilder
 {
   private:
-    std::map<uint64_t, std::vector<WeakExprPtr>> m_exprs;
-    std::map<uint32_t, std::string>              m_sym_id_to_name;
-    std::map<std::string, SymExprPtr>            m_symbols;
-    uint32_t                                     m_sym_ids;
+    std::map<uint64_t, std::vector<WeakExprPtr>>        m_exprs;
+    std::map<std::pair<uint64_t, size_t>, ConstExprPtr> m_consts;
+    std::map<uint32_t, std::string>                     m_sym_id_to_name;
+    std::map<std::string, SymExprPtr>                   m_symbols;
+    uint32_t                                            m_sym_ids;
 
-    ExprPtr get_or_create(const Expr& e);
+    ConstExprPtr const_cache(uint64_t val, size_t size);
+    ExprPtr      get_or_create(const Expr& e);
 
     ExprBuilder() : m_sym_ids(0) {}
 

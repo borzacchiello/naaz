@@ -42,6 +42,7 @@ set ( naaz_src
     models/libc/string.cpp
     models/libc/string_utils.cpp
     models/libc/stdio.cpp
+    models/libc/random.cpp
     arch/Arch.cpp
     lifter/PCodeLifter.cpp
     loader/AddressSpace.cpp

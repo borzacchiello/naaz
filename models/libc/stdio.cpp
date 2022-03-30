@@ -266,6 +266,27 @@ static expr::BVExprPtr process_specifier(const format_token_t& ft,
 
             return resolved_strings.at(0).str;
         }
+        case 'd': {
+            expr::BVExprPtr expr;
+            if (ft.flags & FLAGS_LONG || ft.flags & FLAGS_LONG_LONG)
+                expr = v;
+            else
+                expr = exprBuilder.mk_extract(v, 31, 0);
+
+            expr::BVConst const_expr;
+            if (expr->kind() != expr::Expr::Kind::CONST) {
+                // FIXME: do not concretize (maybe)
+                const_expr = s->solver().evaluate(expr);
+            } else {
+                const_expr =
+                    std::static_pointer_cast<const expr::ConstExpr>(expr)
+                        ->val();
+            }
+            int64_t v     = const_expr.as_s64();
+            auto    v_str = std::to_string(v);
+            return exprBuilder.mk_const(
+                expr::BVConst((const uint8_t*)v_str.data(), v_str.size()));
+        }
         default:
             break;
     }

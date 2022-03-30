@@ -32,6 +32,8 @@ GEN_MODEL_CLASS(strlen, CallConv::CDECL)
 GEN_MODEL_CLASS(strncpy, CallConv::CDECL)
 GEN_MODEL_CLASS(printf, CallConv::CDECL)
 GEN_MODEL_CLASS(puts, CallConv::CDECL)
+GEN_MODEL_CLASS(rand, CallConv::CDECL)
+GEN_MODEL_CLASS(srand, CallConv::CDECL)
 
 } // namespace naaz::models::libc
 
@@ -49,4 +51,6 @@ GEN_MODEL_CLASS(puts, CallConv::CDECL)
     l.register_model(libc::strlen::The().name(), &libc::strlen::The());        \
     l.register_model(libc::strncpy::The().name(), &libc::strncpy::The());      \
     l.register_model(libc::printf::The().name(), &libc::printf::The());        \
-    l.register_model(libc::puts::The().name(), &libc::puts::The());
+    l.register_model(libc::puts::The().name(), &libc::puts::The());            \
+    l.register_model(libc::rand::The().name(), &libc::rand::The());            \
+    l.register_model(libc::srand::The().name(), &libc::srand::The());

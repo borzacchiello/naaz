@@ -5,6 +5,22 @@
 namespace naaz::expr
 {
 
+ConstExprPtr ExprBuilder::const_cache(uint64_t val, size_t size)
+{
+    auto key = std::make_pair(val, size);
+    if (m_consts.contains(key))
+        return m_consts[key];
+
+    if (m_consts.size() > 100000)
+        // FIXME: 100k is a random value... Make some measurements
+        m_consts.clear();
+
+    auto c = std::static_pointer_cast<const ConstExpr>(
+        get_or_create(ConstExpr(val, size)));
+    m_consts[key] = c;
+    return c;
+}
+
 ExprPtr ExprBuilder::get_or_create(const Expr& e)
 {
     // Get a cached expression or create a new one
@@ -101,8 +117,7 @@ ConstExprPtr ExprBuilder::mk_const(const BVConst& val)
 
 ConstExprPtr ExprBuilder::mk_const(uint64_t val, size_t size)
 {
-    ConstExpr e(val, size);
-    return std::static_pointer_cast<const ConstExpr>(get_or_create(e));
+    return const_cache(val, size);
 }
 
 BVExprPtr ExprBuilder::mk_extract(BVExprPtr expr, uint32_t high, uint32_t low)
