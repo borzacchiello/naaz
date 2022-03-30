@@ -42,13 +42,15 @@ std::vector<resolved_string_t> resolve_string(state::StatePtr state,
                 if (max_forks <= 0)
                     return res;
 
-                state->solver().add(
-                    expr::ExprBuilder::The().mk_not(is_zero_expr));
+                if (state->solver().check_sat_and_add_if_sat(
+                        expr::ExprBuilder::The().mk_not(is_zero_expr)) !=
+                    solver::CheckResult::SAT)
+                    // is symbolic but it is always zero
+                    return res;
                 max_forks--;
             } else {
-                // is symbolic but can only be zero
+                // is symbolic but cannot be zero
                 state->write(curr, zero_byte);
-                break;
             }
         }
         curr += 1;

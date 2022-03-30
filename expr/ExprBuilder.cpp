@@ -1483,6 +1483,11 @@ FPExprPtr ExprBuilder::mk_fp_add(FPExprPtr lhs, FPExprPtr rhs)
     return std::static_pointer_cast<const FPExpr>(get_or_create(e));
 }
 
+FPExprPtr ExprBuilder::mk_fp_sub(FPExprPtr lhs, FPExprPtr rhs)
+{
+    return mk_fp_add(lhs, mk_fp_neg(rhs));
+}
+
 FPExprPtr ExprBuilder::mk_fp_mul(FPExprPtr lhs, FPExprPtr rhs)
 {
     check_fp_type_or_fail("fp_mul", lhs, rhs);

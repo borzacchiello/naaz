@@ -297,12 +297,13 @@ static expr::BVExprPtr process_specifier(const format_token_t& ft,
 }
 
 static expr::BVExprPtr process_format_string(const std::string& format,
-                                             state::StatePtr    s)
+                                             state::StatePtr    s,
+                                             int                arg_offset = 1)
 {
     expr::BVExprPtr data   = nullptr;
     auto            tokens = process_tokens(format);
 
-    int specifier_idx = 1;
+    int specifier_idx = arg_offset;
     for (auto& token : tokens) {
         if (!token.is_specifier) {
             auto token_bv = exprBuilder.mk_const(expr::BVConst(
@@ -376,6 +377,51 @@ void printf::exec(state::StatePtr           s,
     std::string format((char*)format_bytes.data(), format_bytes.size());
 
     s->fs().write(1, process_format_string(format, s));
+    s->arch().handle_return(s, o_successors);
+}
+
+void sprintf::exec(state::StatePtr           s,
+                   executor::ExecutorResult& o_successors) const
+{
+    auto str_ptr = s->get_int_param(m_call_conv, 0);
+    if (str_ptr->kind() != expr::Expr::Kind::CONST) {
+        err("sprintf") << "str_ptr is symbolic" << std::endl;
+        exit_fail();
+    }
+
+    auto str_ptr_addr = std::static_pointer_cast<const expr::ConstExpr>(str_ptr)
+                            ->val()
+                            .as_u64();
+
+    auto format_str = s->get_int_param(m_call_conv, 1);
+    if (format_str->kind() != expr::Expr::Kind::CONST) {
+        err("sprintf") << "format string pointer is symbolic" << std::endl;
+        exit_fail();
+    }
+
+    auto format_str_addr =
+        std::static_pointer_cast<const expr::ConstExpr>(format_str)
+            ->val()
+            .as_u64();
+    auto resolved_strings = resolve_string(s, format_str_addr, 0, 256);
+    if (resolved_strings.size() != 1) {
+        err("sprintf") << "unable to resolve the string" << std::endl;
+        exit_fail();
+    }
+
+    auto resolved_format = resolved_strings.at(0);
+    if (resolved_format.str->kind() != expr::Expr::Kind::CONST) {
+        err("sprintf") << "the format string is symbolic" << std::endl;
+        exit_fail();
+    }
+
+    auto format_bytes =
+        std::static_pointer_cast<const expr::ConstExpr>(resolved_format.str)
+            ->val()
+            .as_data();
+    std::string format((char*)format_bytes.data(), format_bytes.size());
+
+    s->write_buf(str_ptr_addr, process_format_string(format, s, 2));
     s->arch().handle_return(s, o_successors);
 }
 

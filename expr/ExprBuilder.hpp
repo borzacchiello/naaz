@@ -90,6 +90,7 @@ class ExprBuilder
     BoolExprPtr    mk_fp_is_nan(FPExprPtr expr);
     FPExprPtr      mk_fp_neg(FPExprPtr expr);
     FPExprPtr      mk_fp_add(FPExprPtr lhs, FPExprPtr rhs);
+    FPExprPtr      mk_fp_sub(FPExprPtr lhs, FPExprPtr rhs);
     FPExprPtr      mk_fp_mul(FPExprPtr lhs, FPExprPtr rhs);
     FPExprPtr      mk_fp_div(FPExprPtr lhs, FPExprPtr rhs);
     BoolExprPtr    mk_fp_lt(FPExprPtr lhs, FPExprPtr rhs);

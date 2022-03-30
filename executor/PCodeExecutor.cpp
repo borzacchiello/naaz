@@ -73,6 +73,8 @@ void PCodeExecutor::handle_symbolic_ip(ExecutionContext& ctx,
     if (dests.size() == 256) {
         info("PCodeExecutor")
             << "handle_symbolic_ip(): unconstrained IP" << std::endl;
+        ctx.state->exited  = true;
+        ctx.state->retcode = 1204;
         ctx.successors.exited.push_back(ctx.state);
     } else {
         for (auto dst : dests) {
@@ -447,6 +449,28 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             auto rhs    = resolve_varnode(ctx, op.inputs[1]);
             auto rhs_fp = exprBuilder.mk_bv_to_fp(rhs_ff, rhs);
             auto res    = exprBuilder.mk_fp_add(lhs_fp, rhs_fp);
+
+            write_to_varnode(ctx, *op.output, exprBuilder.mk_fp_to_bv(res));
+            break;
+        }
+        case csleigh_CPUI_FLOAT_SUB: {
+            assert(op.output != nullptr && "FLOAT_SUB: output is NULL");
+            assert(op.inputs_count == 2 && "FLOAT_SUB: inputs_count != 2");
+
+            auto lhs_ff = m_lifter->get_float_format(op.inputs[0].size);
+            auto rhs_ff = m_lifter->get_float_format(op.inputs[1].size);
+            if (!lhs_ff || !rhs_ff) {
+                err("PCodeExecutor")
+                    << "FLOAT_SUB: invalid conversion (no float format)"
+                    << std::endl;
+                exit_fail();
+            }
+
+            auto lhs    = resolve_varnode(ctx, op.inputs[0]);
+            auto lhs_fp = exprBuilder.mk_bv_to_fp(lhs_ff, lhs);
+            auto rhs    = resolve_varnode(ctx, op.inputs[1]);
+            auto rhs_fp = exprBuilder.mk_bv_to_fp(rhs_ff, rhs);
+            auto res    = exprBuilder.mk_fp_sub(lhs_fp, rhs_fp);
 
             write_to_varnode(ctx, *op.output, exprBuilder.mk_fp_to_bv(res));
             break;

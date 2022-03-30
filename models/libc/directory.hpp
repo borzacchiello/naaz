@@ -30,6 +30,7 @@ GEN_MODEL_CLASS(memcpy, CallConv::CDECL)
 GEN_MODEL_CLASS(memcmp, CallConv::CDECL)
 GEN_MODEL_CLASS(strlen, CallConv::CDECL)
 GEN_MODEL_CLASS(strncpy, CallConv::CDECL)
+GEN_MODEL_CLASS(sprintf, CallConv::CDECL)
 GEN_MODEL_CLASS(printf, CallConv::CDECL)
 GEN_MODEL_CLASS(puts, CallConv::CDECL)
 GEN_MODEL_CLASS(rand, CallConv::CDECL)
@@ -50,6 +51,7 @@ GEN_MODEL_CLASS(srand, CallConv::CDECL)
     l.register_model(libc::memcmp::The().name(), &libc::memcmp::The());        \
     l.register_model(libc::strlen::The().name(), &libc::strlen::The());        \
     l.register_model(libc::strncpy::The().name(), &libc::strncpy::The());      \
+    l.register_model(libc::sprintf::The().name(), &libc::sprintf::The());      \
     l.register_model(libc::printf::The().name(), &libc::printf::The());        \
     l.register_model(libc::puts::The().name(), &libc::puts::The());            \
     l.register_model(libc::rand::The().name(), &libc::rand::The());            \
