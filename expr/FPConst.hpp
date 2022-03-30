@@ -30,6 +30,7 @@ class FPConst
 
     void convert(FloatFormatPtr ff);
     void add(const FPConst& other);
+    void div(const FPConst& other);
     bool is_nan() const;
 
     bool lt(const FPConst& other) const;

@@ -69,6 +69,16 @@ static inline void check_size_or_fail(const std::string& op_name, BVExprPtr lhs,
     }
 }
 
+static inline void check_fp_type_or_fail(const std::string& op_name,
+                                         FPExprPtr lhs, FPExprPtr rhs)
+{
+    if (lhs->ff() != rhs->ff()) {
+        err("ExprBuilder") << "incopatible floating point types in " << op_name
+                           << std::endl;
+        exit_fail();
+    }
+}
+
 const std::string& ExprBuilder::get_sym_name(uint32_t id) const
 {
     // It raises an exeption if the id does not name a symbol
@@ -1307,6 +1317,21 @@ FPExprPtr ExprBuilder::mk_fp_convert(FPExprPtr expr, FloatFormatPtr ff)
     return std::static_pointer_cast<const FPExpr>(get_or_create(e));
 }
 
+FPExprPtr ExprBuilder::mk_int_to_fp(BVExprPtr expr, FloatFormatPtr ff)
+{
+    // constant propagation
+    if (expr->kind() == Expr::Kind::CONST) {
+        auto        expr_ = std::static_pointer_cast<const ConstExpr>(expr);
+        auto        val   = expr_->val();
+        double      v     = (double)val.as_s64();
+        FPConstExpr c(FPConst(ff, v));
+        return std::static_pointer_cast<const FPConstExpr>(get_or_create(c));
+    }
+
+    IntToFPExpr e(expr, ff);
+    return std::static_pointer_cast<const FPExpr>(get_or_create(e));
+}
+
 BoolExprPtr ExprBuilder::mk_fp_is_nan(FPExprPtr expr)
 {
     // constant propagation
@@ -1320,8 +1345,29 @@ BoolExprPtr ExprBuilder::mk_fp_is_nan(FPExprPtr expr)
     return std::static_pointer_cast<const FPIsNAN>(get_or_create(e));
 }
 
+FPExprPtr ExprBuilder::mk_fp_div(FPExprPtr lhs, FPExprPtr rhs)
+{
+    check_fp_type_or_fail("fp_div", lhs, rhs);
+
+    // constant propagation
+    if (lhs->kind() == Expr::Kind::FP_CONST &&
+        rhs->kind() == Expr::Kind::FP_CONST) {
+        auto lhs_ = std::static_pointer_cast<const FPConstExpr>(lhs);
+        auto rhs_ = std::static_pointer_cast<const FPConstExpr>(rhs);
+        auto v    = lhs_->val();
+        v.div(rhs_->val());
+        FPConstExpr c(v);
+        return std::static_pointer_cast<const FPConstExpr>(get_or_create(c));
+    }
+
+    FPDivExpr e(lhs, rhs);
+    return std::static_pointer_cast<const FPDivExpr>(get_or_create(e));
+}
+
 BoolExprPtr ExprBuilder::mk_fp_lt(FPExprPtr lhs, FPExprPtr rhs)
 {
+    check_fp_type_or_fail("fp_lt", lhs, rhs);
+
     // constant propagation
     if (lhs->kind() == Expr::Kind::FP_CONST &&
         rhs->kind() == Expr::Kind::FP_CONST) {
@@ -1336,6 +1382,8 @@ BoolExprPtr ExprBuilder::mk_fp_lt(FPExprPtr lhs, FPExprPtr rhs)
 
 BoolExprPtr ExprBuilder::mk_fp_eq(FPExprPtr lhs, FPExprPtr rhs)
 {
+    check_fp_type_or_fail("fp_eq", lhs, rhs);
+
     // constant propagation
     if (lhs->kind() == Expr::Kind::FP_CONST &&
         rhs->kind() == Expr::Kind::FP_CONST) {

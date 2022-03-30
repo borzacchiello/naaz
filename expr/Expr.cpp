@@ -836,6 +836,29 @@ bool FPConvert::eq(ExprPtr other) const
 }
 
 // ***************
+// * IntToFPExpr
+// ***************
+
+uint64_t IntToFPExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    void* raw_expr = (void*)m_expr.get();
+    XXH64_update(&state, raw_expr, sizeof(void*));
+    XXH64_update(&state, (void*)m_ff.get(), sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool IntToFPExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const IntToFPExpr>(other);
+    return m_ff == other_->m_ff && m_expr == other_->m_expr;
+}
+
+// ***************
 // * FPIsNAN
 // ***************
 
@@ -855,6 +878,30 @@ bool FPIsNAN::eq(ExprPtr other) const
 
     auto other_ = std::static_pointer_cast<const FPIsNAN>(other);
     return m_expr == other_->m_expr;
+}
+
+// ***************
+// * FPDivExpr
+// ***************
+
+uint64_t FPDivExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    XXH64_update(&state, (void*)m_lhs.get(), sizeof(void*));
+    XXH64_update(&state, (void*)m_rhs.get(), sizeof(void*));
+    XXH64_update(&state, (void*)m_ff.get(), sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool FPDivExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const FPDivExpr>(other);
+    return m_lhs == other_->m_lhs && m_rhs == other_->m_rhs &&
+           m_ff == other_->m_ff;
 }
 
 // ***************

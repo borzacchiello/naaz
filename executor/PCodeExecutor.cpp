@@ -374,6 +374,25 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             write_to_varnode(ctx, *op.output, res);
             break;
         }
+        case csleigh_CPUI_FLOAT_INT2FLOAT: {
+            assert(op.output != nullptr && "FLOAT_INT2FLOAT: output is NULL");
+            assert(op.inputs_count == 1 &&
+                   "FLOAT_INT2FLOAT: inputs_count != 1");
+
+            auto dst_ff = m_lifter->get_float_format(op.output->size);
+            if (!dst_ff) {
+                err("PCodeExecutor")
+                    << "FLOAT_INT2FLOAT: invalid conversion (no float format)"
+                    << std::endl;
+                exit_fail();
+            }
+
+            auto src           = resolve_varnode(ctx, op.inputs[0]);
+            auto converted_src = exprBuilder.mk_int_to_fp(src, dst_ff);
+            auto res           = exprBuilder.mk_fp_to_bv(converted_src);
+            write_to_varnode(ctx, *op.output, res);
+            break;
+        }
         case csleigh_CPUI_FLOAT_NAN: {
             assert(op.output != nullptr && "FLOAT_NAN: output is NULL");
             assert(op.inputs_count == 1 && "FLOAT_NAN: inputs_count != 1");
@@ -390,6 +409,27 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             auto src_fp = exprBuilder.mk_bv_to_fp(src_ff, src);
             auto is_nan = exprBuilder.mk_fp_is_nan(src_fp);
             write_to_varnode(ctx, *op.output, exprBuilder.bool_to_bv(is_nan));
+            break;
+        }
+        case csleigh_CPUI_FLOAT_DIV: {
+            assert(op.output != nullptr && "FLOAT_DIV: output is NULL");
+            assert(op.inputs_count == 2 && "FLOAT_DIV: inputs_count != 2");
+
+            auto lhs_ff = m_lifter->get_float_format(op.inputs[0].size);
+            auto rhs_ff = m_lifter->get_float_format(op.inputs[1].size);
+            if (!lhs_ff || !rhs_ff) {
+                err("PCodeExecutor")
+                    << "FLOAT_DIV: invalid conversion (no float format)"
+                    << std::endl;
+                exit_fail();
+            }
+
+            auto lhs    = resolve_varnode(ctx, op.inputs[0]);
+            auto lhs_fp = exprBuilder.mk_bv_to_fp(lhs_ff, lhs);
+            auto rhs    = resolve_varnode(ctx, op.inputs[1]);
+            auto rhs_fp = exprBuilder.mk_bv_to_fp(rhs_ff, rhs);
+            auto res    = exprBuilder.mk_fp_div(lhs_fp, rhs_fp);
+            write_to_varnode(ctx, *op.output, exprBuilder.mk_fp_to_bv(res));
             break;
         }
         case csleigh_CPUI_FLOAT_EQUAL: {

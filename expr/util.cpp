@@ -396,11 +396,28 @@ static ExprPtr evaluate_inner(ExprPtr                            e,
                     e_->ff());
             break;
         }
+        case Expr::Kind::FP_INT_TO_FP: {
+            auto e_ = std::static_pointer_cast<const IntToFPExpr>(e);
+            res     = exprBuilder.mk_int_to_fp(
+                    std::static_pointer_cast<const BVExpr>(evaluate_inner(
+                        e_->expr(), assignments, model_completion, cache)),
+                    e_->ff());
+            break;
+        }
         case Expr::Kind::FP_IS_NAN: {
             auto e_ = std::static_pointer_cast<const FPIsNAN>(e);
             res     = exprBuilder.mk_fp_is_nan(
                     std::static_pointer_cast<const FPExpr>(evaluate_inner(
                         e_->expr(), assignments, model_completion, cache)));
+            break;
+        }
+        case Expr::Kind::FP_DIV: {
+            auto e_ = std::static_pointer_cast<const FPDivExpr>(e);
+            res     = exprBuilder.mk_fp_div(
+                    std::static_pointer_cast<const FPExpr>(evaluate_inner(
+                        e_->lhs(), assignments, model_completion, cache)),
+                    std::static_pointer_cast<const FPExpr>(evaluate_inner(
+                        e_->rhs(), assignments, model_completion, cache)));
             break;
         }
         case Expr::Kind::FP_LT: {
@@ -735,10 +752,24 @@ static std::string to_string_inner(ExprPtr                         e,
                                     e_->ff()->getSize() * 8);
             break;
         }
+        case Expr::Kind::FP_INT_TO_FP: {
+            auto e_ = std::static_pointer_cast<const IntToFPExpr>(e);
+            res     = string_format("IntToFP(%s, %d)",
+                                    to_string_inner(e_->expr(), cache).c_str(),
+                                    e_->ff()->getSize() * 8);
+            break;
+        }
         case Expr::Kind::FP_IS_NAN: {
             auto e_ = std::static_pointer_cast<const FPIsNAN>(e);
             res     = string_format("FPIsNAN(%s)",
                                     to_string_inner(e_->expr(), cache).c_str());
+            break;
+        }
+        case Expr::Kind::FP_DIV: {
+            auto e_ = std::static_pointer_cast<const FPDivExpr>(e);
+            res     = string_format("( %s / %s )",
+                                    to_string_inner(e_->lhs(), cache).c_str(),
+                                    to_string_inner(e_->rhs(), cache).c_str());
             break;
         }
         case Expr::Kind::FP_LT: {

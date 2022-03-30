@@ -332,10 +332,22 @@ static z3::expr to_z3_inner(z3::context& ctx, expr::ExprPtr e,
                                      get_fp_sort(ctx, e_->ff()));
             break;
         }
+        case expr::Expr::Kind::FP_INT_TO_FP: {
+            auto e_ = std::static_pointer_cast<const expr::IntToFPExpr>(e);
+            res     = z3::sbv_to_fpa(to_z3_inner(ctx, e_->expr(), cache),
+                                     get_fp_sort(ctx, e_->ff()));
+            break;
+        }
         case expr::Expr::Kind::FP_IS_NAN: {
             auto e_ = std::static_pointer_cast<const expr::FPIsNAN>(e);
             res     = to_z3_inner(ctx, e_->expr(), cache) ==
                   ctx.fpa_nan(get_fp_sort(ctx, e_->expr()->ff()));
+            break;
+        }
+        case expr::Expr::Kind::FP_DIV: {
+            auto e_ = std::static_pointer_cast<const expr::FPDivExpr>(e);
+            res     = to_z3_inner(ctx, e_->lhs(), cache) /
+                  to_z3_inner(ctx, e_->rhs(), cache);
             break;
         }
         case expr::Expr::Kind::FP_EQ: {

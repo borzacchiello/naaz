@@ -30,6 +30,13 @@ void FPConst::add(const FPConst& other)
     m_val = m_ff->opAdd(m_val, other.m_val);
 }
 
+void FPConst::div(const FPConst& other)
+{
+    assert_type_or_fail(*this, other);
+
+    m_val = m_ff->opDiv(m_val, other.m_val);
+}
+
 bool FPConst::is_nan() const { return (bool)m_ff->opNan(m_val); }
 
 bool FPConst::lt(const FPConst& other) const

@@ -69,7 +69,9 @@ class Expr
         BV_TO_FP,
         FP_TO_BV,
         FP_CONVERT,
+        FP_INT_TO_FP,
         FP_IS_NAN,
+        FP_DIV,
         FP_LT,
         FP_EQ
     };
@@ -1136,6 +1138,36 @@ class FPConvert final : public FPExpr
 };
 typedef std::shared_ptr<const FPConvert> FPConvertPtr;
 
+class IntToFPExpr final : public FPExpr
+{
+  private:
+    static const Kind ekind = Kind::FP_INT_TO_FP;
+
+    BVExprPtr m_expr;
+
+  protected:
+    IntToFPExpr(BVExprPtr expr, FloatFormatPtr ff) : FPExpr(ff), m_expr(expr) {}
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual ExprPtr    clone() const
+    {
+        return ExprPtr(new IntToFPExpr(m_expr, m_ff));
+    }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        return std::vector<ExprPtr>{m_expr};
+    }
+
+    BVExprPtr expr() const { return m_expr; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const IntToFPExpr> IntToFPExprPtr;
+
 class FPIsNAN final : public BoolExpr
 {
   private:
@@ -1162,6 +1194,44 @@ class FPIsNAN final : public BoolExpr
     friend class ExprBuilder;
 };
 typedef std::shared_ptr<const FPIsNAN> FPIsNANPtr;
+
+class FPDivExpr final : public FPExpr
+{
+  private:
+    static const Kind ekind = Kind::FP_DIV;
+
+    FPExprPtr m_lhs;
+    FPExprPtr m_rhs;
+
+  protected:
+    FPDivExpr(FPExprPtr lhs, FPExprPtr rhs)
+        : FPExpr(lhs->ff()), m_lhs(lhs), m_rhs(rhs)
+    {
+    }
+
+  public:
+    virtual const Kind kind() const { return ekind; };
+    virtual ExprPtr    clone() const
+    {
+        return ExprPtr(new FPDivExpr(m_lhs, m_rhs));
+    }
+
+    virtual uint64_t             hash() const;
+    virtual bool                 eq(ExprPtr other) const;
+    virtual std::vector<ExprPtr> children() const
+    {
+        std::vector<ExprPtr> res;
+        res.push_back(m_lhs);
+        res.push_back(m_rhs);
+        return res;
+    }
+
+    FPExprPtr lhs() const { return m_lhs; }
+    FPExprPtr rhs() const { return m_rhs; }
+
+    friend class ExprBuilder;
+};
+typedef std::shared_ptr<const FPDivExpr> FPDivExprPtr;
 
 #define GEN_FP_BINARY_LOGICAL_EXPR_CLASS(NAME, NAME_SHARED, KIND)              \
     class NAME final : public BoolExpr                                         \
