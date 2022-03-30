@@ -411,6 +411,40 @@ static ExprPtr evaluate_inner(ExprPtr                            e,
                         e_->expr(), assignments, model_completion, cache)));
             break;
         }
+        case Expr::Kind::FP_NEG: {
+            auto e_ = std::static_pointer_cast<const FPNegExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const FPExpr>(evaluate_inner(
+                    e_->expr(), assignments, model_completion, cache));
+            res = exprBuilder.mk_fp_neg(eval_expr);
+            break;
+        }
+        case Expr::Kind::FP_ADD: {
+            auto e_ = std::static_pointer_cast<const FPAddExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const FPExpr>(evaluate_inner(
+                    e_->els().at(0), assignments, model_completion, cache));
+            for (uint32_t i = 1; i < e_->els().size(); ++i)
+                eval_expr = exprBuilder.mk_fp_add(
+                    eval_expr, std::static_pointer_cast<const FPExpr>(
+                                   evaluate_inner(e_->els().at(i), assignments,
+                                                  model_completion, cache)));
+            res = eval_expr;
+            break;
+        }
+        case Expr::Kind::FP_MUL: {
+            auto e_ = std::static_pointer_cast<const FPAddExpr>(e);
+            auto eval_expr =
+                std::static_pointer_cast<const FPExpr>(evaluate_inner(
+                    e_->els().at(0), assignments, model_completion, cache));
+            for (uint32_t i = 1; i < e_->els().size(); ++i)
+                eval_expr = exprBuilder.mk_fp_mul(
+                    eval_expr, std::static_pointer_cast<const FPExpr>(
+                                   evaluate_inner(e_->els().at(i), assignments,
+                                                  model_completion, cache)));
+            res = eval_expr;
+            break;
+        }
         case Expr::Kind::FP_DIV: {
             auto e_ = std::static_pointer_cast<const FPDivExpr>(e);
             res     = exprBuilder.mk_fp_div(
@@ -763,6 +797,34 @@ static std::string to_string_inner(ExprPtr                         e,
             auto e_ = std::static_pointer_cast<const FPIsNAN>(e);
             res     = string_format("FPIsNAN(%s)",
                                     to_string_inner(e_->expr(), cache).c_str());
+            break;
+        }
+        case Expr::Kind::FP_NEG: {
+            auto e_ = std::static_pointer_cast<const FPNegExpr>(e);
+            res     = string_format("-%s",
+                                    to_string_inner(e_->expr(), cache).c_str());
+            break;
+        }
+        case Expr::Kind::FP_ADD: {
+            auto e_ = std::static_pointer_cast<const FPAddExpr>(e);
+            res     = "( ";
+            res += to_string_inner(e_->els().at(0), cache);
+            for (uint32_t i = 1; i < e_->els().size(); ++i) {
+                res += " + ";
+                res += to_string_inner(e_->els().at(i), cache);
+            }
+            res += " )";
+            break;
+        }
+        case Expr::Kind::FP_MUL: {
+            auto e_ = std::static_pointer_cast<const FPAddExpr>(e);
+            res     = "( ";
+            res += to_string_inner(e_->els().at(0), cache);
+            for (uint32_t i = 1; i < e_->els().size(); ++i) {
+                res += " * ";
+                res += to_string_inner(e_->els().at(i), cache);
+            }
+            res += " )";
             break;
         }
         case Expr::Kind::FP_DIV: {

@@ -321,6 +321,25 @@ static z3::expr to_z3_inner(z3::context& ctx, expr::ExprPtr e,
             res     = res.mk_from_ieee_bv(get_fp_sort(ctx, e_->ff()));
             break;
         }
+        case expr::Expr::Kind::FP_NEG: {
+            auto e_ = std::static_pointer_cast<const expr::FPNegExpr>(e);
+            res     = -to_z3_inner(ctx, e_->expr(), cache);
+            break;
+        }
+        case expr::Expr::Kind::FP_ADD: {
+            auto e_ = std::static_pointer_cast<const expr::FPAddExpr>(e);
+            res     = to_z3_inner(ctx, e_->els().at(0), cache);
+            for (uint64_t i = 1; i < e_->els().size(); ++i)
+                res = res + to_z3_inner(ctx, e_->els().at(i), cache);
+            break;
+        }
+        case expr::Expr::Kind::FP_MUL: {
+            auto e_ = std::static_pointer_cast<const expr::FPAddExpr>(e);
+            res     = to_z3_inner(ctx, e_->els().at(0), cache);
+            for (uint64_t i = 1; i < e_->els().size(); ++i)
+                res = res * to_z3_inner(ctx, e_->els().at(i), cache);
+            break;
+        }
         case expr::Expr::Kind::FP_TO_BV: {
             auto e_ = std::static_pointer_cast<const expr::FPToBVExpr>(e);
             res     = to_z3_inner(ctx, e_->expr(), cache).mk_to_ieee_bv();

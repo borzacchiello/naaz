@@ -881,6 +881,88 @@ bool FPIsNAN::eq(ExprPtr other) const
 }
 
 // ***************
+// * FPNegExpr
+// ***************
+
+uint64_t FPNegExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    void* raw_expr = (void*)m_expr.get();
+    XXH64_update(&state, (void*)m_expr.get(), sizeof(void*));
+    return XXH64_digest(&state);
+}
+
+bool FPNegExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const FPNegExpr>(other);
+    return m_expr == other_->m_expr;
+}
+
+// ***************
+// * FPAddExpr
+// ***************
+
+uint64_t FPAddExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    for (const auto& child : m_children) {
+        void* raw_child = (void*)child.get();
+        XXH64_update(&state, raw_child, sizeof(void*));
+    }
+    return XXH64_digest(&state);
+}
+
+bool FPAddExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const FPAddExpr>(other);
+    if (m_children.size() != other_->m_children.size())
+        return false;
+
+    for (uint64_t i = 0; i < m_children.size(); ++i)
+        if (m_children.at(i) != other_->m_children.at(i))
+            return false;
+    return true;
+}
+
+// ***************
+// * FPMulExpr
+// ***************
+
+uint64_t FPMulExpr::hash() const
+{
+    XXH64_state_t state;
+    XXH64_reset(&state, 0);
+    for (const auto& child : m_children) {
+        void* raw_child = (void*)child.get();
+        XXH64_update(&state, raw_child, sizeof(void*));
+    }
+    return XXH64_digest(&state);
+}
+
+bool FPMulExpr::eq(ExprPtr other) const
+{
+    if (other->kind() != ekind)
+        return false;
+
+    auto other_ = std::static_pointer_cast<const FPMulExpr>(other);
+    if (m_children.size() != other_->m_children.size())
+        return false;
+
+    for (uint64_t i = 0; i < m_children.size(); ++i)
+        if (m_children.at(i) != other_->m_children.at(i))
+            return false;
+    return true;
+}
+
+// ***************
 // * FPDivExpr
 // ***************
 

@@ -532,27 +532,46 @@ BVExprPtr ExprBuilder::mk_add(BVExprPtr lhs, BVExprPtr rhs)
     }
 
     // remove 'add with negated'
-    std::vector<BVExprPtr> pruned_children;
-    std::set<BVExprPtr>    negated_exprs;
-    std::set<BVExprPtr>    normal_exprs;
+    std::vector<BVExprPtr>   pruned_children;
+    std::map<BVExprPtr, int> negated_exprs;
+    std::map<BVExprPtr, int> normal_exprs;
     for (auto exp : children) {
         if (exp->kind() == Expr::Kind::NEG) {
             auto exp_ = std::static_pointer_cast<const NegExpr>(exp);
-            if (normal_exprs.contains(exp_->expr()))
-                normal_exprs.erase(exp_->expr());
+            if (normal_exprs.contains(exp_->expr())) {
+                if (normal_exprs[exp_->expr()] == 1)
+                    normal_exprs.erase(exp_->expr());
+                else
+                    normal_exprs[exp_->expr()] -= 1;
+            } else if (!negated_exprs.contains(exp_->expr()))
+                negated_exprs[exp_->expr()] = 1;
             else
-                negated_exprs.insert(exp_->expr());
+                negated_exprs[exp_->expr()] += 1;
         } else {
-            if (negated_exprs.contains(exp))
-                negated_exprs.erase(exp);
+            if (negated_exprs.contains(exp)) {
+                if (negated_exprs[exp] == 1)
+                    negated_exprs.erase(exp);
+                else
+                    negated_exprs[exp] -= 1;
+            } else if (!normal_exprs.contains(exp))
+                normal_exprs[exp] = 1;
             else
-                normal_exprs.insert(exp);
+                normal_exprs[exp] += 1;
         }
     }
-    for (auto exp : negated_exprs)
-        pruned_children.push_back(mk_neg(exp));
-    for (auto exp : normal_exprs)
-        pruned_children.push_back(exp);
+    for (auto pair : negated_exprs) {
+        if (pair.second > 1)
+            pruned_children.push_back(mk_mul(
+                mk_neg(pair.first), mk_const(pair.second, pair.first->size())));
+        else
+            pruned_children.push_back(mk_neg(pair.first));
+    }
+    for (auto pair : normal_exprs)
+        if (pair.second > 1)
+            pruned_children.push_back(
+                mk_mul(pair.first, mk_const(pair.second, pair.first->size())));
+        else
+            pruned_children.push_back(pair.first);
 
     // final checks
     if (pruned_children.size() == 0)
@@ -1256,6 +1275,12 @@ FPConstExprPtr ExprBuilder::mk_fp_const(FloatFormatPtr ff, double v)
     return std::static_pointer_cast<const FPConstExpr>(get_or_create(c));
 }
 
+FPConstExprPtr ExprBuilder::mk_fp_const(const FPConst& c)
+{
+    FPConstExpr e(c);
+    return std::static_pointer_cast<const FPConstExpr>(get_or_create(e));
+}
+
 FPExprPtr ExprBuilder::mk_bv_to_fp(FloatFormatPtr ff, BVExprPtr expr)
 {
     if (ff->getSize() * 8 != expr->size()) {
@@ -1343,6 +1368,173 @@ BoolExprPtr ExprBuilder::mk_fp_is_nan(FPExprPtr expr)
 
     FPIsNAN e(expr);
     return std::static_pointer_cast<const FPIsNAN>(get_or_create(e));
+}
+
+FPExprPtr ExprBuilder::mk_fp_neg(FPExprPtr expr)
+{
+    // constant propagation
+    if (expr->kind() == Expr::Kind::FP_CONST) {
+        auto expr_ = std::static_pointer_cast<const FPConstExpr>(expr);
+        auto tmp   = expr_->val();
+        tmp.neg();
+        FPConstExpr c(tmp);
+        return std::static_pointer_cast<const FPConstExpr>(get_or_create(c));
+    }
+
+    FPNegExpr e(expr);
+    return std::static_pointer_cast<const FPExpr>(get_or_create(e));
+}
+
+FPExprPtr ExprBuilder::mk_fp_add(FPExprPtr lhs, FPExprPtr rhs)
+{
+    check_fp_type_or_fail("fp_add", lhs, rhs);
+
+    std::vector<FPExprPtr> addends;
+
+    // flatten args
+    if (lhs->kind() == Expr::Kind::FP_ADD) {
+        auto lhs_ = std::static_pointer_cast<const FPAddExpr>(lhs);
+        for (auto child : lhs_->els())
+            addends.push_back(child);
+    } else {
+        addends.push_back(lhs);
+    }
+
+    if (rhs->kind() == Expr::Kind::FP_ADD) {
+        auto rhs_ = std::static_pointer_cast<const FPAddExpr>(rhs);
+        for (auto child : rhs_->els())
+            addends.push_back(child);
+    } else {
+        addends.push_back(rhs);
+    }
+
+    std::vector<FPExprPtr> children;
+
+    // constant propagation
+    FPConst concrete_val(addends.at(0)->ff(), 0.0);
+    for (auto addend : addends) {
+        if (addend->kind() == Expr::Kind::CONST) {
+            auto addend_ = std::static_pointer_cast<const FPConstExpr>(addend);
+            concrete_val.add(addend_->val());
+        } else {
+            children.push_back(addend);
+        }
+    }
+
+    // remove 'add with negated'
+    std::vector<FPExprPtr>   pruned_children;
+    std::map<FPExprPtr, int> negated_exprs;
+    std::map<FPExprPtr, int> normal_exprs;
+    for (auto exp : children) {
+        if (exp->kind() == Expr::Kind::FP_NEG) {
+            auto exp_ = std::static_pointer_cast<const FPNegExpr>(exp);
+            if (normal_exprs.contains(exp_->expr())) {
+                if (normal_exprs[exp_->expr()] == 1)
+                    normal_exprs.erase(exp_->expr());
+                else
+                    normal_exprs[exp_->expr()] -= 1;
+            } else if (!negated_exprs.contains(exp_->expr()))
+                negated_exprs[exp_->expr()] = 1;
+            else
+                negated_exprs[exp_->expr()] += 1;
+        } else {
+            if (negated_exprs.contains(exp)) {
+                if (negated_exprs[exp] == 1)
+                    negated_exprs.erase(exp);
+                else
+                    negated_exprs[exp] -= 1;
+            } else if (!normal_exprs.contains(exp))
+                normal_exprs[exp] = 1;
+            else
+                normal_exprs[exp] += 1;
+        }
+    }
+    for (auto pair : negated_exprs) {
+        if (pair.second > 1)
+            pruned_children.push_back(
+                mk_fp_mul(mk_fp_neg(pair.first),
+                          mk_fp_const(pair.first->ff(), (double)pair.second)));
+        else
+            pruned_children.push_back(mk_fp_neg(pair.first));
+    }
+    for (auto pair : normal_exprs)
+        if (pair.second > 1)
+            pruned_children.push_back(
+                mk_fp_mul(pair.first,
+                          mk_fp_const(pair.first->ff(), (double)pair.second)));
+        else
+            pruned_children.push_back(pair.first);
+
+    // final checks
+    if (pruned_children.size() == 0)
+        return mk_fp_const(concrete_val);
+
+    if (!concrete_val.is_zero())
+        pruned_children.push_back(mk_fp_const(concrete_val));
+
+    if (pruned_children.size() == 1)
+        return pruned_children.back();
+
+    // sort children by address (commutative! We are trying to reduce the
+    // number of equivalent expressions)
+    std::sort(pruned_children.begin(), pruned_children.end());
+
+    FPAddExpr e(pruned_children);
+    return std::static_pointer_cast<const FPExpr>(get_or_create(e));
+}
+
+FPExprPtr ExprBuilder::mk_fp_mul(FPExprPtr lhs, FPExprPtr rhs)
+{
+    check_fp_type_or_fail("fp_mul", lhs, rhs);
+
+    std::vector<FPExprPtr> els;
+
+    // flatten args
+    if (lhs->kind() == Expr::Kind::FP_MUL) {
+        auto lhs_ = std::static_pointer_cast<const FPMulExpr>(lhs);
+        for (auto child : lhs_->els())
+            els.push_back(child);
+    } else {
+        els.push_back(lhs);
+    }
+
+    if (rhs->kind() == Expr::Kind::FP_MUL) {
+        auto rhs_ = std::static_pointer_cast<const FPMulExpr>(rhs);
+        for (auto child : rhs_->els())
+            els.push_back(child);
+    } else {
+        els.push_back(rhs);
+    }
+
+    std::vector<FPExprPtr> children;
+
+    // constant propagation
+    FPConst concrete_val(els.at(0)->ff(), 1.0);
+    for (auto e : els) {
+        if (e->kind() == Expr::Kind::CONST) {
+            auto e_ = std::static_pointer_cast<const FPConstExpr>(e);
+            concrete_val.mul(e_->val());
+        } else {
+            children.push_back(e);
+        }
+    }
+
+    // final checks
+    if (children.size() == 0 || concrete_val.is_zero())
+        return mk_fp_const(concrete_val);
+
+    if (!concrete_val.is_one())
+        children.push_back(mk_fp_const(concrete_val));
+
+    if (children.size() == 1)
+        return children.back();
+
+    // sort children by address (commutative! We are trying to reduce the
+    // number of equivalent expressions)
+    std::sort(children.begin(), children.end());
+
+    FPMulExpr e(children);
+    return std::static_pointer_cast<const FPExpr>(get_or_create(e));
 }
 
 FPExprPtr ExprBuilder::mk_fp_div(FPExprPtr lhs, FPExprPtr rhs)

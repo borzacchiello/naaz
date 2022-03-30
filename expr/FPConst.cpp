@@ -23,11 +23,20 @@ void FPConst::convert(FloatFormatPtr ff)
     m_ff  = ff;
 }
 
+void FPConst::neg() { m_val = m_ff->opNeg(m_val); }
+
 void FPConst::add(const FPConst& other)
 {
     assert_type_or_fail(*this, other);
 
     m_val = m_ff->opAdd(m_val, other.m_val);
+}
+
+void FPConst::mul(const FPConst& other)
+{
+    assert_type_or_fail(*this, other);
+
+    m_val = m_ff->opMult(m_val, other.m_val);
 }
 
 void FPConst::div(const FPConst& other)

@@ -82,11 +82,15 @@ class ExprBuilder
 
     // floating point
     FPConstExprPtr mk_fp_const(FloatFormatPtr ff, double v);
+    FPConstExprPtr mk_fp_const(const FPConst& c);
     FPExprPtr      mk_bv_to_fp(FloatFormatPtr ff, BVExprPtr expr);
     BVExprPtr      mk_fp_to_bv(FPExprPtr expr);
     FPExprPtr      mk_fp_convert(FPExprPtr expr, FloatFormatPtr ff);
     FPExprPtr      mk_int_to_fp(BVExprPtr expr, FloatFormatPtr ff);
     BoolExprPtr    mk_fp_is_nan(FPExprPtr expr);
+    FPExprPtr      mk_fp_neg(FPExprPtr expr);
+    FPExprPtr      mk_fp_add(FPExprPtr lhs, FPExprPtr rhs);
+    FPExprPtr      mk_fp_mul(FPExprPtr lhs, FPExprPtr rhs);
     FPExprPtr      mk_fp_div(FPExprPtr lhs, FPExprPtr rhs);
     BoolExprPtr    mk_fp_lt(FPExprPtr lhs, FPExprPtr rhs);
     BoolExprPtr    mk_fp_eq(FPExprPtr lhs, FPExprPtr rhs);

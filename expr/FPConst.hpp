@@ -28,8 +28,13 @@ class FPConst
         return m_ff->getHostFloat(m_val, &fc);
     }
 
+    bool is_zero() { return m_val == 0; }
+    bool is_one() { return as_double() == 1.0; }
+
     void convert(FloatFormatPtr ff);
+    void neg();
     void add(const FPConst& other);
+    void mul(const FPConst& other);
     void div(const FPConst& other);
     bool is_nan() const;
 
