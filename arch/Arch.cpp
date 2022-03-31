@@ -60,6 +60,30 @@ void x86_64::init_state(state::State& s) const
     s.reg_write("OF", expr::ExprBuilder::The().mk_const(0UL, 8));
 }
 
+expr::BVExprPtr x86_64::stack_pop(state::State& s) const
+{
+    auto ptr_size_off = expr::ExprBuilder::The().mk_const(8, 64);
+    auto stack_val    = s.reg_read("RSP");
+    auto val          = s.read(stack_val, 8);
+    stack_val = expr::ExprBuilder::The().mk_add(stack_val, ptr_size_off);
+    s.reg_write("RSP", stack_val);
+    return val;
+}
+
+void x86_64::stack_push(state::State& s, expr::BVExprPtr val) const
+{
+    if (!val->size() != 64UL) {
+        err("x86_64") << "invalid stack_push" << std::endl;
+        exit_fail();
+    }
+
+    auto ptr_size_off = expr::ExprBuilder::The().mk_const(8, 64);
+    auto stack_val    = s.reg_read("RSP");
+    stack_val = expr::ExprBuilder::The().mk_sub(stack_val, ptr_size_off);
+    s.write(stack_val, val);
+    s.reg_write("RSP", stack_val);
+}
+
 void x86_64::set_return(state::StatePtr s, expr::BVExprPtr addr) const
 {
     if (addr->size() != ptr_size()) {
@@ -74,7 +98,7 @@ void x86_64::set_return(state::StatePtr s, expr::BVExprPtr addr) const
 void x86_64::handle_return(state::StatePtr           s,
                            executor::ExecutorResult& o_successors) const
 {
-    auto ret_addr = s->read(s->reg_read("RSP"), 8UL);
+    auto ret_addr = stack_pop(s);
     if (ret_addr->kind() != expr::Expr::Kind::CONST) {
         err("arch::x86_64")
             << "handle_return(): FIXME, unhandled return to symbolic address"
@@ -127,43 +151,47 @@ expr::BVExprPtr x86_64::get_int_param(CallConv cv, state::State& s,
     exit_fail();
 }
 
-void x86_64::set_int_param(CallConv cv, state::State& s, uint32_t i,
-                           expr::BVExprPtr val) const
+void x86_64::set_int_params(CallConv cv, state::State& s,
+                            std::vector<expr::BVExprPtr> values) const
 {
-    switch (cv) {
-        case CallConv::CDECL: {
-            switch (i) {
-                case 0:
-                    s.reg_write("RDI", val);
-                    return;
-                case 1:
-                    s.reg_write("RSI", val);
-                case 2:
-                    s.reg_write("RDX", val);
-                case 3:
-                    s.reg_write("RCX", val);
-                case 4:
-                    s.reg_write("R8", val);
-                case 5:
-                    s.reg_write("R9", val);
-                default: {
-                    uint64_t stack_off = (i + 1UL - 6UL) * 8UL;
-                    auto     stack_off_expr =
-                        expr::ExprBuilder::The().mk_const(stack_off, 64);
-                    auto addr = expr::ExprBuilder::The().mk_add(
-                        s.reg_read("RSP"), stack_off_expr);
-                    return s.write(addr, val);
+    int i = 0;
+    for (auto val : values) {
+        switch (cv) {
+            case CallConv::CDECL: {
+                switch (i++) {
+                    case 0:
+                        s.reg_write("RDI", val);
+                        break;
+                    case 1:
+                        s.reg_write("RSI", val);
+                        break;
+                    case 2:
+                        s.reg_write("RDX", val);
+                        break;
+                    case 3:
+                        s.reg_write("RCX", val);
+                        break;
+                    case 4:
+                        s.reg_write("R8", val);
+                        break;
+                    case 5:
+                        s.reg_write("R9", val);
+                        break;
+                    default: {
+                        stack_push(s, val);
+                        break;
+                    }
                 }
+                break;
             }
-            break;
+            default: {
+                err("arch::x86_64")
+                    << "set_int_param(): unsupported calling convention " << cv
+                    << std::endl;
+                exit_fail();
+            }
         }
-        default:
-            break;
     }
-
-    err("arch::x86_64") << "set_int_param(): unsupported calling convention "
-                        << cv << std::endl;
-    exit_fail();
 }
 
 void x86_64::set_return_int_value(CallConv cv, state::State& s,
@@ -189,7 +217,6 @@ expr::BVExprPtr x86_64::get_return_int_value(CallConv cv, state::State& s) const
     switch (cv) {
         case CallConv::CDECL: {
             return s.reg_read("RAX");
-            ;
         }
         default:
             break;

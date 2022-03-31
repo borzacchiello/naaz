@@ -47,13 +47,13 @@ class Arch
     virtual void set_return(state::StatePtr s, uint64_t addr) const;
 
     virtual expr::BVExprPtr get_int_param(CallConv cv, state::State& s,
-                                          uint32_t i) const             = 0;
-    virtual void set_int_param(CallConv cv, state::State& s, uint32_t i,
-                               expr::BVExprPtr val) const               = 0;
-    virtual void set_return_int_value(CallConv cv, state::State& s,
-                                      expr::BVExprPtr val) const        = 0;
+                                          uint32_t i) const = 0;
+    virtual void            set_int_params(CallConv cv, state::State& s,
+                                           std::vector<expr::BVExprPtr> values) const = 0;
+    virtual void            set_return_int_value(CallConv cv, state::State& s,
+                                                 expr::BVExprPtr val) const = 0;
     virtual expr::BVExprPtr get_return_int_value(CallConv      cv,
-                                                 state::State& s) const = 0;
+                                                 state::State& s) const     = 0;
 
     virtual const std::string& description() const = 0;
 };
@@ -69,6 +69,14 @@ class x86_64 final : public naaz::Arch
     uint64_t fs_base_ptr   = 0xff000000000UL;
 
     x86_64() {}
+
+    expr::BVExprPtr stack_pop(state::State& s) const;
+    void            stack_push(state::State& s, expr::BVExprPtr val) const;
+    expr::BVExprPtr stack_pop(state::StatePtr s) const { return stack_pop(*s); }
+    void            stack_push(state::StatePtr s, expr::BVExprPtr val) const
+    {
+        stack_push(*s, val);
+    }
 
   public:
     virtual std::filesystem::path getSleighSLA() const;
@@ -87,10 +95,10 @@ class x86_64 final : public naaz::Arch
 
     virtual expr::BVExprPtr get_int_param(CallConv cv, state::State& s,
                                           uint32_t i) const;
-    virtual void set_int_param(CallConv cv, state::State& s, uint32_t i,
-                               expr::BVExprPtr val) const;
-    virtual void set_return_int_value(CallConv cv, state::State& s,
-                                      expr::BVExprPtr val) const;
+    virtual void            set_int_params(CallConv cv, state::State& s,
+                                           std::vector<expr::BVExprPtr> values) const;
+    virtual void            set_return_int_value(CallConv cv, state::State& s,
+                                                 expr::BVExprPtr val) const;
     virtual expr::BVExprPtr get_return_int_value(CallConv      cv,
                                                  state::State& s) const;
 

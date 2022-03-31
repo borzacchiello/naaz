@@ -50,7 +50,6 @@ std::vector<resolved_string_t> resolve_string(state::StatePtr state,
                 max_forks--;
             } else {
                 // is symbolic but cannot be zero
-                state->write(curr, zero_byte);
             }
         }
         curr += 1;

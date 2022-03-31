@@ -264,7 +264,16 @@ static expr::BVExprPtr process_specifier(const format_token_t& ft,
                 exit_fail();
             }
 
-            return resolved_strings.at(0).str;
+            auto str = resolved_strings.at(0).str;
+            if (str->size() == 8)
+                // In the case in which the string is empty, we return a space
+                // (since we cannot construct an empty BV!)
+                // Its fine for now
+                return exprBuilder.mk_const(
+                    expr::BVConst((const uint8_t*)" ", 1));
+
+            str = exprBuilder.mk_extract(str, str->size() - 1, 8);
+            return str;
         }
         case 'd': {
             expr::BVExprPtr expr;
@@ -376,7 +385,14 @@ void printf::exec(state::StatePtr           s,
             .as_data();
     std::string format((char*)format_bytes.data(), format_bytes.size());
 
-    s->fs().write(1, process_format_string(format, s));
+    auto processed_format = process_format_string(format, s);
+
+    auto second_param = s->arch().get_int_param(CallConv::CDECL, *s, 1);
+    if (second_param->kind() == expr::Expr::Kind::CONST) {
+        auto a = s->read_buf(second_param, 44);
+    }
+
+    s->fs().write(1, processed_format);
     s->arch().handle_return(s, o_successors);
 }
 
@@ -421,7 +437,8 @@ void sprintf::exec(state::StatePtr           s,
             .as_data();
     std::string format((char*)format_bytes.data(), format_bytes.size());
 
-    s->write_buf(str_ptr_addr, process_format_string(format, s, 2));
+    auto format_processed = process_format_string(format, s, 2);
+    s->write_buf(str_ptr_addr, format_processed);
     s->arch().handle_return(s, o_successors);
 }
 
