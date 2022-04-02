@@ -2,6 +2,8 @@
 
 #include "ExprBuilder.hpp"
 
+#define min(x, y) ((x) < (y) ? (x) : (y))
+
 namespace naaz::expr
 {
 
@@ -183,6 +185,9 @@ BVExprPtr ExprBuilder::mk_extract(BVExprPtr expr, uint32_t high, uint32_t low)
             return expr_->expr();
         if (low >= expr_->expr()->size())
             return mk_const(0UL, high - low + 1);
+        return mk_zext(
+            mk_extract(expr_->expr(), min(high, expr_->size() - 1), low),
+            high - low + 1);
     } else if (expr->kind() == Expr::Kind::SEXT) {
         SextExprPtr expr_ = std::static_pointer_cast<const SextExpr>(expr);
         if (low == 0 && high == expr_->expr()->size() - 1)
@@ -782,6 +787,15 @@ BVExprPtr ExprBuilder::mk_and(BVExprPtr lhs, BVExprPtr rhs)
 {
     check_size_or_fail("and", lhs, rhs);
 
+    if (lhs->kind() == Expr::Kind::CONST) {
+        auto lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
+        // FIXME: is mask...
+    }
+    if (rhs->kind() == Expr::Kind::CONST) {
+        auto rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+        // FIXME: is mask...
+    }
+
     std::vector<BVExprPtr> exprs;
 
     // flatten args
@@ -1121,6 +1135,41 @@ BoolExprPtr ExprBuilder::mk_eq(BVExprPtr lhs, BVExprPtr rhs)
         ConstExprPtr lhs_ = std::static_pointer_cast<const ConstExpr>(lhs);
         ConstExprPtr rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
         return lhs_->val().eq(rhs_->val()) ? mk_true() : mk_false();
+    }
+
+    // (a - b == 0) => (a == b)
+    if (lhs->kind() == Expr::Kind::ADD && rhs->kind() == Expr::Kind::CONST) {
+        auto lhs_ = std::static_pointer_cast<const AddExpr>(lhs);
+        auto rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
+
+        if (rhs_->val().is_zero()) {
+            NegExprPtr             negated_expr = nullptr;
+            std::vector<BVExprPtr> other_exprs;
+            for (auto a : lhs_->addends()) {
+                if (negated_expr == negated_expr &&
+                    a->kind() == Expr::Kind::NEG)
+                    negated_expr = std::static_pointer_cast<const NegExpr>(a);
+                else
+                    other_exprs.push_back(a);
+            }
+
+            if (negated_expr != nullptr) {
+                assert(other_exprs.size() > 0 &&
+                       "mk_eq(): invalid number of other exprs");
+                if (other_exprs.size() == 1) {
+                    EqExpr e(other_exprs.at(0), negated_expr->expr());
+                    return std::static_pointer_cast<const BoolExpr>(
+                        get_or_create(e));
+                } else {
+                    AddExpr ae(other_exprs);
+                    auto    ae_expr = std::static_pointer_cast<const BVExpr>(
+                        get_or_create(ae));
+                    EqExpr e(ae_expr, negated_expr->expr());
+                    return std::static_pointer_cast<const BoolExpr>(
+                        get_or_create(e));
+                }
+            }
+        }
     }
 
     EqExpr e(lhs, rhs);

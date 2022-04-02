@@ -16,7 +16,7 @@ State::State(std::shared_ptr<loader::AddressSpace> as,
     : m_as(as), m_lifter(lifter), m_pc(pc)
 {
     m_linked_functions = std::make_shared<models::LinkedFunctions>();
-    m_regs             = std::unique_ptr<MapMemory>(new MapMemory("ram"));
+    m_regs             = std::unique_ptr<MapMemory>(new MapMemory("regs"));
     m_ram = std::unique_ptr<MapMemory>(new MapMemory("ram", as.get()));
     m_fs  = std::unique_ptr<FileSystem>(new FileSystem());
 
@@ -167,6 +167,13 @@ void State::dump_fs(std::filesystem::path out_dir)
     }
     argv_file.close();
 
+#if 0
+    out_file     = out_dir / "pi.txt";
+    auto pi_file = std::fstream(out_file, std::ios::out);
+    pi_file << pi()->to_string() << std::endl;
+    pi_file.close();
+#endif
+
     for (File* f : m_fs->files()) {
         if (f->size() == 0)
             continue;
@@ -228,18 +235,94 @@ void State::set_argv(const std::vector<std::string>& argv)
     static int argv_sym_idx = 0;
     for (const auto& s : argv) {
         if (s.starts_with("@@:")) {
-            auto     size_str = s.substr(3, s.size() - 3);
-            uint64_t size;
-            if (!parse_uint32(size_str.c_str(), &size)) {
+            auto arg_tokens = split_at(s, ':');
+            if (arg_tokens.size() > 3) {
                 err("State")
-                    << "set_argv(): invalid '@@:<size>' directive" << std::endl;
+                    << "set_argv(): [1] invalid '@@:<arg>:<size>' directive"
+                    << std::endl;
                 exit_fail();
             }
-            auto sym = expr::ExprBuilder::The().mk_sym(
-                string_format("argv_%d", argv_sym_idx++), size * 8);
-            auto sym_nullterm = expr::ExprBuilder::The().mk_concat(
-                sym, expr::ExprBuilder::The().mk_const(0UL, 8));
-            m_argv.push_back(sym_nullterm);
+
+            bool printable_only = false;
+            bool alphan_only    = false;
+            bool non_zero       = false;
+
+            std::string size_str;
+            if (arg_tokens.size() == 2) {
+                size_str = arg_tokens.at(1);
+            } else {
+                size_str = arg_tokens.at(2);
+                if (arg_tokens.at(1) == "print") {
+                    printable_only = true;
+                } else if (arg_tokens.at(1) == "anum") {
+                    alphan_only = true;
+                } else if (arg_tokens.at(1) == "nozero") {
+                    non_zero = true;
+                } else {
+                    err("State")
+                        << "set_argv(): [2] invalid '@@:<arg>:<size>' directive"
+                        << std::endl;
+                    exit_fail();
+                }
+            }
+
+            uint64_t size;
+            if (!parse_uint32(size_str.c_str(), &size) || size == 0) {
+                err("State")
+                    << "set_argv(): [3] invalid '@@:<arg>:<size>' directive"
+                    << std::endl;
+                exit_fail();
+            }
+
+            expr::BVExprPtr arg_expr = nullptr;
+            for (uint64_t i = 0; i < size; ++i) {
+                auto sym = expr::ExprBuilder::The().mk_sym(
+                    string_format("argv_%d[%lu]", argv_sym_idx, i), 8);
+
+                if (printable_only) {
+                    m_solver.add(expr::ExprBuilder::The().mk_uge(
+                        sym, expr::ExprBuilder::The().mk_const(0x20UL, 8)));
+                    m_solver.add(expr::ExprBuilder::The().mk_ule(
+                        sym, expr::ExprBuilder::The().mk_const(0x7eUL, 8)));
+                } else if (alphan_only) {
+                    auto cond1 = expr::ExprBuilder::The().mk_bool_and(
+                        expr::ExprBuilder::The().mk_uge(
+                            sym, expr::ExprBuilder::The().mk_const(0x30UL, 8)),
+                        expr::ExprBuilder::The().mk_ule(
+                            sym, expr::ExprBuilder::The().mk_const(0x39UL, 8)));
+                    auto cond2 = expr::ExprBuilder::The().mk_bool_and(
+                        expr::ExprBuilder::The().mk_uge(
+                            sym, expr::ExprBuilder::The().mk_const(0x41UL, 8)),
+                        expr::ExprBuilder::The().mk_ule(
+                            sym, expr::ExprBuilder::The().mk_const(0x5AUL, 8)));
+                    auto cond3 = expr::ExprBuilder::The().mk_bool_and(
+                        expr::ExprBuilder::The().mk_uge(
+                            sym, expr::ExprBuilder::The().mk_const(0x61UL, 8)),
+                        expr::ExprBuilder::The().mk_ule(
+                            sym, expr::ExprBuilder::The().mk_const(0x7AUL, 8)));
+                    auto constraint =
+                        expr::ExprBuilder::The().mk_bool_or(cond1, cond2);
+                    constraint =
+                        expr::ExprBuilder::The().mk_bool_or(constraint, cond3);
+                    m_solver.add(constraint);
+                } else if (non_zero) {
+                    auto constraint = expr::ExprBuilder::The().mk_not(
+                        expr::ExprBuilder::The().mk_eq(
+                            sym, expr::ExprBuilder::The().mk_const(0UL, 8)));
+                    m_solver.add(constraint);
+                }
+
+                if (i == 0)
+                    arg_expr = sym;
+                else
+                    arg_expr =
+                        expr::ExprBuilder::The().mk_concat(arg_expr, sym);
+            }
+            argv_sym_idx++;
+
+            arg_expr = expr::ExprBuilder::The().mk_concat(
+                arg_expr, expr::ExprBuilder::The().mk_const(0UL, 8));
+            m_argv.push_back(arg_expr);
         } else
             m_argv.push_back(expr::ExprBuilder::The().mk_const(
                 expr::BVConst((const uint8_t*)s.data(), s.size() + 1)));

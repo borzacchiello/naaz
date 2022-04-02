@@ -11,7 +11,7 @@ using namespace naaz;
 
 static void usage(const char* name)
 {
-    fprintf(stderr, "%s <binary> <find>\n", name);
+    fprintf(stderr, "%s <find> <binary>\n", name);
     exit(1);
 }
 
@@ -20,11 +20,17 @@ int main(int argc, char const* argv[])
     if (argc < 3)
         usage(argv[0]);
 
-    const char* binpath   = argv[1];
-    uint64_t    find_addr = std::strtoul(argv[2], NULL, 16);
+    uint64_t    find_addr = std::strtoul(argv[1], NULL, 16);
+    const char* binpath   = argv[2];
+
+    std::vector<std::string> state_argv;
+    for (int i = 2; i < argc; ++i) {
+        state_argv.push_back(argv[i]);
+    }
 
     loader::BFDLoader loader(binpath);
     state::StatePtr   entry_state = loader.entry_state();
+    entry_state->set_argv(state_argv);
 
     executor::RandDFSExecutorManager em(entry_state);
 

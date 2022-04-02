@@ -9,12 +9,22 @@
 namespace naaz::solver
 {
 
-Z3Solver::Z3Solver() : m_solver(m_ctx) {}
+Z3Solver::Z3Solver() : m_solver(m_ctx)
+{
+    z3::params p(m_ctx);
+    p.set(":timeout", 10000U);
+    m_solver.set(p);
+}
 
 CheckResult Z3Solver::check(expr::BoolExprPtr query)
 {
     m_solver.reset();
-    m_solver.add(to_z3(query));
+    if (query->kind() == expr::Expr::Kind::BOOL_AND) {
+        auto query_ = std::static_pointer_cast<const expr::BoolAndExpr>(query);
+        for (auto c : query_->exprs())
+            m_solver.add(to_z3(c).simplify());
+    } else
+        m_solver.add(to_z3(query).simplify());
 
     CheckResult res = CheckResult::UNKNOWN;
     switch (m_solver.check()) {

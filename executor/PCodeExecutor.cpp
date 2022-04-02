@@ -632,20 +632,29 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             expr::BoolExprPtr cond =
                 exprBuilder.bv_to_bool(resolve_varnode(ctx, op.inputs[1]));
             // std::cout << "cond: " << cond->to_string() << std::endl;
+            // std::cout << "pi: " << ctx.state->pi()->to_string() << std::endl;
 
             state::StatePtr     other_state = ctx.state->clone();
             solver::CheckResult sat_cond =
                 other_state->solver().check_sat_and_add_if_sat(cond);
             if (sat_cond == solver::CheckResult::UNKNOWN) {
-                err("PCodeExecutor") << "unknown from solver" << std::endl;
-                exit_fail();
+                info("PCodeExecutor")
+                    << "unknown from solver [1] (assuming SAT)" << std::endl;
+                sat_cond = solver::CheckResult::SAT;
+
+                // PI could be unsat at a certain point...
+                other_state->solver().add(cond);
             }
             solver::CheckResult sat_not_cond =
                 ctx.state->solver().check_sat_and_add_if_sat(
                     exprBuilder.mk_not(cond));
             if (sat_not_cond == solver::CheckResult::UNKNOWN) {
-                err("PCodeExecutor") << "unknown from solver" << std::endl;
-                exit_fail();
+                info("PCodeExecutor")
+                    << "unknown from solver [2] (assuming SAT)" << std::endl;
+                sat_not_cond = solver::CheckResult::SAT;
+
+                // PI could be unsat at a certain point...
+                ctx.state->solver().add(exprBuilder.mk_not(cond));
             }
 
             if (sat_not_cond != solver::CheckResult::SAT) {
