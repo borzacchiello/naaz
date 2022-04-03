@@ -76,10 +76,11 @@ class State
     }
 
     FileSystem& fs() { return *m_fs; }
-    void        dump_fs(std::filesystem::path out_dir);
+    bool        dump_fs(std::filesystem::path out_dir);
 
-    Solver&           solver() { return m_solver; }
-    expr::BoolExprPtr pi() const;
+    Solver&             solver() { return m_solver; }
+    expr::BoolExprPtr   pi() const;
+    solver::CheckResult satisfiable();
 
     void     set_pc(uint64_t pc) { m_pc = pc; }
     uint64_t pc() const { return m_pc; }

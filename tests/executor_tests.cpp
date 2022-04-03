@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 #include <memory>
 
+#include "../util/config.hpp"
 #include "../arch/Arch.hpp"
 #include "../expr/Expr.hpp"
 #include "../expr/ExprBuilder.hpp"
@@ -10,6 +11,7 @@
 #include "../executor/PCodeExecutor.hpp"
 #include "../executor/BFSExplorationTechnique.hpp"
 #include "../executor/DFSExplorationTechnique.hpp"
+#include "../executor/RandDFSExplorationTechnique.hpp"
 
 #define exprBuilder naaz::expr::ExprBuilder::The()
 
@@ -77,7 +79,7 @@ TEST_CASE("Execute Block 2", "[executor]")
     REQUIRE(successors.at(0)->pc() == 0x40000f);
     REQUIRE(successors.at(1)->pc() == 0x40000d);
 
-    expr::BVConst eval_sym = successors.at(1)->solver().evaluate(sym);
+    expr::BVConst eval_sym = successors.at(1)->solver().evaluate(sym).value();
     REQUIRE(eval_sym.as_u64() == 0x55443322UL);
 }
 
@@ -110,7 +112,7 @@ TEST_CASE("Explore BFS 1", "[executor]")
     std::optional<state::StatePtr> s = em.explore(find, avoid);
 
     REQUIRE(s.has_value());
-    REQUIRE(s.value()->solver().evaluate(sym).as_u64() == 3);
+    REQUIRE(s.value()->solver().evaluate(sym).value().as_u64() == 3);
 }
 
 TEST_CASE("Explore DFS 1", "[executor]")
@@ -133,6 +135,8 @@ TEST_CASE("Explore DFS 1", "[executor]")
     auto sym   = exprBuilder.mk_sym("sym", 32);
     state->reg_write("EDI", sym);
 
+    // Infinite loop with lazy solving + DFS
+    g_config.lazy_solving = false;
     executor::DFSExecutorManager em(state);
 
     std::vector<uint64_t> find;
@@ -142,5 +146,37 @@ TEST_CASE("Explore DFS 1", "[executor]")
     std::optional<state::StatePtr> s = em.explore(find, avoid);
 
     REQUIRE(s.has_value());
-    REQUIRE(s.value()->solver().evaluate(sym).as_u64() == 3);
+    REQUIRE(s.value()->solver().evaluate(sym).value().as_u64() == 3);
+}
+
+TEST_CASE("Explore RandDFS 1", "[executor]")
+{
+    const uint8_t code[] = "\x31\xC0"             // 0x400000:    xor eax, eax
+                                                  //           L:
+                           "\x83\xFF\x0A"         // 0x400002:    cmp edi, 0xa
+                           "\x73\x06"             // 0x400005:    jae OUT
+                           "\xFF\xC0"             // 0x400007:    inc eax
+                           "\xFF\xC7"             // 0x400009:    inc edi
+                           "\xEB\xF5"             // 0x40000b:    jmp L
+                                                  //         OUT:
+                           "\x83\xF8\x07"         // 0x40000d:    cmp eax, 7
+                           "\x75\x05"             // 0x400010:    jne RET
+                           "\xB8\x2A\x00\x00\x00" // 0x400012:    mov eax, 42
+                                                  //         RET:
+                           "\xC3";                // 0x400017:    ret
+
+    auto state = get_state_executing(get_x86_64_lifter(), code, sizeof(code));
+    auto sym   = exprBuilder.mk_sym("sym", 32);
+    state->reg_write("EDI", sym);
+
+    executor::RandDFSExecutorManager em(state);
+
+    std::vector<uint64_t> find;
+    find.push_back(0x400012);
+    std::vector<uint64_t> avoid;
+    avoid.push_back(0x400017);
+    std::optional<state::StatePtr> s = em.explore(find, avoid);
+
+    REQUIRE(s.has_value());
+    REQUIRE(s.value()->solver().evaluate(sym).value().as_u64() == 3);
 }

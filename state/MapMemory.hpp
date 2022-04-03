@@ -7,6 +7,7 @@
 #include "../expr/Expr.hpp"
 #include "../arch/Arch.hpp"
 #include "../loader/AddressSpace.hpp"
+#include "../util/config.hpp"
 
 namespace naaz::state
 {
@@ -38,8 +39,9 @@ class MapMemory
               UninitReadBehavior b = UninitReadBehavior::RET_SYM)
         : m_name(name), m_as(as), m_uninit_behavior(b)
     {
-        m_sym_access_behavior = {.max_n_eval_read  = 256,
-                                 .max_n_eval_write = 64};
+        m_sym_access_behavior = {
+            .max_n_eval_read  = g_config.default_max_n_eval_sym_read,
+            .max_n_eval_write = g_config.default_max_n_eval_sym_write};
     }
     MapMemory(const std::string& name,
               UninitReadBehavior b = UninitReadBehavior::RET_SYM)

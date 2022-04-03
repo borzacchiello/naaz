@@ -11,7 +11,11 @@
 namespace naaz::state
 {
 
-void Solver::add(expr::BoolExprPtr c) { m_manager.add(c); }
+void Solver::add(expr::BoolExprPtr c)
+{
+    if (!is_true_const(c))
+        m_manager.add(c);
+}
 
 solver::CheckResult Solver::check_sat(expr::BoolExprPtr c, bool populate_model)
 {
@@ -43,6 +47,29 @@ solver::CheckResult Solver::check_sat(expr::BoolExprPtr c, bool populate_model)
     return res;
 }
 
+solver::CheckResult Solver::satisfiable()
+{
+    auto expr_in_current_model = expr::evaluate(m_manager.pi(), m_model, false);
+    if (expr_in_current_model->kind() == expr::Expr::Kind::BOOL_CONST) {
+        auto e_ = std::static_pointer_cast<const expr::BoolConst>(
+            expr_in_current_model);
+        if (e_->is_true())
+            return solver::CheckResult::SAT;
+    }
+    assert(expr_in_current_model->kind() != expr::Expr::Kind::CONST &&
+           "Solver::check_sat(): unexpected expr::evaluate result");
+
+    solver::CheckResult res = solver::Z3Solver::The().check(m_manager.pi());
+    if (res == solver::CheckResult::SAT) {
+        std::map<uint32_t, expr::BVConst> model =
+            solver::Z3Solver::The().model();
+        for (const auto& [sym, val] : model)
+            m_model[sym] = val;
+    }
+
+    return res;
+}
+
 solver::CheckResult Solver::check_sat_and_add_if_sat(expr::BoolExprPtr c)
 {
     auto r = check_sat(c, true);
@@ -56,15 +83,14 @@ solver::CheckResult Solver::may_be_true(expr::BoolExprPtr c)
     return check_sat(c, false);
 }
 
-expr::BVConst Solver::evaluate(expr::ExprPtr e)
+std::optional<expr::BVConst> Solver::evaluate(expr::ExprPtr e)
 {
     std::set<uint32_t> involved_symbols = m_manager.get_dependencies(e);
     for (auto s_id : involved_symbols) {
         if (!m_model.contains(s_id)) {
             solver::CheckResult r = check_sat(m_manager.pi(e));
             if (r != solver::CheckResult::SAT) {
-                err("state::Solver") << "evaluate(): PI is UNSAT" << std::endl;
-                exit_fail();
+                return {};
             }
             break;
         }
@@ -80,8 +106,11 @@ expr::BVConst Solver::evaluate(expr::ExprPtr e)
                : expr::BVConst(0UL, 1);
 }
 
-std::vector<expr::BVConst> Solver::evaluate_upto(expr::BVExprPtr e, int n)
+std::optional<std::vector<expr::BVConst>>
+Solver::evaluate_upto(expr::BVExprPtr e, int n)
 {
+    if (check_sat(m_manager.pi(e)) != solver::CheckResult::SAT)
+        return {};
     return solver::Z3Solver::The().eval_upto(e, m_manager.pi(e), n);
 }
 

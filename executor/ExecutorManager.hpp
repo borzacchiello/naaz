@@ -39,9 +39,10 @@ template <class ExplorationPolicy> class ExecutorManager
 
             std::vector<state::StatePtr> active;
             for (auto s : next_states.active) {
-                if (find_set.contains(s->pc()))
-                    return s;
-                if (!avoid_set.contains(s->pc()))
+                if (find_set.contains(s->pc())) {
+                    if (s->satisfiable() == solver::CheckResult::SAT)
+                        return s;
+                } else if (!avoid_set.contains(s->pc()))
                     active.push_back(s);
             }
 
@@ -72,7 +73,8 @@ template <class ExplorationPolicy> class ExecutorManager
                 m_executor.execute_basic_block(s.value());
 
             for (auto s : next_states.exited)
-                callback(s);
+                if (s->satisfiable() == solver::CheckResult::SAT)
+                    callback(s);
 
             m_exploration.add_actives(next_states.active);
             // std::cout << "num states: " << num_states() << std::endl;

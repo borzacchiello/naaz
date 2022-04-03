@@ -1,5 +1,6 @@
 #include "MapMemory.hpp"
 
+#include "../executor/Executor.hpp"
 #include "../expr/ExprBuilder.hpp"
 #include "../util/ioutil.hpp"
 #include "../util/strutil.hpp"
@@ -33,9 +34,14 @@ BVExprPtr MapMemory::read(BVExprPtr addr, size_t len, Endianess end)
                 << std::endl;
             exit_fail();
         }
+        if (m_solver->satisfiable() != solver::CheckResult::SAT) {
+            // The current state is UNSAT
+            throw executor::UnsatStateException();
+        }
 
-        auto addrs = m_solver->evaluate_upto(
-            addr, m_sym_access_behavior.max_n_eval_read);
+        auto addrs =
+            m_solver->evaluate_upto(addr, m_sym_access_behavior.max_n_eval_read)
+                .value();
         if (addrs.size() == m_sym_access_behavior.max_n_eval_read) {
             // We have to add the constraint to PI
             auto cond =
@@ -122,9 +128,14 @@ void MapMemory::write(BVExprPtr addr, BVExprPtr value, Endianess end)
                 << std::endl;
             exit_fail();
         }
+        if (m_solver->satisfiable() != solver::CheckResult::SAT) {
+            // The current state is UNSAT
+            throw executor::UnsatStateException();
+        }
 
-        auto addrs = m_solver->evaluate_upto(
-            addr, m_sym_access_behavior.max_n_eval_read);
+        auto addrs =
+            m_solver->evaluate_upto(addr, m_sym_access_behavior.max_n_eval_read)
+                .value();
         if (addrs.size() == m_sym_access_behavior.max_n_eval_read) {
             // We have to add the constraint to PI
             auto cond =

@@ -132,8 +132,16 @@ const models::Model* State::get_linked_model(uint64_t addr)
 
 expr::BoolExprPtr State::pi() const { return m_solver.manager().pi(); }
 
-void State::dump_fs(std::filesystem::path out_dir)
+solver::CheckResult State::satisfiable() { return m_solver.satisfiable(); }
+
+bool State::dump_fs(std::filesystem::path out_dir)
 {
+    if (m_solver.satisfiable() != solver::CheckResult::SAT) {
+        info("State") << "dump_fs(): the state was not satisfiable"
+                      << std::endl;
+        return false;
+    }
+
     // dump stacktrace
     std::filesystem::path out_file = out_dir / "stacktrace.txt";
     auto stacktrace_file           = std::fstream(out_file, std::ios::out);
@@ -153,7 +161,7 @@ void State::dump_fs(std::filesystem::path out_dir)
     int  i         = 0;
     for (auto arg : m_argv) {
         argv_file << std::dec << i++ << ": ";
-        auto arg_eval = m_solver.evaluate(arg);
+        auto arg_eval = m_solver.evaluate(arg).value();
         auto arg_data = arg_eval.as_data();
         for (int j = 0; j < arg_eval.size() / 8U; ++j) {
             if ((int)arg_data[j] >= 32 && (int)arg_data[j] <= 126) {
@@ -185,11 +193,12 @@ void State::dump_fs(std::filesystem::path out_dir)
         auto fout = std::fstream(out_file, std::ios::out | std::ios::binary);
 
         auto data_expr = f->read_all();
-        auto data_eval = m_solver.evaluate(data_expr);
+        auto data_eval = m_solver.evaluate(data_expr).value();
         auto data      = data_eval.as_data();
         fout.write((const char*)data.data(), data.size());
         fout.close();
     }
+    return true;
 }
 
 uint64_t State::allocate(uint64_t size)

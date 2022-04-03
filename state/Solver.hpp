@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "../expr/Expr.hpp"
 #include "../solver/ConstraintManager.hpp"
 #include "../solver/Z3Solver.hpp"
@@ -23,13 +25,16 @@ class Solver
     }
 
     const solver::ConstraintManager& manager() const { return m_manager; }
+    solver::CheckResult              satisfiable();
 
     void                add(expr::BoolExprPtr c);
     solver::CheckResult check_sat_and_add_if_sat(expr::BoolExprPtr c);
     solver::CheckResult may_be_true(expr::BoolExprPtr c);
 
-    expr::BVConst              evaluate(expr::ExprPtr e);
-    std::vector<expr::BVConst> evaluate_upto(expr::BVExprPtr e, int n);
+    // due to lazy constraints, PI could be unsat, and the evaluation can fail
+    std::optional<expr::BVConst>              evaluate(expr::ExprPtr e);
+    std::optional<std::vector<expr::BVConst>> evaluate_upto(expr::BVExprPtr e,
+                                                            int             n);
 };
 
 } // namespace naaz::state

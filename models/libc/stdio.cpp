@@ -285,7 +285,11 @@ static expr::BVExprPtr process_specifier(const format_token_t& ft,
             expr::BVConst const_expr;
             if (expr->kind() != expr::Expr::Kind::CONST) {
                 // FIXME: do not concretize (maybe)
-                const_expr = s->solver().evaluate(expr);
+                auto const_expr_opt = s->solver().evaluate(expr);
+                if (const_expr_opt.has_value())
+                    const_expr = const_expr_opt.value();
+                else
+                    throw executor::UnsatStateException();
             } else {
                 const_expr =
                     std::static_pointer_cast<const expr::ConstExpr>(expr)

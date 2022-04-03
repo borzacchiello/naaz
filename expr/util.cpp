@@ -11,6 +11,24 @@
 namespace naaz::expr
 {
 
+bool is_true_const(BoolExprPtr e)
+{
+    if (e->kind() != Expr::BOOL_CONST)
+        return false;
+
+    auto e_ = std::static_pointer_cast<const BoolConst>(e);
+    return e_->is_true();
+}
+
+bool is_false_const(BoolExprPtr e)
+{
+    if (e->kind() != Expr::BOOL_CONST)
+        return false;
+
+    auto e_ = std::static_pointer_cast<const BoolConst>(e);
+    return !e_->is_true();
+}
+
 static ExprPtr evaluate_inner(ExprPtr                            e,
                               const std::map<uint32_t, BVConst>& assignments,
                               bool                         model_completion,

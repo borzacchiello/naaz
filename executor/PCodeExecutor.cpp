@@ -2,8 +2,10 @@
 
 #include "PCodeExecutor.hpp"
 
+#include "../expr/util.hpp"
 #include "../expr/ExprBuilder.hpp"
 #include "../util/ioutil.hpp"
+#include "../util/config.hpp"
 
 #define exprBuilder naaz::expr::ExprBuilder::The()
 
@@ -69,7 +71,10 @@ void PCodeExecutor::write_to_varnode(ExecutionContext& ctx,
 void PCodeExecutor::handle_symbolic_ip(ExecutionContext& ctx,
                                        expr::BVExprPtr   ip)
 {
-    auto dests = ctx.state->solver().evaluate_upto(ip, 256);
+    auto dests_opt = ctx.state->solver().evaluate_upto(ip, 256);
+    if (!dests_opt.has_value())
+        throw UnsatStateException();
+    auto dests = dests_opt.value();
     if (dests.size() == 256) {
         info("PCodeExecutor")
             << "handle_symbolic_ip(): unconstrained IP" << std::endl;
@@ -631,42 +636,54 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 
             expr::BoolExprPtr cond =
                 exprBuilder.bv_to_bool(resolve_varnode(ctx, op.inputs[1]));
+            expr::BoolExprPtr neg_cond = exprBuilder.mk_not(cond);
             // std::cout << "cond: " << cond->to_string() << std::endl;
             // std::cout << "pi: " << ctx.state->pi()->to_string() << std::endl;
 
-            state::StatePtr     other_state = ctx.state->clone();
-            solver::CheckResult sat_cond =
-                other_state->solver().check_sat_and_add_if_sat(cond);
-            if (sat_cond == solver::CheckResult::UNKNOWN) {
-                info("PCodeExecutor")
-                    << "unknown from solver [1] (assuming SAT)" << std::endl;
-                sat_cond = solver::CheckResult::SAT;
+            state::StatePtr other_state = ctx.state->clone();
 
-                // PI could be unsat at a certain point...
-                other_state->solver().add(cond);
-            }
-            solver::CheckResult sat_not_cond =
-                ctx.state->solver().check_sat_and_add_if_sat(
-                    exprBuilder.mk_not(cond));
-            if (sat_not_cond == solver::CheckResult::UNKNOWN) {
-                info("PCodeExecutor")
-                    << "unknown from solver [2] (assuming SAT)" << std::endl;
-                sat_not_cond = solver::CheckResult::SAT;
+            if (g_config.lazy_solving) {
+                if (!is_false_const(neg_cond)) {
+                    ctx.state->solver().add(neg_cond);
+                } else
+                    ctx.state = nullptr;
 
-                // PI could be unsat at a certain point...
-                ctx.state->solver().add(exprBuilder.mk_not(cond));
+                if (!is_false_const(cond)) {
+                    other_state->set_pc(dst_addr);
+                    other_state->solver().add(cond);
+                    ctx.successors.active.push_back(other_state);
+                }
+            } else {
+                solver::CheckResult sat_cond =
+                    other_state->solver().check_sat_and_add_if_sat(cond);
+                if (sat_cond == solver::CheckResult::UNKNOWN) {
+                    info("PCodeExecutor")
+                        << "unknown from solver [1] (assuming UNSAT)"
+                        << std::endl;
+                    sat_cond = solver::CheckResult::UNSAT;
+                }
+                solver::CheckResult sat_not_cond =
+                    ctx.state->solver().check_sat_and_add_if_sat(neg_cond);
+                if (sat_not_cond == solver::CheckResult::UNKNOWN) {
+                    info("PCodeExecutor")
+                        << "unknown from solver [2] (assuming UNSAT)"
+                        << std::endl;
+                    sat_not_cond = solver::CheckResult::UNSAT;
+                }
+
+                if (sat_not_cond != solver::CheckResult::SAT) {
+                    // The fallthrough is NOT satisfiable, if the CBRANCH is in
+                    // the middle of a basic block, the execution must be
+                    // aborted
+                    ctx.state = nullptr;
+                }
+
+                if (sat_cond == solver::CheckResult::SAT) {
+                    other_state->set_pc(dst_addr);
+                    ctx.successors.active.push_back(other_state);
+                }
             }
 
-            if (sat_not_cond != solver::CheckResult::SAT) {
-                // The fallthrough is NOT satisfiable, if the CBRANCH is in the
-                // middle of a basic block, the execution must be aborted
-                ctx.state = nullptr;
-            }
-
-            if (sat_cond == solver::CheckResult::SAT) {
-                other_state->set_pc(dst_addr);
-                ctx.successors.active.push_back(other_state);
-            }
             break;
         }
         case csleigh_CPUI_BRANCHIND: {
@@ -741,7 +758,12 @@ state::StatePtr PCodeExecutor::execute_instruction(state::StatePtr     state,
         if (ctx.state == nullptr)
             break;
         csleigh_PcodeOp op = t.ops[i];
-        execute_pcodeop(ctx, op);
+        try {
+            execute_pcodeop(ctx, op);
+        } catch (UnsatStateException e) {
+            ctx.state = nullptr;
+            break;
+        }
     }
     return ctx.state;
 }
@@ -752,7 +774,12 @@ ExecutorResult PCodeExecutor::execute_basic_block(state::StatePtr state)
 
     if (state->is_linked_function(state->pc())) {
         auto model = state->get_linked_model(state->pc());
-        model->exec(state, successors);
+        try {
+            model->exec(state, successors);
+        } catch (UnsatStateException e) {
+            successors.active.clear();
+            successors.exited.clear();
+        }
         return successors;
     }
 

@@ -315,12 +315,18 @@ void srand::exec(state::StatePtr           s,
 
     expr::BVConst const_seed;
     if (seed->kind() != expr::Expr::Kind::CONST) {
-        const_seed = s->solver().evaluate(seed);
+        auto const_seed_opt = s->solver().evaluate(seed);
+        if (!const_seed_opt.has_value())
+            throw executor::UnsatStateException();
+        const_seed = const_seed_opt.value();
     } else
         const_seed =
             std::static_pointer_cast<const expr::ConstExpr>(seed)->val();
 
-    __srandom_r(const_seed.as_u64(), &unsafe_state);
+    if (__srandom_r(const_seed.as_u64(), &unsafe_state) < 0) {
+        err("srand") << "failed __srandom_r" << std::endl;
+        exit_fail();
+    }
 
     s->arch().handle_return(s, o_successors);
 }
