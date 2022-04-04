@@ -7,7 +7,7 @@
 #include "../loader/BFDLoader.hpp"
 #include "../expr/ExprBuilder.hpp"
 #include "../executor/ExecutorManager.hpp"
-#include "../executor/RandDFSExplorationTechnique.hpp"
+#include "../executor/CovExplorationTechnique.hpp"
 
 using namespace naaz;
 
@@ -66,7 +66,7 @@ int main(int argc, char const* argv[])
     state::StatePtr   entry_state = loader.entry_state();
     entry_state->set_argv(args.program_args);
 
-    executor::RandDFSExecutorManager em(entry_state);
+    executor::CovExecutorManager em(entry_state);
 
     static std::string outdir = args.outdir;
     em.gen_paths([](state::StatePtr s) {

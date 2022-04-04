@@ -53,6 +53,7 @@ set ( naaz_src
     executor/BFSExplorationTechnique.cpp
     executor/DFSExplorationTechnique.cpp
     executor/RandDFSExplorationTechnique.cpp
+    executor/CovExplorationTechnique.cpp
     solver/ConstraintManager.cpp
     solver/Z3Solver.cpp )
 
