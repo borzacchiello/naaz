@@ -1,7 +1,4 @@
-add_executable ( lift_demo
-    lift_demo.cpp )
-
-target_link_libraries ( lift_demo LINK_PUBLIC libnaaz_shared )
+include_directories ( ${CMAKE_SOURCE_DIR}/third_party/argparse/include )
 
 add_executable ( bininfo
     bininfo.cpp )
@@ -13,12 +10,12 @@ loader_demo.cpp )
 
 target_link_libraries ( loader_demo LINK_PUBLIC libnaaz_shared )
 
-add_executable ( executor_demo
-executor_demo.cpp )
+add_executable ( naaz_finder
+naaz_finder.cpp )
 
-target_link_libraries ( executor_demo LINK_PUBLIC libnaaz_shared )
+target_link_libraries ( naaz_finder LINK_PUBLIC libnaaz_shared )
 
-add_executable ( gen_path_demo
-gen_path_demo.cpp )
+add_executable ( naaz_path_generator
+naaz_path_generator.cpp )
 
-target_link_libraries ( gen_path_demo LINK_PUBLIC libnaaz_shared )
+target_link_libraries ( naaz_path_generator LINK_PUBLIC libnaaz_shared )
