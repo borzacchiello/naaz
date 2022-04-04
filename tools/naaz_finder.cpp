@@ -4,29 +4,13 @@
 #include <argparse/argparse.hpp>
 
 #include "../util/strutil.hpp"
+#include "../util/parseutil.hpp"
 #include "../loader/BFDLoader.hpp"
 #include "../expr/ExprBuilder.hpp"
 #include "../executor/ExecutorManager.hpp"
 #include "../executor/RandDFSExplorationTechnique.hpp"
 
 using namespace naaz;
-
-static bool parse_uint(const char* arg, uint64_t* out)
-{
-    const char* needle = arg;
-    while (*needle == ' ' || *needle == '\t')
-        needle++;
-
-    char*    res;
-    uint64_t num = strtoul(needle, &res, 0);
-    if (needle == res)
-        return false; // no character
-    if (errno != 0)
-        return false; // error while parsing
-
-    *out = num;
-    return res;
-}
 
 struct parsed_args_t {
     std::string binpath;
@@ -71,6 +55,7 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
         else {
             fprintf(stderr, "the output directory %s does not exist",
                     res.outdir.c_str());
+            exit(1);
         }
     }
 

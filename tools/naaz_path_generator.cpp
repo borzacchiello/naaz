@@ -45,6 +45,7 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
         else {
             fprintf(stderr, "the output directory %s does not exist",
                     res.outdir.c_str());
+            exit(1);
         }
     }
 

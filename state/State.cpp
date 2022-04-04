@@ -7,6 +7,7 @@
 #include "../expr/ExprBuilder.hpp"
 #include "../util/ioutil.hpp"
 #include "../util/strutil.hpp"
+#include "../util/parseutil.hpp"
 
 namespace naaz::state
 {
@@ -220,23 +221,6 @@ uint64_t State::allocate(expr::ExprPtr size)
     return allocate(size_->val().as_u64());
 }
 
-static bool parse_uint32(const char* arg, uint64_t* out)
-{
-    const char* needle = arg;
-    while (*needle == ' ' || *needle == '\t')
-        needle++;
-
-    char*    res;
-    uint64_t num = strtoul(needle, &res, 0);
-    if (needle == res)
-        return false; // no character
-    if (errno != 0)
-        return false; // error while parsing
-
-    *out = num;
-    return res;
-}
-
 void State::set_argv(const std::vector<std::string>& argv)
 {
     m_argv.clear();
@@ -276,7 +260,7 @@ void State::set_argv(const std::vector<std::string>& argv)
             }
 
             uint64_t size;
-            if (!parse_uint32(size_str.c_str(), &size) || size == 0) {
+            if (!parse_uint(size_str.c_str(), &size) || size == 0) {
                 err("State")
                     << "set_argv(): [3] invalid '@@:<arg>:<size>' directive"
                     << std::endl;
