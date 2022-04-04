@@ -67,7 +67,7 @@ function fetch_and_build_libbfd {
 }
 
 function fetch_and_build_libgmp {
-    version=6.1.2
+    version=6.2.1
     if [ ! -d "$SCRIPTPATH/gmp" ]; then
         pushd "$SCRIPTPATH" || exit 1
         wget https://gmplib.org/download/gmp/gmp-$version.tar.xz || exit 1
@@ -79,7 +79,7 @@ function fetch_and_build_libgmp {
 
     pushd "$SCRIPTPATH/gmp" || exit 1
     CFLAGS="-fPIC -O3" CXXFLAGS="-fPIC -O3" \
-        ./configure --enable-cxx || exit 1
+        ./configure --with-pic --enable-cxx || exit 1
     make -j`nproc` || exit 1
     popd
 
