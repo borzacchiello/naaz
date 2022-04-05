@@ -20,6 +20,7 @@ State::State(std::shared_ptr<loader::AddressSpace> as,
     m_regs             = std::unique_ptr<MapMemory>(new MapMemory("regs"));
     m_ram = std::unique_ptr<MapMemory>(new MapMemory("ram", as.get()));
     m_fs  = std::unique_ptr<FileSystem>(new FileSystem());
+    m_pm  = std::unique_ptr<PluginManager>(new PluginManager());
 
     m_ram->set_solver(&m_solver);
 
@@ -38,6 +39,7 @@ State::State(const State& other)
     m_ram  = other.m_ram->clone();
     m_regs = other.m_regs->clone();
     m_fs   = other.m_fs->clone();
+    m_pm   = other.m_pm->clone();
     m_ram->set_solver(&m_solver);
 }
 

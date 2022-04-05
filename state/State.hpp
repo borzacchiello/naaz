@@ -6,6 +6,7 @@
 
 #include "MapMemory.hpp"
 #include "FileSystem.hpp"
+#include "PluginManager.hpp"
 #include "Solver.hpp"
 #include "../loader/AddressSpace.hpp"
 #include "../lifter/PCodeLifter.hpp"
@@ -26,9 +27,10 @@ class State
     std::vector<uint64_t>        m_stacktrace;
     std::vector<expr::BVExprPtr> m_argv;
 
-    std::unique_ptr<MapMemory>  m_regs;
-    std::unique_ptr<MapMemory>  m_ram;
-    std::unique_ptr<FileSystem> m_fs;
+    std::unique_ptr<MapMemory>     m_regs;
+    std::unique_ptr<MapMemory>     m_ram;
+    std::unique_ptr<FileSystem>    m_fs;
+    std::unique_ptr<PluginManager> m_pm;
 
     std::shared_ptr<loader::AddressSpace>    m_as;
     std::shared_ptr<lifter::PCodeLifter>     m_lifter;
@@ -77,6 +79,8 @@ class State
 
     FileSystem& fs() { return *m_fs; }
     bool        dump_fs(std::filesystem::path out_dir);
+
+    PluginManager& pm() { return *m_pm; }
 
     Solver&             solver() { return m_solver; }
     expr::BoolExprPtr   pi() const;

@@ -37,6 +37,7 @@ set ( naaz_src
     state/Solver.cpp
     state/File.cpp
     state/FileSystem.cpp
+    state/PluginManager.cpp
     models/Linker.cpp
     models/libc/libc_start_main.cpp
     models/libc/exit.cpp

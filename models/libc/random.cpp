@@ -284,7 +284,7 @@ static int32_t randtbl[DEG_3 + 1] = {
     -205601318,
 };
 
-static struct random_data unsafe_state = {
+static struct random_data state_template = {
     .fptr = &randtbl[SEP_3 + 1],
     .rptr = &randtbl[1],
 
@@ -301,12 +301,34 @@ static struct random_data unsafe_state = {
 #include "../../expr/Expr.hpp"
 #include "../../expr/ExprBuilder.hpp"
 #include "../../state/State.hpp"
+#include "../../state/PluginManager.hpp"
 #include "../../util/ioutil.hpp"
 
 #define exprBuilder expr::ExprBuilder::The()
 
 namespace naaz::models::libc
 {
+
+class RandPlugin final : public state::Plugin
+{
+    struct random_data m_state;
+
+  public:
+    RandPlugin() { m_state = state_template; }
+    RandPlugin(const RandPlugin& other) { m_state = other.m_state; }
+
+    struct random_data* state() { return &m_state; }
+
+    virtual const std::string& name()
+    {
+        static std::string g_name = "libc::rand";
+        return g_name;
+    }
+    virtual std::shared_ptr<Plugin> clone()
+    {
+        return std::make_shared<RandPlugin>(*this);
+    }
+};
 
 void srand::exec(state::StatePtr           s,
                  executor::ExecutorResult& o_successors) const
@@ -323,7 +345,15 @@ void srand::exec(state::StatePtr           s,
         const_seed =
             std::static_pointer_cast<const expr::ConstExpr>(seed)->val();
 
-    if (__srandom_r(const_seed.as_u64(), &unsafe_state) < 0) {
+    state::PluginPtr pl = s->pm().get_plugin("libc::rand");
+    if (pl == nullptr) {
+        pl = RandPlugin().clone();
+    }
+
+    struct random_data* state =
+        std::static_pointer_cast<RandPlugin>(pl)->state();
+
+    if (__srandom_r(const_seed.as_u64(), state) < 0) {
         err("srand") << "failed __srandom_r" << std::endl;
         exit_fail();
     }
@@ -333,8 +363,16 @@ void srand::exec(state::StatePtr           s,
 
 void rand::exec(state::StatePtr s, executor::ExecutorResult& o_successors) const
 {
+    state::PluginPtr pl = s->pm().get_plugin("libc::rand");
+    if (pl == nullptr) {
+        pl = RandPlugin().clone();
+    }
+
+    struct random_data* state =
+        std::static_pointer_cast<RandPlugin>(pl)->state();
+
     int32_t res;
-    if (__random_r(&unsafe_state, &res) < 0) {
+    if (__random_r(state, &res) < 0) {
         err("rand") << "failed __random_r" << std::endl;
         exit_fail();
     }
