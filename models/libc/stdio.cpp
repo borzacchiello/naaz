@@ -215,7 +215,6 @@ static std::vector<format_token_t> process_tokens(const std::string& format)
             i += needle - &format[i];
             res.push_back(ft);
         } else {
-
             ft.is_specifier = false;
             char c          = 0;
             while (i < format.size()) {
@@ -224,9 +223,12 @@ static std::vector<format_token_t> process_tokens(const std::string& format)
                     i--;
                     break;
                 }
+                if (c == 0)
+                    continue;
                 ft.str += c;
             }
-            res.push_back(ft);
+            if (!ft.str.empty())
+                res.push_back(ft);
         }
     }
 
@@ -355,12 +357,6 @@ static expr::BVExprPtr process_format_string(const std::string& format,
         err("printf") << "no tokens" << std::endl;
         exit_fail();
     }
-    if (data->size() == 8)
-        // In the case in which the string is empty, we return a space
-        // (since we cannot construct an empty BV!)
-        // Its fine for now
-        return exprBuilder.mk_const(expr::BVConst((const uint8_t*)" ", 1));
-    data = exprBuilder.mk_extract(data, data->size() - 1, 8);
     return data;
 }
 
@@ -449,6 +445,86 @@ void sprintf::exec(state::StatePtr           s,
 
     auto format_processed = process_format_string(format, s, 2);
     s->write_buf(str_ptr_addr, format_processed);
+    s->arch().handle_return(s, o_successors);
+}
+
+void scanf::exec(state::StatePtr           s,
+                 executor::ExecutorResult& o_successors) const
+{
+    auto format_str = s->get_int_param(m_call_conv, 0);
+    if (format_str->kind() != expr::Expr::Kind::CONST) {
+        err("scanf") << "format string pointer is symbolic" << std::endl;
+        exit_fail();
+    }
+
+    auto format_str_addr =
+        std::static_pointer_cast<const expr::ConstExpr>(format_str)
+            ->val()
+            .as_u64();
+    auto resolved_strings = resolve_string(s, format_str_addr, 0, 256);
+    if (resolved_strings.size() != 1) {
+        err("scanf") << "unable to resolve the string" << std::endl;
+        exit_fail();
+    }
+
+    auto resolved_format = resolved_strings.at(0);
+    if (resolved_format.str->kind() != expr::Expr::Kind::CONST) {
+        err("scanf") << "the format string is symbolic" << std::endl;
+        exit_fail();
+    }
+
+    auto format_bytes =
+        std::static_pointer_cast<const expr::ConstExpr>(resolved_format.str)
+            ->val()
+            .as_data();
+    std::string format((char*)format_bytes.data(), format_bytes.size());
+
+    expr::BVExprPtr data   = nullptr;
+    auto            tokens = process_tokens(format);
+
+    int specifier_idx = 1;
+    for (auto& token : tokens) {
+        if (!token.is_specifier) {
+            err("scanf") << "non-specifier token in scanf format string (not "
+                            "supported) ["
+                         << token.str << "]" << std::endl;
+            exit_fail();
+        } else {
+            if (token.flags & FLAGS_WIDTH_AS_PARAM) {
+                // '*': ignore the parameter
+                continue;
+            }
+
+            auto op_ptr = s->get_int_param(CallConv::CDECL, specifier_idx++);
+            if (op_ptr->kind() != expr::Expr::Kind::CONST) {
+                err("scanf")
+                    << "symboilc output pointer (unsupported)" << std::endl;
+                exit_fail();
+            }
+            auto op_ptr_ =
+                std::static_pointer_cast<const expr::ConstExpr>(op_ptr);
+            switch (token.specifier) {
+                case 's': {
+                    unsigned width = 64;
+                    if (token.flags & FLAGS_HAS_WIDTH) {
+                        width = token.width;
+                    } else {
+                        info("scanf") << "'%s' without width. Reading 64 "
+                                         "bytes (default value)"
+                                      << std::endl;
+                    }
+                    auto inp = s->fs().read(0, width);
+                    s->write_buf(op_ptr_->val().as_u64(), inp);
+                    break;
+                }
+                default: {
+                    err("scanf") << "unsupported specifier %" << token.specifier
+                                 << std::endl;
+                    exit_fail();
+                }
+            }
+        }
+    }
     s->arch().handle_return(s, o_successors);
 }
 

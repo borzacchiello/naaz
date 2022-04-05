@@ -218,6 +218,13 @@ BVExprPtr ExprBuilder::mk_zext(BVExprPtr e, uint32_t n)
     if (n == e->size())
         return e;
 
+    // zext of zext
+    if (e->kind() == Expr::Kind::ZEXT) {
+        auto     e_ = std::static_pointer_cast<const ZextExpr>(e);
+        ZextExpr r(e_->expr(), n);
+        return std::static_pointer_cast<const BVExpr>(get_or_create(r));
+    }
+
     // constant propagation
     if (e->kind() == Expr::Kind::CONST) {
         auto    e_ = std::static_pointer_cast<const ConstExpr>(e);
@@ -240,6 +247,13 @@ BVExprPtr ExprBuilder::mk_sext(BVExprPtr e, uint32_t n)
     // unnecessary sext
     if (n == e->size())
         return e;
+
+    // sext of sext
+    if (e->kind() == Expr::Kind::SEXT) {
+        auto     e_ = std::static_pointer_cast<const SextExpr>(e);
+        SextExpr r(e_->expr(), n);
+        return std::static_pointer_cast<const BVExpr>(get_or_create(r));
+    }
 
     // constant propagation
     if (e->kind() == Expr::Kind::CONST) {

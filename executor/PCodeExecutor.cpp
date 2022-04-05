@@ -268,6 +268,34 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             write_to_varnode(ctx, *op.output, expr);
             break;
         }
+        case csleigh_CPUI_INT_RIGHT: {
+            assert(op.output != nullptr && "INT_RIGHT: output is NULL");
+            assert(op.inputs_count == 2 && "INT_RIGHT: inputs_count != 2");
+            expr::BVExprPtr expr = exprBuilder.mk_lshr(
+                resolve_varnode(ctx, op.inputs[0]),
+                exprBuilder.mk_zext(resolve_varnode(ctx, op.inputs[1]),
+                                    op.inputs[0].size * 8));
+            write_to_varnode(ctx, *op.output, expr);
+            break;
+        }
+        case csleigh_CPUI_INT_SRIGHT: {
+            assert(op.output != nullptr && "INT_SRIGHT: output is NULL");
+            assert(op.inputs_count == 2 && "INT_SRIGHT: inputs_count != 2");
+            expr::BVExprPtr expr = exprBuilder.mk_ashr(
+                resolve_varnode(ctx, op.inputs[0]),
+                exprBuilder.mk_zext(resolve_varnode(ctx, op.inputs[1]),
+                                    op.inputs[0].size * 8));
+            write_to_varnode(ctx, *op.output, expr);
+            break;
+        }
+        case csleigh_CPUI_INT_2COMP: {
+            assert(op.output != nullptr && "INT_2COMP: output is NULL");
+            assert(op.inputs_count == 1 && "INT_2COMP: inputs_count != 1");
+
+            auto bv = resolve_varnode(ctx, op.inputs[0]);
+            write_to_varnode(ctx, *op.output, exprBuilder.mk_neg(bv));
+            break;
+        }
         case csleigh_CPUI_INT_ADD: {
             assert(op.output != nullptr && "INT_ADD: output is NULL");
             assert(op.inputs_count == 2 && "INT_ADD: inputs_count != 2");
