@@ -52,8 +52,10 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
     res.binpath = program.get("program");
 
     res.program_args.push_back(program.get("program"));
-    for (auto& arg : program.get<std::vector<std::string>>("args")) {
-        res.program_args.push_back(arg);
+    if (program.present("args")) {
+        for (auto& arg : program.get<std::vector<std::string>>("args")) {
+            res.program_args.push_back(arg);
+        }
     }
 
     return res;

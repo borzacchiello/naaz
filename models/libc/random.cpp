@@ -348,6 +348,7 @@ void srand::exec(state::StatePtr           s,
     state::PluginPtr pl = s->pm().get_plugin("libc::rand");
     if (pl == nullptr) {
         pl = RandPlugin().clone();
+        s->pm().register_plugin(pl);
     }
 
     struct random_data* state =
@@ -366,6 +367,7 @@ void rand::exec(state::StatePtr s, executor::ExecutorResult& o_successors) const
     state::PluginPtr pl = s->pm().get_plugin("libc::rand");
     if (pl == nullptr) {
         pl = RandPlugin().clone();
+        s->pm().register_plugin(pl);
     }
 
     struct random_data* state =

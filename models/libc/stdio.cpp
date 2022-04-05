@@ -355,6 +355,12 @@ static expr::BVExprPtr process_format_string(const std::string& format,
         err("printf") << "no tokens" << std::endl;
         exit_fail();
     }
+    if (data->size() == 8)
+        // In the case in which the string is empty, we return a space
+        // (since we cannot construct an empty BV!)
+        // Its fine for now
+        return exprBuilder.mk_const(expr::BVConst((const uint8_t*)" ", 1));
+    data = exprBuilder.mk_extract(data, data->size() - 1, 8);
     return data;
 }
 
