@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <argparse/argparse.hpp>
 
+#include "../util/config.hpp"
 #include "../util/strutil.hpp"
 #include "../util/parseutil.hpp"
 #include "../loader/BFDLoader.hpp"
@@ -33,6 +34,14 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
         .help("Addresses to reach (comma-separated, hex format)");
     program.add_argument("-a", "--avoid")
         .help("Address to avoid (comma-separated, hex format)");
+    program.add_argument("-P", "--printable_stdin")
+        .default_value(false)
+        .implicit_value(true)
+        .nargs(0)
+        .help("Constraint stdin to be printable-only");
+    program.add_argument("-T", "--z3_timeout")
+        .scan<'i', uint32_t>()
+        .help("Set Z3 timeout (ms)");
     program.add_argument("-o", "--output")
         .default_value<std::string>("/tmp/output")
         .help("Output directory");
@@ -46,6 +55,10 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
         std::cerr << program;
         exit(1);
     }
+
+    g_config.printable_stdin = program.get<bool>("--printable_stdin");
+    if (auto z3_to = program.present<uint32_t>("--z3_timeout"))
+        g_config.z3_timeout = *z3_to;
 
     res.outdir = program.get("--output");
     if (!std::filesystem::is_directory(res.outdir) ||

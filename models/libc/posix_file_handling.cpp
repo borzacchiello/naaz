@@ -5,6 +5,7 @@
 #include "../../state/State.hpp"
 #include "../../util/ioutil.hpp"
 #include "../../util/strutil.hpp"
+#include "../../util/config.hpp"
 
 namespace naaz::models::libc
 {
@@ -38,6 +39,17 @@ void read::exec(state::StatePtr s, executor::ExecutorResult& o_successors) const
         std::static_pointer_cast<const expr::ConstExpr>(size)->val().as_u64();
 
     auto data = s->fs().read(fd_, size_);
+    if (fd_ == 0 && g_config.printable_stdin) {
+        for (size_t i = 0; i < size_; ++i) {
+            auto b =
+                expr::ExprBuilder::The().mk_extract(data, i * 8 + 7, i * 8);
+            auto l = expr::ExprBuilder::The().mk_const(0x20ul, 8);
+            auto h = expr::ExprBuilder::The().mk_const(0x7eul, 8);
+            s->solver().add(expr::ExprBuilder::The().mk_uge(b, l));
+            s->solver().add(expr::ExprBuilder::The().mk_ule(b, h));
+        }
+    }
+
     s->write_buf(buf_, data);
     s->arch().handle_return(s, o_successors);
 }

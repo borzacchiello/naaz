@@ -1157,28 +1157,32 @@ BoolExprPtr ExprBuilder::mk_eq(BVExprPtr lhs, BVExprPtr rhs)
         auto rhs_ = std::static_pointer_cast<const ConstExpr>(rhs);
 
         if (rhs_->val().is_zero()) {
-            NegExprPtr             negated_expr = nullptr;
+            BVExprPtr              rhs = nullptr;
             std::vector<BVExprPtr> other_exprs;
             for (auto a : lhs_->addends()) {
-                if (negated_expr == negated_expr &&
-                    a->kind() == Expr::Kind::NEG)
-                    negated_expr = std::static_pointer_cast<const NegExpr>(a);
-                else
+                if (rhs == nullptr && a->kind() == Expr::Kind::NEG) {
+                    rhs = std::static_pointer_cast<const NegExpr>(a)->expr();
+                } else if (a->kind() == Expr::Kind::CONST) {
+                    if (rhs != nullptr)
+                        other_exprs.push_back(mk_neg(rhs));
+                    rhs = mk_neg(a);
+                } else {
                     other_exprs.push_back(a);
+                }
             }
 
-            if (negated_expr != nullptr) {
+            if (rhs != nullptr) {
                 assert(other_exprs.size() > 0 &&
                        "mk_eq(): invalid number of other exprs");
                 if (other_exprs.size() == 1) {
-                    EqExpr e(other_exprs.at(0), negated_expr->expr());
+                    EqExpr e(other_exprs.at(0), rhs);
                     return std::static_pointer_cast<const BoolExpr>(
                         get_or_create(e));
                 } else {
                     AddExpr ae(other_exprs);
                     auto    ae_expr = std::static_pointer_cast<const BVExpr>(
                         get_or_create(ae));
-                    EqExpr e(ae_expr, negated_expr->expr());
+                    EqExpr e(ae_expr, rhs);
                     return std::static_pointer_cast<const BoolExpr>(
                         get_or_create(e));
                 }

@@ -1,6 +1,7 @@
 #include "../expr/ExprBuilder.hpp"
 #include "../expr/util.hpp"
 #include "../util/ioutil.hpp"
+#include "../util/config.hpp"
 
 #include "Z3Solver.hpp"
 
@@ -12,7 +13,7 @@ namespace naaz::solver
 Z3Solver::Z3Solver() : m_solver(m_ctx)
 {
     z3::params p(m_ctx);
-    p.set(":timeout", 10000U);
+    p.set(":timeout", g_config.z3_timeout);
     m_solver.set(p);
 }
 

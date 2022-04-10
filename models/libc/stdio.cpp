@@ -513,8 +513,22 @@ void scanf::exec(state::StatePtr           s,
                                          "bytes (default value)"
                                       << std::endl;
                     }
-                    auto inp = s->fs().read(0, width);
-                    s->write_buf(op_ptr_->val().as_u64(), inp);
+                    auto data = s->fs().read(0, width);
+                    if (g_config.printable_stdin) {
+                        for (size_t i = 0; i < width; ++i) {
+                            auto b = expr::ExprBuilder::The().mk_extract(
+                                data, i * 8 + 7, i * 8);
+                            auto l =
+                                expr::ExprBuilder::The().mk_const(0x20ul, 8);
+                            auto h =
+                                expr::ExprBuilder::The().mk_const(0x7eul, 8);
+                            s->solver().add(
+                                expr::ExprBuilder::The().mk_uge(b, l));
+                            s->solver().add(
+                                expr::ExprBuilder::The().mk_ule(b, h));
+                        }
+                    }
+                    s->write_buf(op_ptr_->val().as_u64(), data);
                     break;
                 }
                 default: {
