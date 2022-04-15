@@ -17,7 +17,7 @@ class ConstraintManager
     static const std::set<uint32_t>&
     get_involved_inputs(expr::ExprPtr constraint);
 
-    // constraints saved as mappings between symbols (strings) and expressions
+    // constraints saved as mappings between symbols and expressions
     std::map<uint32_t, std::set<expr::BoolExprPtr>> m_constraint_map;
     std::set<expr::BoolExprPtr>                     m_constraints;
 

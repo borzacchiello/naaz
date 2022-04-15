@@ -11,11 +11,20 @@
 namespace naaz::state
 {
 
-void Solver::add(expr::BoolExprPtr c)
+void Solver::add(expr::BoolExprPtr c, bool invalidate_model)
 {
     if (!is_true_const(c))
         m_manager.add(c);
+
+    if (invalidate_model) {
+        std::set<uint32_t> involved_symbols = m_manager.get_dependencies(c);
+        for (auto s_id : involved_symbols) {
+            m_model.erase(s_id);
+        }
+    }
 }
+
+void Solver::add(expr::BoolExprPtr c) { add(c, true); }
 
 solver::CheckResult Solver::check_sat(expr::BoolExprPtr c, bool populate_model)
 {
@@ -74,7 +83,8 @@ solver::CheckResult Solver::check_sat_and_add_if_sat(expr::BoolExprPtr c)
 {
     auto r = check_sat(c, true);
     if (r == solver::CheckResult::SAT)
-        add(c);
+        // Do not invalidate the model!
+        add(c, false);
     return r;
 }
 

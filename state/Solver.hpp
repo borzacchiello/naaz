@@ -16,6 +16,7 @@ class Solver
 
     solver::CheckResult check_sat(expr::BoolExprPtr c,
                                   bool              populate_model = true);
+    void                add(expr::BoolExprPtr c, bool invalidate_model);
 
   public:
     Solver() {}
