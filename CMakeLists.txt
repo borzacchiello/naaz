@@ -1,4 +1,4 @@
-cmake_minimum_required ( VERSION 3.18 )
+cmake_minimum_required ( VERSION 3.16 )
 
 project ( NAAZ )
 
@@ -14,6 +14,7 @@ link_directories ( ${CMAKE_SOURCE_DIR}/third_party/pugixml/build )
 
 # libbfd
 include_directories ( ${CMAKE_SOURCE_DIR}/third_party/binutils/bfd )
+include_directories ( ${CMAKE_SOURCE_DIR}/third_party/binutils/include )
 link_directories ( ${CMAKE_SOURCE_DIR}/third_party/binutils/build )
 
 # libgmp
@@ -67,7 +68,8 @@ set ( naaz_linked_libs
     csleigh
     pugixml
     z3
-    gmp )
+    gmp
+    dl )
 
 add_library ( objLibNaaz OBJECT ${naaz_src} )
 

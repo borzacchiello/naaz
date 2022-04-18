@@ -8,6 +8,11 @@ namespace naaz::models::libc
 struct resolved_string_t {
     state::StatePtr state;
     expr::BVExprPtr str;
+
+    resolved_string_t(state::StatePtr state_, expr::BVExprPtr str_)
+        : state(state_), str(str_)
+    {
+    }
 };
 
 std::vector<resolved_string_t> resolve_string(state::StatePtr state,
