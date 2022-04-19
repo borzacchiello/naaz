@@ -43,6 +43,7 @@ examples on how to use this tools can be found in [this](https://github.com/borz
 
 ### ToDo
 
+- [ ] Implement COW memory
 - [ ] Implement handlers for all P-Code statements
 - [ ] Syscalls support
 - [ ] Windows/PE support
