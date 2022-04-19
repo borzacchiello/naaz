@@ -824,6 +824,11 @@ ExecutorResult PCodeExecutor::execute_basic_block(state::StatePtr state)
     const auto block = m_lifter->lift(state->pc(), data, size);
     const csleigh_TranslationResult* tr = block->transl();
 
+    if (tr->instructions_count == 0) {
+        err("PCodeExecutor")
+            << "unable to translate code @ 0x" << state->pc() << std::endl;
+        exit_fail();
+    }
     // block->pp();
 
     for (uint32_t i = 0; i < tr->instructions_count; ++i) {

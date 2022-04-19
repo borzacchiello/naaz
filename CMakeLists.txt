@@ -12,6 +12,9 @@ link_directories ( ${CMAKE_SOURCE_DIR}/third_party/sleigh/build )
 include_directories ( ${CMAKE_SOURCE_DIR}/third_party/pugixml/src )
 link_directories ( ${CMAKE_SOURCE_DIR}/third_party/pugixml/build )
 
+# json
+include_directories ( ${CMAKE_SOURCE_DIR}/third_party/json )
+
 # libbfd
 include_directories ( ${CMAKE_SOURCE_DIR}/third_party/binutils/bfd )
 include_directories ( ${CMAKE_SOURCE_DIR}/third_party/binutils/include )

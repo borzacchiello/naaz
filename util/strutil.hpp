@@ -24,5 +24,6 @@ static std::string string_format(const std::string& format, Args... args)
 }
 
 std::vector<std::string> split_at(const std::string& str, char c);
+std::string              upper(const std::string& s);
 
 } // namespace naaz

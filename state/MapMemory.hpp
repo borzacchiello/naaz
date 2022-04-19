@@ -14,6 +14,8 @@ namespace naaz::state
 
 class MapMemory
 {
+  // FIXME: implement a COW memory
+
   public:
     enum UninitReadBehavior { RET_SYM, RET_ZERO, THROW_ERR };
     struct SymAccessBehavior {

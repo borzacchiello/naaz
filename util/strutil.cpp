@@ -17,4 +17,11 @@ std::vector<std::string> split_at(const std::string& str, char c)
     return seglist;
 }
 
+std::string upper(const std::string& s)
+{
+    auto s_ = s;
+    for (auto& c : s_)
+        c = toupper(c);
+    return s_;
+}
 } // namespace naaz

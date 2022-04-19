@@ -1,5 +1,6 @@
 #include "State.hpp"
 
+#include <nlohmann/json.hpp>
 #include <algorithm>
 #include <fstream>
 
@@ -137,11 +138,10 @@ expr::BoolExprPtr State::pi() const { return m_solver.manager().pi(); }
 
 solver::CheckResult State::satisfiable() { return m_solver.satisfiable(); }
 
-bool State::dump_fs(std::filesystem::path out_dir)
+bool State::dump(std::filesystem::path out_dir)
 {
     if (m_solver.satisfiable() != solver::CheckResult::SAT) {
-        info("State") << "dump_fs(): the state was not satisfiable"
-                      << std::endl;
+        info("State") << "dump(): the state was not satisfiable" << std::endl;
         return false;
     }
 
@@ -177,6 +177,27 @@ bool State::dump_fs(std::filesystem::path out_dir)
         argv_file << std::endl;
     }
     argv_file.close();
+
+    // dump config symbols (if any)
+    if (!m_config_symbols.empty()) {
+        out_file           = out_dir / "cfg_syms.txt";
+        auto cfg_syms_file = std::fstream(out_file, std::ios::out);
+        for (auto s : m_config_symbols) {
+            cfg_syms_file << s->name() << " (" << s->size() << ") : ";
+            auto s_eval = m_solver.evaluate(s).value();
+            auto s_data = s_eval.as_data();
+            for (int j = 0; j < s_eval.size() / 8U; ++j) {
+                if ((int)s_data[j] >= 32 && (int)s_data[j] <= 126) {
+                    cfg_syms_file << s_data[j];
+                } else {
+                    cfg_syms_file << "\\x" << std::setw(2) << std::setfill('0')
+                                  << std::hex << (int)s_data[j];
+                }
+            }
+            cfg_syms_file << std::endl;
+        }
+        cfg_syms_file.close();
+    }
 
 #if 0
     out_file     = out_dir / "pi.txt";
@@ -321,6 +342,84 @@ void State::set_argv(const std::vector<std::string>& argv)
         } else
             m_argv.push_back(expr::ExprBuilder::The().mk_const(
                 expr::BVConst((const uint8_t*)s.data(), s.size() + 1)));
+    }
+}
+
+using namespace nlohmann;
+
+void State::init_from_json(std::filesystem::path json_path)
+{
+    std::ifstream ifs(json_path);
+    std::string   json_str((std::istreambuf_iterator<char>(ifs)),
+                         (std::istreambuf_iterator<char>()));
+
+    auto statej = json::parse(json_str);
+
+    if (statej.contains("pc")) {
+        auto     pc_str = statej["pc"].get<std::string>();
+        uint64_t pc;
+        if (!parse_uint(pc_str.c_str(), &pc)) {
+            err("State") << "init_from_json(): pc is not a number" << std::endl;
+            exit_fail();
+        }
+        set_pc(pc);
+    }
+
+    if (statej.contains("regs")) {
+        auto regsj = statej["regs"];
+
+        for (auto& pair : regsj.items()) {
+            auto name        = upper(pair.key());
+            auto reg_varnode = m_lifter->reg(name);
+            auto regj        = pair.value();
+
+            if (regj.is_number()) {
+                auto bv = expr::ExprBuilder::The().mk_const(
+                    regj.get<uint64_t>(), reg_varnode.size);
+                reg_write(name, bv);
+            } else {
+                auto bv = expr::ExprBuilder::The().mk_sym(
+                    regj.get<std::string>(), reg_varnode.size * 8);
+                m_config_symbols.insert(bv);
+                reg_write(name, bv);
+            }
+        }
+    }
+
+    if (statej.contains("mem")) {
+        auto memj = statej["mem"];
+
+        for (auto& pair : memj.items()) {
+            auto addr_str = pair.key();
+            auto valj     = pair.value();
+
+            uint64_t addr;
+            if (!parse_uint(addr_str.c_str(), &addr)) {
+                err("State") << "init_from_json(): mem address is not a number"
+                             << std::endl;
+                exit_fail();
+            }
+
+            auto size   = valj["size"].get<uint64_t>();
+            auto valuej = valj["value"];
+
+            if (valj.contains("symbol") && valj["symbol"].get<bool>()) {
+                auto bv = expr::ExprBuilder::The().mk_sym(
+                    valuej.get<std::string>(), size * 8);
+                m_config_symbols.insert(bv);
+                write_buf(addr, bv);
+            } else {
+                if (valuej.is_number()) {
+                    auto bv = expr::ExprBuilder::The().mk_const(
+                        valuej.get<uint64_t>(), size * 8);
+                    write(addr, bv);
+                } else {
+                    auto bv = expr::ExprBuilder::The().mk_const(
+                        expr::BVConst(valuej.get<std::string>(), size * 8));
+                    write_buf(addr, bv);
+                }
+            }
+        }
     }
 }
 

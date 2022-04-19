@@ -16,6 +16,8 @@ struct parsed_args_t {
     std::string binpath;
     std::string outdir;
 
+    std::string state_config;
+
     std::vector<std::string> program_args;
 };
 
@@ -35,6 +37,8 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
     program.add_argument("-T", "--z3_timeout")
         .scan<'i', uint32_t>()
         .help("Set Z3 timeout (ms)");
+    program.add_argument("-J", "--state-json")
+        .help("JSON config file for the initial state");
     program.add_argument("program").help("Path to binary to analyze");
     program.add_argument("args").remaining().help("Program arguments");
 
@@ -49,6 +53,9 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
     g_config.printable_stdin = program.get<bool>("--printable_stdin");
     if (auto z3_to = program.present<uint32_t>("--z3_timeout"))
         g_config.z3_timeout = *z3_to;
+
+    if (auto state_config = program.present("--state-json"))
+        res.state_config = *state_config;
 
     res.outdir = program.get("--output");
     if (!std::filesystem::is_directory(res.outdir) ||
@@ -82,6 +89,9 @@ int main(int argc, char const* argv[])
     state::StatePtr   entry_state = loader.entry_state();
     entry_state->set_argv(args.program_args);
 
+    if (args.state_config != "")
+        entry_state->init_from_json(args.state_config);
+
     executor::CovExecutorManager em(entry_state);
 
     static std::string outdir = args.outdir;
@@ -92,7 +102,7 @@ int main(int argc, char const* argv[])
         if (!std::filesystem::is_directory(o) || !std::filesystem::exists(o)) {
             std::filesystem::create_directory(o);
         }
-        s->dump_fs(o);
+        s->dump(o);
     });
     return 0;
 }

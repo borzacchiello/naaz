@@ -91,7 +91,22 @@ function fetch_and_build_libgmp {
     popd
 }
 
+function fetch_json {
+    version=3.10.5
+    url=https://github.com/nlohmann/json/releases/download/v$version/json.hpp
+
+    [ -d "$SCRIPTPATH/json" ] || \
+        mkdir "$SCRIPTPATH/json"
+    [ -d "$SCRIPTPATH/json/nlohmann" ] || \
+        mkdir "$SCRIPTPATH/json/nlohmann"
+
+    pushd "$SCRIPTPATH/json/nlohmann"
+    wget $url
+    popd
+}
+
 build_sleigh
 build_pugixml
 fetch_and_build_libbfd
 fetch_and_build_libgmp
+fetch_json

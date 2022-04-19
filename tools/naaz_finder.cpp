@@ -17,6 +17,8 @@ struct parsed_args_t {
     std::string binpath;
     std::string outdir;
 
+    std::string state_config;
+
     std::vector<uint64_t> find_addrs;
     std::vector<uint64_t> avoid_addrs;
 
@@ -42,6 +44,8 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
     program.add_argument("-T", "--z3_timeout")
         .scan<'i', uint32_t>()
         .help("Set Z3 timeout (ms)");
+    program.add_argument("-J", "--state-json")
+        .help("JSON config file for the initial state");
     program.add_argument("-o", "--output")
         .default_value<std::string>("/tmp/output")
         .help("Output directory");
@@ -59,6 +63,9 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
     g_config.printable_stdin = program.get<bool>("--printable_stdin");
     if (auto z3_to = program.present<uint32_t>("--z3_timeout"))
         g_config.z3_timeout = *z3_to;
+
+    if (auto state_config = program.present("--state-json"))
+        res.state_config = *state_config;
 
     res.outdir = program.get("--output");
     if (!std::filesystem::is_directory(res.outdir) ||
@@ -113,6 +120,9 @@ int main(int argc, char const* argv[])
     state::StatePtr   entry_state = loader.entry_state();
     entry_state->set_argv(res.program_args);
 
+    if (res.state_config != "")
+        entry_state->init_from_json(res.state_config);
+
     executor::RandDFSExecutorManager em(entry_state);
 
     std::optional<state::StatePtr> s =
@@ -120,10 +130,11 @@ int main(int argc, char const* argv[])
     if (s.has_value()) {
         fprintf(stdout, "state found! dumping proof to %s\n",
                 res.outdir.c_str());
-        s.value()->dump_fs(res.outdir);
+        s.value()->dump(res.outdir);
     } else
         fprintf(stdout, "state not found\n");
 
-    fprintf(stdout, "generated states: %lu\n", em.num_states());
+    fprintf(stdout, "generated states: %lu\n",
+            em.num_states() + (s.has_value() ? 1 : 0));
     return 0;
 }

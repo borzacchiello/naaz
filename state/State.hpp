@@ -26,6 +26,7 @@ class State
 
     std::vector<uint64_t>        m_stacktrace;
     std::vector<expr::BVExprPtr> m_argv;
+    std::set<expr::SymExprPtr>   m_config_symbols;
 
     std::unique_ptr<MapMemory>     m_regs;
     std::unique_ptr<MapMemory>     m_ram;
@@ -45,6 +46,8 @@ class State
           std::shared_ptr<lifter::PCodeLifter> lifter, uint64_t pc);
     State(const State& other);
     ~State() {}
+
+    void init_from_json(std::filesystem::path json);
 
     const Arch& arch() const { return m_lifter->arch(); }
     std::shared_ptr<lifter::PCodeLifter>  lifter() { return m_lifter; }
@@ -78,7 +81,7 @@ class State
     }
 
     FileSystem& fs() { return *m_fs; }
-    bool        dump_fs(std::filesystem::path out_dir);
+    bool        dump(std::filesystem::path out_dir);
 
     PluginManager& pm() { return *m_pm; }
 
