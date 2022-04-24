@@ -35,7 +35,8 @@ State::State(std::shared_ptr<loader::AddressSpace> as,
 State::State(const State& other)
     : m_as(other.m_as), m_lifter(other.m_lifter), m_pc(other.m_pc),
       m_heap_ptr(other.m_heap_ptr), m_argv(other.m_argv),
-      m_linked_functions(other.m_linked_functions), m_solver(other.m_solver)
+      m_linked_functions(other.m_linked_functions), m_solver(other.m_solver),
+      m_config_symbols(other.m_config_symbols)
 {
     m_ram  = other.m_ram->clone();
     m_regs = other.m_regs->clone();
@@ -183,7 +184,8 @@ bool State::dump(std::filesystem::path out_dir)
         out_file           = out_dir / "cfg_syms.txt";
         auto cfg_syms_file = std::fstream(out_file, std::ios::out);
         for (auto s : m_config_symbols) {
-            cfg_syms_file << s->name() << " (" << s->size() << ") : ";
+            cfg_syms_file << s->name() << " (" << std::dec << s->size()
+                          << ") : ";
             auto s_eval = m_solver.evaluate(s).value();
             auto s_data = s_eval.as_data();
             for (int j = 0; j < s_eval.size() / 8U; ++j) {
@@ -351,7 +353,7 @@ void State::init_from_json(std::filesystem::path json_path)
 {
     std::ifstream ifs(json_path);
     std::string   json_str((std::istreambuf_iterator<char>(ifs)),
-                         (std::istreambuf_iterator<char>()));
+                           (std::istreambuf_iterator<char>()));
 
     auto statej = json::parse(json_str);
 
@@ -371,17 +373,25 @@ void State::init_from_json(std::filesystem::path json_path)
         for (auto& pair : regsj.items()) {
             auto name        = upper(pair.key());
             auto reg_varnode = m_lifter->reg(name);
-            auto regj        = pair.value();
+            auto valj        = pair.value();
 
-            if (regj.is_number()) {
-                auto bv = expr::ExprBuilder::The().mk_const(
-                    regj.get<uint64_t>(), reg_varnode.size);
-                reg_write(name, bv);
-            } else {
+            auto valuej = valj["value"];
+
+            if (valj.contains("symbol") && valj["symbol"].get<bool>()) {
                 auto bv = expr::ExprBuilder::The().mk_sym(
-                    regj.get<std::string>(), reg_varnode.size * 8);
+                    valuej.get<std::string>(), reg_varnode.size * 8);
                 m_config_symbols.insert(bv);
                 reg_write(name, bv);
+            } else {
+                if (valuej.is_number()) {
+                    auto bv = expr::ExprBuilder::The().mk_const(
+                        valuej.get<uint64_t>(), reg_varnode.size * 8);
+                    reg_write(name, bv);
+                } else {
+                    auto bv = expr::ExprBuilder::The().mk_const(expr::BVConst(
+                        valuej.get<std::string>(), reg_varnode.size * 8));
+                    reg_write(name, bv);
+                }
             }
         }
     }
