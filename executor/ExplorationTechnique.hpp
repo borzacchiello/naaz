@@ -33,6 +33,9 @@ class ExplorationTechnique
         return m_avoided_states;
     }
 
+    size_t num_exited() const { return m_exited_states.size(); }
+    size_t num_avoided() const { return m_avoided_states.size(); }
+
     virtual size_t num_states() const
     {
         return m_exited_states.size() + m_avoided_states.size();
