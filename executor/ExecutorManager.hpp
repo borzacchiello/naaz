@@ -6,6 +6,8 @@
 #include "PCodeExecutor.hpp"
 #include "../state/State.hpp"
 
+#define DBG_PRINT_NUM_STATES 0
+
 namespace naaz::executor
 {
 
@@ -47,6 +49,12 @@ template <class ExplorationPolicy> class ExecutorManager
             }
 
             m_exploration.add_actives(active);
+#if DBG_PRINT_NUM_STATES
+            std::cout << "num states: " << m_exploration.num_states()
+                      << " (e: " << m_exploration.num_exited()
+                      << ", a: " << m_exploration.num_avoided() << ")"
+                      << std::endl;
+#endif
         }
 
         return {};
@@ -77,7 +85,12 @@ template <class ExplorationPolicy> class ExecutorManager
                     callback(s);
 
             m_exploration.add_actives(next_states.active);
-            // std::cout << "num states: " << num_states() << std::endl;
+#if DBG_PRINT_NUM_STATES
+            std::cout << "num states: " << m_exploration.num_states()
+                      << " (e: " << m_exploration.num_exited()
+                      << ", a: " << m_exploration.num_avoided() << ")"
+                      << std::endl;
+#endif
         }
     }
 
