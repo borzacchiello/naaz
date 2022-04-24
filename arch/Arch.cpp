@@ -113,6 +113,12 @@ void x86_64::handle_return(state::StatePtr           s,
     o_successors.active.push_back(s);
 }
 
+const std::string& x86_64::get_stack_ptr_reg() const
+{
+    static std::string r = "RSP";
+    return r;
+}
+
 expr::BVExprPtr x86_64::get_int_param(CallConv cv, state::State& s,
                                       uint32_t i) const
 {

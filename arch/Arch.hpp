@@ -46,10 +46,11 @@ class Arch
     virtual void set_return(state::StatePtr s, expr::BVExprPtr addr) const = 0;
     virtual void set_return(state::StatePtr s, uint64_t addr) const;
 
-    virtual expr::BVExprPtr get_int_param(CallConv cv, state::State& s,
-                                          uint32_t i) const = 0;
-    virtual void            set_int_params(CallConv cv, state::State& s,
-                                           std::vector<expr::BVExprPtr> values) const = 0;
+    virtual const std::string& get_stack_ptr_reg() const       = 0;
+    virtual expr::BVExprPtr    get_int_param(CallConv cv, state::State& s,
+                                             uint32_t i) const = 0;
+    virtual void               set_int_params(CallConv cv, state::State& s,
+                                              std::vector<expr::BVExprPtr> values) const = 0;
     virtual void            set_return_int_value(CallConv cv, state::State& s,
                                                  expr::BVExprPtr val) const = 0;
     virtual expr::BVExprPtr get_return_int_value(CallConv      cv,
@@ -93,10 +94,11 @@ class x86_64 final : public naaz::Arch
                                executor::ExecutorResult& o_successors) const;
     virtual void set_return(state::StatePtr s, expr::BVExprPtr addr) const;
 
-    virtual expr::BVExprPtr get_int_param(CallConv cv, state::State& s,
-                                          uint32_t i) const;
-    virtual void            set_int_params(CallConv cv, state::State& s,
-                                           std::vector<expr::BVExprPtr> values) const;
+    virtual const std::string& get_stack_ptr_reg() const;
+    virtual expr::BVExprPtr    get_int_param(CallConv cv, state::State& s,
+                                             uint32_t i) const;
+    virtual void               set_int_params(CallConv cv, state::State& s,
+                                              std::vector<expr::BVExprPtr> values) const;
     virtual void            set_return_int_value(CallConv cv, state::State& s,
                                                  expr::BVExprPtr val) const;
     virtual expr::BVExprPtr get_return_int_value(CallConv      cv,
@@ -109,7 +111,7 @@ class x86_64 final : public naaz::Arch
         static x86_64 singleton;
         return singleton;
     }
-};
+}; // namespace arch
 
 } // namespace arch
 } // namespace naaz
