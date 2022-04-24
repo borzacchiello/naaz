@@ -85,6 +85,8 @@ void PCodeExecutor::handle_symbolic_ip(ExecutionContext& ctx,
         for (auto dst : dests) {
             auto successor = ctx.state->clone();
             successor->set_pc(dst.as_u64());
+            successor->solver().add(
+                exprBuilder.mk_eq(exprBuilder.mk_const(dst), ip));
             ctx.successors.active.push_back(successor);
         }
     }
