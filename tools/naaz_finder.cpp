@@ -10,6 +10,9 @@
 #include "../expr/ExprBuilder.hpp"
 #include "../executor/ExecutorManager.hpp"
 #include "../executor/RandDFSExplorationTechnique.hpp"
+#include "../executor/BFSExplorationTechnique.hpp"
+#include "../executor/DFSExplorationTechnique.hpp"
+#include "../executor/CovExplorationTechnique.hpp"
 
 using namespace naaz;
 
@@ -18,6 +21,7 @@ struct parsed_args_t {
     std::string outdir;
 
     std::string state_config;
+    std::string expl_technique;
 
     std::vector<uint64_t> find_addrs;
     std::vector<uint64_t> avoid_addrs;
@@ -41,6 +45,15 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
         .implicit_value(true)
         .nargs(0)
         .help("Constraint stdin to be printable-only");
+    program.add_argument("--disable-lazy-solving")
+        .default_value(false)
+        .implicit_value(true)
+        .nargs(0)
+        .help("Disable 'lazy solving' optimization");
+    program.add_argument("-E", "--exploration-technique")
+        .default_value<std::string>("rand_dfs")
+        .help("Exploration technique to use. One value among: "
+              "dfs, rand_dfs (default), bfs, cov");
     program.add_argument("-T", "--z3_timeout")
         .scan<'i', uint32_t>()
         .help("Set Z3 timeout (ms)");
@@ -61,6 +74,7 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
     }
 
     g_config.printable_stdin = program.get<bool>("--printable_stdin");
+    g_config.lazy_solving    = !program.get<bool>("--disable-lazy-solving");
     if (auto z3_to = program.present<uint32_t>("--z3_timeout"))
         g_config.z3_timeout = *z3_to;
 
@@ -77,6 +91,15 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
                     res.outdir.c_str());
             exit(1);
         }
+    }
+
+    res.expl_technique = program.get("--exploration-technique");
+    std::set<std::string> admissible_techniques{"dfs", "rand_dfs", "bfs",
+                                                "cov"};
+    if (!admissible_techniques.contains(res.expl_technique)) {
+        fprintf(stderr, "%s is not an admissible exploration technique\n",
+                res.expl_technique.c_str());
+        exit(1);
     }
 
     res.binpath = program.get("program");
@@ -112,6 +135,24 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
     return res;
 }
 
+template <class ExplorationPolicy>
+void run(state::StatePtr state, parsed_args_t& args)
+{
+    executor::ExecutorManager<ExplorationPolicy> em(state);
+
+    std::optional<state::StatePtr> s =
+        em.explore(args.find_addrs, args.avoid_addrs);
+    if (s.has_value()) {
+        fprintf(stdout, "state found! dumping proof to %s\n",
+                args.outdir.c_str());
+        s.value()->dump(args.outdir);
+    } else
+        fprintf(stdout, "state not found\n");
+
+    fprintf(stdout, "generated states: %lu\n",
+            em.num_states() + (s.has_value() ? 1 : 0));
+}
+
 int main(int argc, char const* argv[])
 {
     auto res = parse_args_or_die(argc, argv);
@@ -123,18 +164,15 @@ int main(int argc, char const* argv[])
     if (res.state_config != "")
         entry_state->init_from_json(res.state_config);
 
-    executor::RandDFSExecutorManager em(entry_state);
+    g_config.lazy_solving = false;
 
-    std::optional<state::StatePtr> s =
-        em.explore(res.find_addrs, res.avoid_addrs);
-    if (s.has_value()) {
-        fprintf(stdout, "state found! dumping proof to %s\n",
-                res.outdir.c_str());
-        s.value()->dump(res.outdir);
-    } else
-        fprintf(stdout, "state not found\n");
-
-    fprintf(stdout, "generated states: %lu\n",
-            em.num_states() + (s.has_value() ? 1 : 0));
+    if (res.expl_technique == "bfs")
+        run<executor::BFSExplorationTechnique>(entry_state, res);
+    else if (res.expl_technique == "dfs")
+        run<executor::DFSExplorationTechnique>(entry_state, res);
+    else if (res.expl_technique == "rand_dfs")
+        run<executor::RandDFSExplorationTechnique>(entry_state, res);
+    else
+        run<executor::CovExplorationTechnique>(entry_state, res);
     return 0;
 }

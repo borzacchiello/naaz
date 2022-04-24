@@ -34,6 +34,11 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
         .implicit_value(true)
         .nargs(0)
         .help("Constraint stdin to be printable-only");
+    program.add_argument("--disable-lazy-solving")
+        .default_value(false)
+        .implicit_value(true)
+        .nargs(0)
+        .help("Disable 'lazy solving' optimization");
     program.add_argument("-T", "--z3_timeout")
         .scan<'i', uint32_t>()
         .help("Set Z3 timeout (ms)");
@@ -50,6 +55,7 @@ static parsed_args_t parse_args_or_die(int argc, char const* argv[])
         exit(1);
     }
 
+    g_config.lazy_solving    = !program.get<bool>("--disable-lazy-solving");
     g_config.printable_stdin = program.get<bool>("--printable_stdin");
     if (auto z3_to = program.present<uint32_t>("--z3_timeout"))
         g_config.z3_timeout = *z3_to;
