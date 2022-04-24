@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>
 #include <memory>
 
-#include "../arch/Arch.hpp"
+#include "../arch/x86_64.hpp"
 #include "../expr/Expr.hpp"
 #include "../expr/ExprBuilder.hpp"
 #include "../state/State.hpp"

@@ -52,6 +52,7 @@ set ( naaz_src
     models/libc/random.cpp
     models/libc/ptrace.cpp
     arch/Arch.cpp
+    arch/x86_64.cpp
     lifter/PCodeLifter.cpp
     loader/AddressSpace.cpp
     loader/BFDLoader.cpp

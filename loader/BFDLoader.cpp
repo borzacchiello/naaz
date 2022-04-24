@@ -1,5 +1,7 @@
 #include "BFDLoader.hpp"
+
 #include "../util/ioutil.hpp"
+#include "../arch/x86_64.hpp"
 
 namespace naaz::loader
 {
