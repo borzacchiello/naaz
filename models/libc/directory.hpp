@@ -34,6 +34,7 @@ GEN_MODEL_CLASS(sprintf, CallConv::CDECL)
 GEN_MODEL_CLASS(printf, CallConv::CDECL)
 GEN_MODEL_CLASS(scanf, CallConv::CDECL)
 GEN_MODEL_CLASS(puts, CallConv::CDECL)
+GEN_MODEL_CLASS(fflush, CallConv::CDECL)
 GEN_MODEL_CLASS(rand, CallConv::CDECL)
 GEN_MODEL_CLASS(srand, CallConv::CDECL)
 GEN_MODEL_CLASS(ptrace, CallConv::CDECL)
@@ -57,6 +58,7 @@ GEN_MODEL_CLASS(ptrace, CallConv::CDECL)
     l.register_model(libc::printf::The().name(), &libc::printf::The());        \
     l.register_model(libc::scanf::The().name(), &libc::scanf::The());          \
     l.register_model("__isoc99_scanf", &libc::scanf::The());                   \
+    l.register_model(libc::fflush::The().name(), &libc::fflush::The());        \
     l.register_model(libc::puts::The().name(), &libc::puts::The());            \
     l.register_model(libc::rand::The().name(), &libc::rand::The());            \
     l.register_model(libc::srand::The().name(), &libc::srand::The());          \

@@ -12,6 +12,14 @@
 namespace naaz::models::libc
 {
 
+void fflush::exec(state::StatePtr           s,
+                  executor::ExecutorResult& o_successors) const
+{
+    s->arch().set_return_int_value(m_call_conv, *s,
+                                   exprBuilder.mk_const(0UL, 32));
+    s->arch().handle_return(s, o_successors);
+}
+
 void puts::exec(state::StatePtr s, executor::ExecutorResult& o_successors) const
 {
     auto str = s->get_int_param(m_call_conv, 0);
@@ -277,6 +285,22 @@ static expr::BVExprPtr process_specifier(const format_token_t& ft,
             str = exprBuilder.mk_extract(str, str->size() - 1, 8);
             return str;
         }
+        case 'c': {
+            expr::BVConst const_v;
+            if (v->kind() != expr::Expr::Kind::CONST) {
+                // FIXME: do not concretize (maybe)
+                auto const_v_opt = s->solver().evaluate(v);
+                if (const_v_opt.has_value())
+                    const_v = const_v_opt.value();
+                else
+                    throw executor::UnsatStateException();
+            } else {
+                const_v =
+                    std::static_pointer_cast<const expr::ConstExpr>(v)->val();
+            }
+            int64_t v = const_v.as_s64();
+            return exprBuilder.mk_const(expr::BVConst(v & 0xffUL, 8));
+        }
         case 'd': {
             expr::BVExprPtr expr;
             if (ft.flags & FLAGS_LONG || ft.flags & FLAGS_LONG_LONG)
@@ -306,7 +330,7 @@ static expr::BVExprPtr process_specifier(const format_token_t& ft,
             break;
     }
 
-    err("parse_specifier") << "unsupported specifier \"" << ft.str << "\""
+    err("parse_specifier") << "unsupported specifier \"" << ft.specifier << "\""
                            << std::endl;
     exit_fail();
 }
