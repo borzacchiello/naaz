@@ -164,8 +164,6 @@ int main(int argc, char const* argv[])
     if (res.state_config != "")
         entry_state->init_from_json(res.state_config);
 
-    g_config.lazy_solving = false;
-
     if (res.expl_technique == "bfs")
         run<executor::BFSExplorationTechnique>(entry_state, res);
     else if (res.expl_technique == "dfs")
