@@ -110,12 +110,17 @@ PCodeLifter::PCodeLifter(const Arch& arch) : m_arch(arch)
     }
 
     m_ctx = csleigh_createContext(arch.getSleighSLA().c_str());
+    if (!m_ctx) {
+        err("PCodeLifter") << "unable to create Sleigh context" << std::endl;
+        exit_fail();
+    }
 
     pugi::xml_document     doc;
     pugi::xml_parse_result result =
         doc.load_file(arch.getSleighPSPEC().c_str());
     if (!result) {
-        abort();
+        err("PCodeLifter") << "unable to load PSPEC file" << std::endl;
+        exit_fail();
     }
 
     // FIXME: maybe this thing should be done in csleigh lib

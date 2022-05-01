@@ -51,8 +51,10 @@ set ( naaz_src
     models/libc/stdio.cpp
     models/libc/random.cpp
     models/libc/ptrace.cpp
+    models/libc/alloc.cpp
     arch/Arch.cpp
     arch/x86_64.cpp
+    arch/arm32LE.cpp
     lifter/PCodeLifter.cpp
     loader/AddressSpace.cpp
     loader/BFDLoader.cpp

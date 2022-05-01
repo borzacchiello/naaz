@@ -23,9 +23,14 @@ namespace naaz::models::libc
 GEN_MODEL_CLASS(libc_start_main_exit_wrapper, CallConv::CDECL)
 GEN_MODEL_CLASS(__libc_start_main, CallConv::CDECL)
 GEN_MODEL_CLASS(exit, CallConv::CDECL)
+GEN_MODEL_CLASS(abort, CallConv::CDECL)
 GEN_MODEL_CLASS(read, CallConv::CDECL)
 GEN_MODEL_CLASS(open, CallConv::CDECL)
 GEN_MODEL_CLASS(close, CallConv::CDECL)
+GEN_MODEL_CLASS(malloc, CallConv::CDECL)
+GEN_MODEL_CLASS(calloc, CallConv::CDECL)
+GEN_MODEL_CLASS(realloc, CallConv::CDECL)
+GEN_MODEL_CLASS(free, CallConv::CDECL)
 GEN_MODEL_CLASS(memcpy, CallConv::CDECL)
 GEN_MODEL_CLASS(memcmp, CallConv::CDECL)
 GEN_MODEL_CLASS(strlen, CallConv::CDECL)
@@ -47,9 +52,14 @@ GEN_MODEL_CLASS(ptrace, CallConv::CDECL)
     l.register_model(libc::__libc_start_main::The().name(),                    \
                      &libc::__libc_start_main::The());                         \
     l.register_model(libc::exit::The().name(), &libc::exit::The());            \
+    l.register_model(libc::abort::The().name(), &libc::exit::The());           \
     l.register_model(libc::read::The().name(), &libc::read::The());            \
     l.register_model(libc::open::The().name(), &libc::open::The());            \
     l.register_model(libc::close::The().name(), &libc::close::The());          \
+    l.register_model(libc::malloc::The().name(), &libc::malloc::The());        \
+    l.register_model(libc::calloc::The().name(), &libc::calloc::The());        \
+    l.register_model(libc::realloc::The().name(), &libc::realloc::The());      \
+    l.register_model(libc::free::The().name(), &libc::free::The());            \
     l.register_model(libc::memcpy::The().name(), &libc::memcpy::The());        \
     l.register_model(libc::memcmp::The().name(), &libc::memcmp::The());        \
     l.register_model(libc::strlen::The().name(), &libc::strlen::The());        \

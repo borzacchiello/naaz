@@ -34,7 +34,9 @@ function fetch_and_build_libbfd {
     version=2.38
     if [ ! -d "$SCRIPTPATH/binutils" ]; then
         pushd "$SCRIPTPATH" || exit 1
-        wget https://ftp.gnu.org/gnu/binutils/binutils-$version.tar.gz || exit 1
+        if [ ! -f binutils-$version.tar.gz ]; then
+            wget https://ftp.gnu.org/gnu/binutils/binutils-$version.tar.gz || exit 1
+        fi
         tar xzf binutils-$version.tar.gz || exit 1
         mv ./binutils-$version ./binutils || exit 1
         rm binutils-$version.tar.gz || exit 1
@@ -42,18 +44,18 @@ function fetch_and_build_libbfd {
     fi
 
     pushd "$SCRIPTPATH/binutils/libiberty" || exit 1
-    CFLAGS="-fPIC -O3" ./configure || exit 1
+    CFLAGS="-fPIC -O3" ./configure --enable-targets=all || exit 1
     make -j`nproc` || exit 1
     popd
 
     pushd "$SCRIPTPATH/binutils/zlib" || exit 1
-    CFLAGS="-fPIC -O3" ./configure || exit 1
+    CFLAGS="-fPIC -O3" ./configure --enable-targets=all || exit 1
     make -j`nproc` || exit 1
     popd
 
     pushd "$SCRIPTPATH/binutils/bfd" || exit 1
     LD_LIBRARY_PATH="`pwd`/../libiberty:`pwd`/../zlib" CFLAGS="-fPIC -O3" \
-        ./configure --enable-shared || exit 1
+        ./configure --enable-shared --enable-targets=all || exit 1
     make -j`nproc` || exit 1
     popd
 
@@ -70,7 +72,9 @@ function fetch_and_build_libgmp {
     version=6.2.1
     if [ ! -d "$SCRIPTPATH/gmp" ]; then
         pushd "$SCRIPTPATH" || exit 1
-        wget https://gmplib.org/download/gmp/gmp-$version.tar.xz || exit 1
+        if [ ! -f gmp-$version.tar.xz ]; then
+            wget https://gmplib.org/download/gmp/gmp-$version.tar.xz || exit 1
+        fi
         tar -xf gmp-$version.tar.xz || exit 1
         mv ./gmp-$version ./gmp || exit 1
         rm gmp-$version.tar.xz || exit 1

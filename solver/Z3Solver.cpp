@@ -27,6 +27,8 @@ CheckResult Z3Solver::check(expr::BoolExprPtr query)
     } else
         m_solver.add(to_z3(query).simplify());
 
+    std::cout << "query: " << query->to_string() << std::endl;
+
     CheckResult res = CheckResult::UNKNOWN;
     switch (m_solver.check()) {
         case z3::unsat:
@@ -35,6 +37,8 @@ CheckResult Z3Solver::check(expr::BoolExprPtr query)
         case z3::sat:
             res = CheckResult::SAT;
             break;
+        default:
+            info("Z3Solver") << "timout triggered" << std::endl;
     }
 
     return res;

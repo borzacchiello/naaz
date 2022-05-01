@@ -24,4 +24,12 @@ void exit::exec(state::StatePtr s, executor::ExecutorResult& o_successors) const
     o_successors.exited.push_back(s);
 }
 
+void abort::exec(state::StatePtr           s,
+                 executor::ExecutorResult& o_successors) const
+{
+    s->retcode = 0xffffffff;
+    s->exited  = true;
+    o_successors.exited.push_back(s);
+}
+
 } // namespace naaz::models::libc

@@ -122,11 +122,29 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             write_to_varnode(ctx, *op.output, exprBuilder.bool_to_bv(expr));
             break;
         }
+        case csleigh_CPUI_INT_LESSEQUAL: {
+            assert(op.output != nullptr && "INT_LESSEQUAL: output is NULL");
+            assert(op.inputs_count == 2 && "INT_LESSEQUAL: inputs_count != 2");
+            expr::BoolExprPtr expr =
+                exprBuilder.mk_ule(resolve_varnode(ctx, op.inputs[0]),
+                                   resolve_varnode(ctx, op.inputs[1]));
+            write_to_varnode(ctx, *op.output, exprBuilder.bool_to_bv(expr));
+            break;
+        }
         case csleigh_CPUI_INT_SLESS: {
             assert(op.output != nullptr && "INT_SLESS: output is NULL");
             assert(op.inputs_count == 2 && "INT_SLESS: inputs_count != 2");
             expr::BoolExprPtr expr =
                 exprBuilder.mk_slt(resolve_varnode(ctx, op.inputs[0]),
+                                   resolve_varnode(ctx, op.inputs[1]));
+            write_to_varnode(ctx, *op.output, exprBuilder.bool_to_bv(expr));
+            break;
+        }
+        case csleigh_CPUI_INT_SLESSEQUAL: {
+            assert(op.output != nullptr && "INT_SLESSEQUAL: output is NULL");
+            assert(op.inputs_count == 2 && "INT_SLESSEQUAL: inputs_count != 2");
+            expr::BoolExprPtr expr =
+                exprBuilder.mk_sle(resolve_varnode(ctx, op.inputs[0]),
                                    resolve_varnode(ctx, op.inputs[1]));
             write_to_varnode(ctx, *op.output, exprBuilder.bool_to_bv(expr));
             break;
@@ -231,6 +249,14 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                 ctx, *op.output,
                 exprBuilder.mk_sext(resolve_varnode(ctx, op.inputs[0]),
                                     op.output->size * 8));
+            break;
+        }
+        case csleigh_CPUI_INT_NEGATE: {
+            assert(op.output != nullptr && "INT_NEGATE: output is NULL");
+            assert(op.inputs_count == 1 && "INT_NEGATE: inputs_count != 1");
+            write_to_varnode(
+                ctx, *op.output,
+                exprBuilder.mk_neg(resolve_varnode(ctx, op.inputs[0])));
             break;
         }
         case csleigh_CPUI_INT_XOR: {

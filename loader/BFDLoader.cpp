@@ -2,6 +2,7 @@
 
 #include "../util/ioutil.hpp"
 #include "../arch/x86_64.hpp"
+#include "../arch/arm32LE.hpp"
 
 namespace naaz::loader
 {
@@ -26,6 +27,10 @@ BFDLoader::BFDLoader(const std::filesystem::path& filename)
     switch (bfd_arch_info->mach) {
         case bfd_mach_x86_64:
             m_arch = &arch::x86_64::The();
+            break;
+        case bfd_mach_arm_6:
+        case bfd_mach_arm_7:
+            m_arch = &arch::arm32LE::The();
             break;
         default:
             err("BFDLoader")
