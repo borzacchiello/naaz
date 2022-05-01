@@ -3,6 +3,7 @@
 #include <cassert>
 #include <iostream>
 #include <iomanip>
+#include <filesystem>
 
 #include "PCodeLifter.hpp"
 #include "../util/ioutil.hpp"
@@ -91,8 +92,23 @@ void PCodeBlock::pp() const
     }
 }
 
+static inline bool file_exists(const std::filesystem::path& filename)
+{
+    ifstream f(filename.c_str());
+    return f.good();
+}
+
 PCodeLifter::PCodeLifter(const Arch& arch) : m_arch(arch)
 {
+    if (!file_exists(arch.getSleighSLA())) {
+        err("PCodeLifter")
+            << "unable to find Sleigh's SLA file. Set the environment variable "
+               "SLEIGH_PROCESSORS with the path to Sleigh's processors "
+               "(/path/to/naaz/third_party/sleigh/processors)"
+            << std::endl;
+        exit_fail();
+    }
+
     m_ctx = csleigh_createContext(arch.getSleighSLA().c_str());
 
     pugi::xml_document     doc;
