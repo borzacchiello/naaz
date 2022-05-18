@@ -112,8 +112,8 @@ std::optional<expr::BVConst> Solver::evaluate(expr::ExprPtr e)
     assert(eval->kind() == expr::Expr::Kind::BOOL_CONST &&
            "Solver::evaluate(): unexpected expr::evaluate result");
     return std::static_pointer_cast<const expr::BoolConst>(eval)->is_true()
-               ? expr::BVConst(1UL, 1)
-               : expr::BVConst(0UL, 1);
+               ? expr::BVConst((uint64_t)1UL, 1)
+               : expr::BVConst((uint64_t)0UL, 1);
 }
 
 std::optional<std::vector<expr::BVConst>>

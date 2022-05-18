@@ -20,14 +20,14 @@ int main(int argc, char const* argv[])
 
     printf("%s\n", argv[1]);
     printf("  arch:  %s\n", arch.description().c_str());
-    printf("  entry: %08lxh\n", loader.entrypoint());
+    printf("  entry: %08llxh\n", loader.entrypoint());
 
     printf("\nSegments\n");
     printf("----------------------------------------------------\n");
     printf("  address range                          name       \n");
     printf("----------------------------------------------------\n");
     for (auto& sec : as->segments()) {
-        printf("  %016lxh - %016lxh  %s\n", sec.addr(), sec.addr() + sec.size(),
+        printf("  %016llxh - %016llxh  %s\n", sec.addr(), sec.addr() + sec.size(),
                sec.name().c_str());
     }
 

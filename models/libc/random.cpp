@@ -58,6 +58,18 @@ extern "C" {
 #include <stdlib.h>
 #include <stdint.h>
 
+#if __APPLE__
+struct random_data {
+    int32_t* fptr;      /* Front pointer.  */
+    int32_t* rptr;      /* Rear pointer.  */
+    int32_t* state;     /* Array of state values.  */
+    int      rand_type; /* Type of random number generator.  */
+    int      rand_deg;  /* Degree of random number generator.  */
+    int      rand_sep;  /* Distance between front and rear.  */
+    int32_t* end_ptr;   /* Pointer behind state table.  */
+};
+#endif
+
 /* Linear congruential.  */
 #define TYPE_0  0
 #define BREAK_0 8

@@ -24,7 +24,7 @@ BVConst::BVConst(uint64_t value, ssize_t size) : m_size(size)
         m_small_val = value;
         m_big_val   = mpz_class(0);
     } else {
-        m_big_val = mpz_class(value);
+        m_big_val = mpz_class((unsigned long)value);
     }
     adjust_bits();
 }
@@ -182,7 +182,7 @@ mpz_class BVConst::as_mpz() const
 {
     if (is_big())
         return m_big_val;
-    return mpz_class(m_small_val);
+    return mpz_class((unsigned long)m_small_val);
 }
 
 uint64_t BVConst::as_u64() const
@@ -590,7 +590,7 @@ void BVConst::zext(uint32_t size)
         return;
     }
 
-    m_big_val = mpz_class(m_small_val);
+    m_big_val = mpz_class((unsigned long)m_small_val);
     m_size    = size;
 }
 
@@ -613,7 +613,7 @@ void BVConst::sext(uint32_t size)
     }
 
     if (!is_big())
-        m_big_val = mpz_class(m_small_val);
+        m_big_val = mpz_class((unsigned long)m_small_val);
 
     if (mpz_tstbit(m_big_val.get_mpz_t(), m_size - 1) == 1) {
         for (uint32_t i = m_size; i < size; ++i)
@@ -728,7 +728,7 @@ bool BVConst::is_zero() const
 {
     if (!is_big())
         return m_small_val == 0;
-    return eq(BVConst(0UL, m_size));
+    return eq(BVConst((uint64_t)0UL, m_size));
 }
 
 bool BVConst::is_one() const

@@ -37,7 +37,7 @@ static void dump_hex(naaz::loader::AddressSpace& as, uint64_t off,
     printf("            -----------------------------------------------\n");
     uint64_t addr = off;
     while (addr < off + size) {
-        printf("0x%08lx: ", addr);
+        printf("0x%08llx: ", addr);
         uint64_t i = 0;
         while (addr + i < off + size && i < 16) {
             auto val = as.read_byte(addr + i);
@@ -60,7 +60,7 @@ static void dump_segments(naaz::loader::AddressSpace& as)
     printf("  address range                            name       \n");
     printf("------------------------------------------------------\n");
     for (auto& sec : as.segments()) {
-        printf("  0x%016lx - 0x%016lx  %s\n", sec.addr(),
+        printf("  0x%016llx - 0x%016llx  %s\n", sec.addr(),
                sec.addr() + sec.size(), sec.name().c_str());
     }
     printf("\n");
@@ -75,7 +75,7 @@ static void dump_symbols(naaz::loader::AddressSpace& as)
 
     for (auto const& [addr, syms] : as.symbols()) {
         for (auto const& sym : syms) {
-            printf("  0x%016lx  %s  %s\n", sym.addr(),
+            printf("  0x%016llx  %s  %s\n", sym.addr(),
                    naaz::loader::Symbol::type_to_string(sym.type()).c_str(),
                    sym.name().c_str());
         }
@@ -99,7 +99,7 @@ int main(int argc, char const* argv[])
     uint64_t    off = 0;
 
     while (1) {
-        printf("0x%08lx> ", off);
+        printf("0x%08llx> ", off);
         char* line = fgets(buf, sizeof(buf), stdin);
         if (!line || strcmp(line, "quit\n") == 0) {
             break;
@@ -111,7 +111,7 @@ int main(int argc, char const* argv[])
             uint64_t    size;
             const char* needle = uint64_arg(line + 1, &size);
             if (size > MAX_DUMP) {
-                printf("!Err: size %lu is too high\n", size);
+                printf("!Err: size %llu is too high\n", size);
                 continue;
             }
 

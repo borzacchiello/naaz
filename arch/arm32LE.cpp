@@ -43,7 +43,7 @@ expr::BVExprPtr arm32LE::stack_pop(state::State& s) const
 
 void arm32LE::stack_push(state::State& s, expr::BVExprPtr val) const
 {
-    if (!val->size() != 64UL) {
+    if (val->size() != 32UL) {
         err("arm32LE") << "invalid stack_push" << std::endl;
         exit_fail();
     }

@@ -27,7 +27,7 @@ CheckResult Z3Solver::check(expr::BoolExprPtr query)
     } else
         m_solver.add(to_z3(query).simplify());
 
-    std::cout << "query: " << query->to_string() << std::endl;
+    // std::cout << "query: " << query->to_string() << std::endl;
 
     CheckResult res = CheckResult::UNKNOWN;
     switch (m_solver.check()) {

@@ -135,9 +135,16 @@ PCodeLifter::PCodeLifter(const Arch& arch) : m_arch(arch)
         csleigh_setVariableDefault(m_ctx, name.c_str(), val);
     }
 
-    auto ffs = csleigh_Sleigh_getFloatFormats(m_ctx);
-    for (auto ff : ffs)
-        m_float_formats.push_back(FloatFormatPtr(new FloatFormat(*ff)));
+    size_t ff_size;
+    FloatFormat* const* ffs;
+    if (!csleigh_Sleigh_getFloatFormats(m_ctx, &ffs, &ff_size)) {
+        err("PCodeLifter") << "unable to get FloatFormats" << std::endl;
+        exit_fail();
+    }
+
+    for (size_t i = 0; i < ff_size; ++i)
+        m_float_formats.push_back(FloatFormatPtr(new FloatFormat(*ffs[i])));
+    free((void*)ffs);
 }
 
 PCodeLifter::~PCodeLifter() { csleigh_destroyContext(m_ctx); }

@@ -540,7 +540,7 @@ BVExprPtr ExprBuilder::mk_add(BVExprPtr lhs, BVExprPtr rhs)
     std::vector<BVExprPtr> children;
 
     // constant propagation
-    BVConst concrete_val(0UL, addends.at(0)->size());
+    BVConst concrete_val((uint64_t)0UL, addends.at(0)->size());
     for (auto addend : addends) {
         if (addend->kind() == Expr::Kind::CONST) {
             auto addend_ = std::static_pointer_cast<const ConstExpr>(addend);
@@ -889,7 +889,7 @@ BVExprPtr ExprBuilder::mk_or(BVExprPtr lhs, BVExprPtr rhs)
     std::vector<BVExprPtr> children;
 
     // constant propagation
-    BVConst concrete_val(0UL, exprs.at(0)->size());
+    BVConst concrete_val((uint64_t)0UL, exprs.at(0)->size());
     for (auto exp : exprs) {
         if (exp->kind() == Expr::Kind::CONST) {
             auto exp_ = std::static_pointer_cast<const ConstExpr>(exp);
@@ -946,7 +946,7 @@ BVExprPtr ExprBuilder::mk_xor(BVExprPtr lhs, BVExprPtr rhs)
     std::vector<BVExprPtr> children;
 
     // constant propagation
-    BVConst concrete_val(0UL, exprs.at(0)->size());
+    BVConst concrete_val((uint64_t)0UL, exprs.at(0)->size());
     for (auto exp : exprs) {
         if (exp->kind() == Expr::Kind::CONST) {
             auto exp_ = std::static_pointer_cast<const ConstExpr>(exp);

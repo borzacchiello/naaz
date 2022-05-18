@@ -48,7 +48,7 @@ State::State(const State& other)
 bool State::get_code_at(uint64_t addr, uint8_t** o_data, uint64_t* o_size)
 {
     // FIXME: This should be changed... It's wrong in too many ways
-    return m_as->get_ref(addr, o_data, o_size);
+    return m_as->get_ref(addr, o_data, (size_t*)o_size);
 }
 
 expr::BVExprPtr State::read(expr::BVExprPtr addr, size_t len)

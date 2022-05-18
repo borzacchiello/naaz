@@ -53,7 +53,7 @@ expr::BVExprPtr x86_64::stack_pop(state::State& s) const
 
 void x86_64::stack_push(state::State& s, expr::BVExprPtr val) const
 {
-    if (!val->size() != 64UL) {
+    if (val->size() != 64UL) {
         err("x86_64") << "invalid stack_push" << std::endl;
         exit_fail();
     }
