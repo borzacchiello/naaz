@@ -2,7 +2,7 @@
 
 Yet another symbolic execution engine. Based on Ghidra's P-Code. Built for fun.
 
-### Compile (Linux only)
+### Compile (Linux/OSX)
 
 Install [Z3 Solver](https://github.com/Z3Prover/z3), minumum version `4.8.16`.
 
