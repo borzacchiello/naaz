@@ -52,13 +52,15 @@ std::string PCodeBlock::store_to_string(csleigh_PcodeOp op) const
            varnode_to_string(op.inputs[2]);
 }
 
-void PCodeBlock::pp() const
+void PCodeBlock::pp(bool show_pcode) const
 {
     for (uint32_t i = 0; i < m_translation->instructions_count; ++i) {
         csleigh_Translation* inst = &m_translation->instructions[i];
         pp_stream() << string_format("0x%08lxh : %s %s", inst->address.offset,
                                      inst->asm_mnem, inst->asm_body)
                     << std::endl;
+        if (!show_pcode)
+            continue;
         pp_stream() << "--- PCODE ---" << std::endl;
         for (uint32_t j = 0; j < inst->ops_count; ++j) {
             csleigh_PcodeOp op = inst->ops[j];
@@ -135,7 +137,7 @@ PCodeLifter::PCodeLifter(const Arch& arch) : m_arch(arch)
         csleigh_setVariableDefault(m_ctx, name.c_str(), val);
     }
 
-    size_t ff_size;
+    size_t              ff_size;
     FloatFormat* const* ffs;
     if (!csleigh_Sleigh_getFloatFormats(m_ctx, &ffs, &ff_size)) {
         err("PCodeLifter") << "unable to get FloatFormats" << std::endl;
@@ -189,9 +191,38 @@ FloatFormatPtr PCodeLifter::get_float_format(int32_t size) const
     return nullptr;
 }
 
-csleigh_Varnode PCodeLifter::reg(const std::string& name) const
+bool PCodeLifter::has_reg(const std::string& name) const
 {
-    return csleigh_Sleigh_getRegister(m_ctx, name.c_str());
+    csleigh_Register res;
+    return csleigh_Sleigh_getRegister(m_ctx, name.c_str(), &res) == 1;
+}
+
+csleigh_Register PCodeLifter::reg(const std::string& name) const
+{
+    csleigh_Register res;
+    if (!csleigh_Sleigh_getRegister(m_ctx, name.c_str(), &res)) {
+        err("PCodeLifter") << "unkown register " << name << std::endl;
+        exit_fail();
+    }
+    return res;
+}
+
+std::vector<csleigh_Register> PCodeLifter::regs() const
+{
+    csleigh_Register* r;
+    size_t            nr;
+    if (!csleigh_Sleigh_getAllRegisters(m_ctx, &r, &nr)) {
+        err("PCodeLifter") << "regs(): unable to get the list of registers"
+                           << std::endl;
+        exit_fail();
+    }
+
+    std::vector<csleigh_Register> res;
+    for (size_t i = 0; i < nr; ++i)
+        res.push_back(r[i]);
+
+    free(r);
+    return res;
 }
 
 void PCodeLifter::clear_block_cache() { m_blocks.clear(); }

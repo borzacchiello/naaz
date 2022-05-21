@@ -92,6 +92,8 @@ class State
     void     set_pc(uint64_t pc) { m_pc = pc; }
     uint64_t pc() const { return m_pc; }
 
+    const lifter::PCodeBlock* curr_block();
+
     const std::vector<uint64_t>& stacktrace() const { return m_stacktrace; }
 
     void register_call(uint64_t retaddr) { m_stacktrace.push_back(retaddr); }

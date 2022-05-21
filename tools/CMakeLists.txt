@@ -19,3 +19,9 @@ add_executable ( naaz_path_generator
 naaz_path_generator.cpp )
 
 target_link_libraries ( naaz_path_generator LINK_PUBLIC libnaaz_shared )
+
+add_executable ( naazdbg
+naaz_debugger.cpp )
+
+target_link_libraries ( naazdbg LINK_PUBLIC libnaaz_shared )
+target_link_libraries ( naazdbg LINK_PUBLIC readline )

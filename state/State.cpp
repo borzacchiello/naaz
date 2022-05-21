@@ -93,8 +93,8 @@ void State::write_buf(uint64_t addr, expr::BVExprPtr data)
 
 expr::BVExprPtr State::reg_read(const std::string& name)
 {
-    csleigh_Varnode reg_varnode = m_lifter->reg(name);
-    return reg_read(reg_varnode.offset, reg_varnode.size);
+    csleigh_Register reg = m_lifter->reg(name);
+    return reg_read(reg.varnode.offset, reg.varnode.size);
 }
 
 expr::BVExprPtr State::reg_read(uint64_t offset, size_t size)
@@ -104,8 +104,8 @@ expr::BVExprPtr State::reg_read(uint64_t offset, size_t size)
 
 void State::reg_write(const std::string& name, expr::BVExprPtr data)
 {
-    csleigh_Varnode reg_varnode = m_lifter->reg(name);
-    return reg_write(reg_varnode.offset, data);
+    csleigh_Register reg = m_lifter->reg(name);
+    return reg_write(reg.varnode.offset, data);
 }
 
 void State::reg_write(uint64_t offset, expr::BVExprPtr data)
@@ -138,6 +138,17 @@ const models::Model* State::get_linked_model(uint64_t addr)
 expr::BoolExprPtr State::pi() const { return m_solver.manager().pi(); }
 
 solver::CheckResult State::satisfiable() { return m_solver.satisfiable(); }
+
+const lifter::PCodeBlock* State::curr_block()
+{
+    uint8_t* data;
+    uint64_t size;
+    if (!get_code_at(pc(), &data, &size))
+        return nullptr;
+
+    const lifter::PCodeBlock* block = m_lifter->lift(pc(), data, size);
+    return block;
+}
 
 bool State::dump(std::filesystem::path out_dir)
 {
@@ -371,25 +382,25 @@ void State::init_from_json(std::filesystem::path json_path)
         auto regsj = statej["regs"];
 
         for (auto& pair : regsj.items()) {
-            auto name        = upper(pair.key());
-            auto reg_varnode = m_lifter->reg(name);
-            auto valj        = pair.value();
+            auto name = upper(pair.key());
+            auto reg  = m_lifter->reg(name);
+            auto valj = pair.value();
 
             auto valuej = valj["value"];
 
             if (valj.contains("symbol") && valj["symbol"].get<bool>()) {
                 auto bv = expr::ExprBuilder::The().mk_sym(
-                    valuej.get<std::string>(), reg_varnode.size * 8);
+                    valuej.get<std::string>(), reg.varnode.size * 8);
                 m_config_symbols.insert(bv);
                 reg_write(name, bv);
             } else {
                 if (valuej.is_number()) {
                     auto bv = expr::ExprBuilder::The().mk_const(
-                        valuej.get<uint64_t>(), reg_varnode.size * 8);
+                        valuej.get<uint64_t>(), reg.varnode.size * 8);
                     reg_write(name, bv);
                 } else {
                     auto bv = expr::ExprBuilder::The().mk_const(expr::BVConst(
-                        valuej.get<std::string>(), reg_varnode.size * 8));
+                        valuej.get<std::string>(), reg.varnode.size * 8));
                     reg_write(name, bv);
                 }
             }

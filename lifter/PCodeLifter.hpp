@@ -27,7 +27,7 @@ class PCodeBlock
     }
     ~PCodeBlock() { csleigh_freeResult(m_translation); }
 
-    void                             pp() const;
+    void                             pp(bool show_pcode = true) const;
     const csleigh_TranslationResult* transl() const { return m_translation; }
 };
 
@@ -36,6 +36,7 @@ class PCodeLifter
   private:
     csleigh_Context                                 m_ctx;
     const Arch&                                     m_arch;
+    std::vector<csleigh_Register>                   m_registers;
     std::vector<FloatFormatPtr>                     m_float_formats;
     std::map<uint64_t, std::unique_ptr<PCodeBlock>> m_blocks;
 
@@ -43,11 +44,13 @@ class PCodeLifter
     PCodeLifter(const Arch& arch);
     ~PCodeLifter();
 
-    const PCodeBlock* lift(uint64_t addr, const uint8_t* data,
-                           size_t data_size);
-    std::string       reg_name(csleigh_Varnode v) const;
-    csleigh_Varnode   reg(const std::string& name) const;
-    const Arch&       arch() const { return m_arch; }
+    const PCodeBlock*             lift(uint64_t addr, const uint8_t* data,
+                                       size_t data_size);
+    std::string                   reg_name(csleigh_Varnode v) const;
+    bool                          has_reg(const std::string& name) const;
+    csleigh_Register              reg(const std::string& name) const;
+    std::vector<csleigh_Register> regs() const;
+    const Arch&                   arch() const { return m_arch; }
 
     FloatFormatPtr get_float_format(int32_t size) const;
 
