@@ -1,6 +1,10 @@
 #pragma once
 
+#include <memory>
+
 #include "../third_party/sleigh/csleigh.h"
+
+typedef std::shared_ptr<const FloatFormat> FloatFormatPtr;
 
 namespace naaz::expr
 {

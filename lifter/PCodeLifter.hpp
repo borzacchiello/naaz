@@ -2,7 +2,9 @@
 
 #include <map>
 #include <memory>
+
 #include "../arch/Arch.hpp"
+#include "../expr/FPConst.hpp"
 #include "../third_party/sleigh/csleigh.h"
 
 namespace naaz::lifter
