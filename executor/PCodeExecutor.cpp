@@ -7,6 +7,9 @@
 #include "../util/ioutil.hpp"
 #include "../util/config.hpp"
 
+#define DBG_OPS         0
+#define DBG_PRINT_BLOCK 0
+
 #define exprBuilder naaz::expr::ExprBuilder::The()
 
 namespace naaz::executor
@@ -195,6 +198,12 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             }
             auto value = ctx.state->read(resolve_varnode(ctx, op.inputs[1]),
                                          op.output->size);
+#if DBG_OPS
+            dbg("PCodeExecutor")
+                << "LOAD(" << resolve_varnode(ctx, op.inputs[1])->to_string()
+                << ", " << op.output->size << ") => " << value->to_string()
+                << std::endl;
+#endif
             write_to_varnode(ctx, *op.output, value);
             break;
         }
@@ -203,7 +212,7 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             assert(op.inputs_count == 3 && "STORE: inputs_count != 3");
 
             csleigh_Address   addr = {.space  = op.inputs[0].space,
-                                      .offset = op.inputs[0].offset};
+                                    .offset = op.inputs[0].offset};
             csleigh_AddrSpace as   = csleigh_Addr_getSpaceFromConst(&addr);
             if (csleigh_AddrSpace_getId(as) != m_ram_space_id) {
                 err("PCodeExecutor")
@@ -213,6 +222,11 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             }
             auto value = resolve_varnode(ctx, op.inputs[2]);
             ctx.state->write(resolve_varnode(ctx, op.inputs[1]), value);
+#if DBG_OPS
+            dbg("PCodeExecutor")
+                << "STORE(" << resolve_varnode(ctx, op.inputs[1])->to_string()
+                << ", " << value->to_string() << ")" << std::endl;
+#endif
             break;
         }
         case csleigh_CPUI_COPY: {
@@ -254,9 +268,14 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
         case csleigh_CPUI_INT_NEGATE: {
             assert(op.output != nullptr && "INT_NEGATE: output is NULL");
             assert(op.inputs_count == 1 && "INT_NEGATE: inputs_count != 1");
-            write_to_varnode(
-                ctx, *op.output,
-                exprBuilder.mk_neg(resolve_varnode(ctx, op.inputs[0])));
+            auto v = resolve_varnode(ctx, op.inputs[0]);
+            // Negate is 1-complement!
+            write_to_varnode(ctx, *op.output, exprBuilder.mk_not(v));
+#if DBG_OPS
+            dbg("PCodeExecutor")
+                << "NEG " << v->to_string() << " => "
+                << resolve_varnode(ctx, *op.output)->to_string() << std::endl;
+#endif
             break;
         }
         case csleigh_CPUI_INT_XOR: {
@@ -275,6 +294,12 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                 exprBuilder.mk_and(resolve_varnode(ctx, op.inputs[0]),
                                    resolve_varnode(ctx, op.inputs[1]));
             write_to_varnode(ctx, *op.output, expr);
+#if DBG_OPS
+            dbg("PCodeExecutor")
+                << resolve_varnode(ctx, op.inputs[0])->to_string() << " AND "
+                << resolve_varnode(ctx, op.inputs[1])->to_string() << " => "
+                << expr->to_string() << std::endl;
+#endif
             break;
         }
         case csleigh_CPUI_INT_OR: {
@@ -331,6 +356,12 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                 exprBuilder.mk_add(resolve_varnode(ctx, op.inputs[0]),
                                    resolve_varnode(ctx, op.inputs[1]));
             write_to_varnode(ctx, *op.output, expr);
+#if DBG_OPS
+            dbg("PCodeExecutor")
+                << resolve_varnode(ctx, op.inputs[0])->to_string() << " ADD "
+                << resolve_varnode(ctx, op.inputs[1])->to_string() << " => "
+                << expr->to_string() << std::endl;
+#endif
             break;
         }
         case csleigh_CPUI_INT_SUB: {
@@ -340,6 +371,12 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
                 exprBuilder.mk_sub(resolve_varnode(ctx, op.inputs[0]),
                                    resolve_varnode(ctx, op.inputs[1]));
             write_to_varnode(ctx, *op.output, expr);
+#if DBG_OPS
+            dbg("PCodeExecutor")
+                << resolve_varnode(ctx, op.inputs[0])->to_string() << " SUB "
+                << resolve_varnode(ctx, op.inputs[1])->to_string() << " => "
+                << expr->to_string() << std::endl;
+#endif
             break;
         }
         case csleigh_CPUI_INT_MULT: {
@@ -409,7 +446,7 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 
             expr::BVExprPtr res = exprBuilder.mk_zext(
                 exprBuilder.mk_extract(inp_expr, 0, 0), dst_size);
-            for (uint32_t i = 1; i < op.inputs[0].size; ++i)
+            for (uint32_t i = 1; i < op.inputs[0].size * 8; ++i)
                 res = exprBuilder.mk_add(
                     res, exprBuilder.mk_zext(
                              exprBuilder.mk_extract(inp_expr, i, i), dst_size));
@@ -857,7 +894,9 @@ ExecutorResult PCodeExecutor::execute_basic_block(state::StatePtr state)
             << "unable to translate code @ 0x" << state->pc() << std::endl;
         exit_fail();
     }
-    // block->pp();
+#if DBG_PRINT_BLOCK
+    block->pp();
+#endif
 
     for (uint32_t i = 0; i < tr->instructions_count; ++i) {
         csleigh_Translation t = tr->instructions[i];
