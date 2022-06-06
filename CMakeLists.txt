@@ -1,8 +1,11 @@
 cmake_minimum_required ( VERSION 3.16 )
 
+include ( CheckCXXCompilerFlag )
+
 project ( NAAZ )
 
 option ( ASAN "Compile with asan (only for debug builds)" OFF )
+option ( OPTIMIZE_NATIVE "Compile with -march=native" OFF )
 
 # libcsleigh
 include_directories ( ${CMAKE_SOURCE_DIR}/third_party/sleigh )
@@ -93,6 +96,13 @@ target_link_libraries ( libnaaz_static LINK_PUBLIC ${naaz_linked_libs} )
 if ( ASAN )
     set ( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined" )
     set ( CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined" )
+endif ()
+
+if ( OPTIMIZE_NATIVE )
+    CHECK_CXX_COMPILER_FLAG ( "-march=native" COMPILER_SUPPORTS_MARCH_NATIVE )
+    if ( COMPILER_SUPPORTS_MARCH_NATIVE )
+        set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native" )
+    endif ()
 endif ()
 
 add_subdirectory ( tools )
