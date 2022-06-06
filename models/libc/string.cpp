@@ -78,6 +78,72 @@ void memcmp::exec(state::StatePtr           s,
     s->arch().handle_return(s, o_successors);
 }
 
+void strcmp::exec(state::StatePtr           s,
+                  executor::ExecutorResult& o_successors) const
+{
+    // FIXME: the semantics of strcmp is different
+
+    auto str1 = s->get_int_param(m_call_conv, 0);
+    auto str2 = s->get_int_param(m_call_conv, 1);
+
+    if (str1->kind() != expr::Expr::Kind::CONST) {
+        err("strcmp") << "str1 is symbolic" << std::endl;
+        exit_fail();
+    }
+
+    if (str2->kind() != expr::Expr::Kind::CONST) {
+        err("strcmp") << "str2 is symbolic" << std::endl;
+        exit_fail();
+    }
+
+    auto str1_ =
+        std::static_pointer_cast<const expr::ConstExpr>(str1)->val().as_u64();
+    auto str2_ =
+        std::static_pointer_cast<const expr::ConstExpr>(str2)->val().as_u64();
+
+    int               max_size = 256;
+    expr::BoolExprPtr res_expr = expr::ExprBuilder::The().mk_true();
+    while (max_size-- > 0) {
+        auto b1 = s->read(str1_, 1);
+        auto b2 = s->read(str2_, 1);
+
+        auto c = expr::ExprBuilder::The().mk_eq(b1, b2);
+        if (c->kind() == expr::Expr::Kind::BOOL_CONST) {
+            auto c_ = std::static_pointer_cast<const expr::BoolConst>(c);
+            if (!c_->is_true()) {
+                s->arch().set_return_int_value(
+                    m_call_conv, *s, expr::ExprBuilder::The().mk_const(1, 8));
+                s->arch().handle_return(s, o_successors);
+                return;
+            }
+        }
+
+        res_expr = expr::ExprBuilder::The().mk_bool_and(res_expr, c);
+
+        if (b1->kind() == expr::Expr::Kind::CONST) {
+            auto b1_ = std::static_pointer_cast<const expr::ConstExpr>(b1);
+            if (b1_->val().as_u64() == 0)
+                break;
+        }
+
+        if (b2->kind() == expr::Expr::Kind::CONST) {
+            auto b2_ = std::static_pointer_cast<const expr::ConstExpr>(b2);
+            if (b2_->val().as_u64() == 0)
+                break;
+        }
+
+        str1_++;
+        str2_++;
+    }
+
+    s->arch().set_return_int_value(
+        m_call_conv, *s,
+        expr::ExprBuilder::The().mk_ite(
+            res_expr, expr::ExprBuilder::The().mk_const(0, 8),
+            expr::ExprBuilder::The().mk_const(1, 8)));
+    s->arch().handle_return(s, o_successors);
+}
+
 void strlen::exec(state::StatePtr           s,
                   executor::ExecutorResult& o_successors) const
 {
@@ -136,6 +202,73 @@ void strncpy::exec(state::StatePtr           s,
     for (const auto& e : resolved_strings) {
         e.state->write_buf(dst_, e.str);
         s->arch().handle_return(e.state, o_successors);
+    }
+}
+
+void strcpy::exec(state::StatePtr           s,
+                  executor::ExecutorResult& o_successors) const
+{
+    auto dst = s->get_int_param(m_call_conv, 0);
+    auto src = s->get_int_param(m_call_conv, 1);
+
+    if (dst->kind() != expr::Expr::Kind::CONST) {
+        err("strcpy") << "dst is symbolic" << std::endl;
+        exit_fail();
+    }
+    if (src->kind() != expr::Expr::Kind::CONST) {
+        err("strcpy") << "src is symbolic" << std::endl;
+        exit_fail();
+    }
+
+    s->arch().set_return_int_value(m_call_conv, *s, dst);
+    auto dst_ =
+        std::static_pointer_cast<const expr::ConstExpr>(dst)->val().as_u64();
+    auto src_ =
+        std::static_pointer_cast<const expr::ConstExpr>(src)->val().as_u64();
+
+    int  max_forks        = 32;
+    auto resolved_strings = resolve_string(s, src_, max_forks);
+
+    for (const auto& e : resolved_strings) {
+        e.state->write_buf(dst_, e.str);
+        s->arch().handle_return(e.state, o_successors);
+    }
+}
+
+void strcat::exec(state::StatePtr           s,
+                  executor::ExecutorResult& o_successors) const
+{
+    auto dst = s->get_int_param(m_call_conv, 0);
+    auto src = s->get_int_param(m_call_conv, 1);
+
+    // info("strcat") << dst->to_string() << " " << src->to_string() << std::endl;
+
+    if (dst->kind() != expr::Expr::Kind::CONST) {
+        err("strcat") << "dst is symbolic" << std::endl;
+        exit_fail();
+    }
+    if (src->kind() != expr::Expr::Kind::CONST) {
+        err("strcat") << "src is symbolic" << std::endl;
+        exit_fail();
+    }
+
+    s->arch().set_return_int_value(m_call_conv, *s, dst);
+    auto dst_ =
+        std::static_pointer_cast<const expr::ConstExpr>(dst)->val().as_u64();
+    auto src_ =
+        std::static_pointer_cast<const expr::ConstExpr>(src)->val().as_u64();
+
+    int  max_forks            = 8;
+    auto resolved_src_strings = resolve_string(s, src_, max_forks);
+
+    for (const auto& e : resolved_src_strings) {
+        auto resolved_dst_strings = resolve_string(e.state, dst_, max_forks);
+        for (const auto& ee : resolved_dst_strings) {
+            // std::cout << "str1: " << e.str->to_string()
+            //           << " | str2: " << ee.str->to_string() << std::endl;
+            e.state->write_buf(dst_ + ee.str->size() / 8UL, e.str);
+            s->arch().handle_return(ee.state, o_successors);
+        }
     }
 }
 

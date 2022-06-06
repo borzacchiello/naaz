@@ -33,8 +33,11 @@ GEN_MODEL_CLASS(realloc, CallConv::CDECL)
 GEN_MODEL_CLASS(free, CallConv::CDECL)
 GEN_MODEL_CLASS(memcpy, CallConv::CDECL)
 GEN_MODEL_CLASS(memcmp, CallConv::CDECL)
+GEN_MODEL_CLASS(strcmp, CallConv::CDECL)
 GEN_MODEL_CLASS(strlen, CallConv::CDECL)
 GEN_MODEL_CLASS(strncpy, CallConv::CDECL)
+GEN_MODEL_CLASS(strcpy, CallConv::CDECL)
+GEN_MODEL_CLASS(strcat, CallConv::CDECL)
 GEN_MODEL_CLASS(sprintf, CallConv::CDECL)
 GEN_MODEL_CLASS(printf, CallConv::CDECL)
 GEN_MODEL_CLASS(scanf, CallConv::CDECL)
@@ -63,7 +66,10 @@ GEN_MODEL_CLASS(ptrace, CallConv::CDECL)
     l.register_model(libc::memcpy::The().name(), &libc::memcpy::The());        \
     l.register_model(libc::memcmp::The().name(), &libc::memcmp::The());        \
     l.register_model(libc::strlen::The().name(), &libc::strlen::The());        \
+    l.register_model(libc::strcmp::The().name(), &libc::strcmp::The());        \
     l.register_model(libc::strncpy::The().name(), &libc::strncpy::The());      \
+    l.register_model(libc::strcpy::The().name(), &libc::strcpy::The());        \
+    l.register_model(libc::strcat::The().name(), &libc::strcat::The());        \
     l.register_model(libc::sprintf::The().name(), &libc::sprintf::The());      \
     l.register_model(libc::printf::The().name(), &libc::printf::The());        \
     l.register_model(libc::scanf::The().name(), &libc::scanf::The());          \

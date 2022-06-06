@@ -32,6 +32,14 @@ struct cmd_t {
     const char* description;
 };
 
+static std::string get_state_info(naaz::state::StatePtr s)
+{
+    std::string res = "";
+    if (s->is_linked_function(s->pc()))
+        res += s->get_linked_model(s->pc())->name().c_str();
+    return res;
+}
+
 static void cmd_context(exec_context_t& ctx)
 {
     if (!ctx.state)
@@ -95,7 +103,8 @@ static void cmd_list_states(exec_context_t& ctx)
 {
     printf("current state:\n==============\n");
     if (ctx.state)
-        printf(" [*] 0x%08llx\n", ctx.state->pc());
+        printf(" [*] 0x%08llx %s\n", ctx.state->pc(),
+               get_state_info(ctx.state).c_str());
     else
         printf(" * no state selected (use 'select' command to set it)\n");
 
@@ -103,13 +112,15 @@ static void cmd_list_states(exec_context_t& ctx)
     if (ctx.deferred_states.size() > 0) {
         printf("\ndeferred:\n=========\n");
         for (const auto state : ctx.deferred_states)
-            printf(" [%d] 0x%08llx\n", i++, state->pc());
+            printf(" [%d] 0x%08llx \n", i++, state->pc(),
+                   get_state_info(ctx.state).c_str());
     }
 
     if (ctx.exited_states.size() > 0) {
         printf("\nexited:\n=======\n");
         for (const auto state : ctx.exited_states)
-            printf(" [%d] 0x%08llx\n", i++, state->pc());
+            printf(" [%d] 0x%08llx %s\n", i++, state->pc(),
+                   get_state_info(ctx.state).c_str());
     }
 }
 

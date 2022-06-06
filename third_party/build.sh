@@ -110,7 +110,7 @@ function fetch_json {
 }
 
 build_sleigh
-build_pugixml
-fetch_and_build_libbfd
-fetch_and_build_libgmp
-fetch_json
+# build_pugixml
+# fetch_and_build_libbfd
+# fetch_and_build_libgmp
+# fetch_json
