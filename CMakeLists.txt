@@ -11,6 +11,10 @@ option ( OPTIMIZE_NATIVE "Compile with -march=native" OFF )
 include_directories ( ${CMAKE_SOURCE_DIR}/third_party/sleigh )
 link_directories ( ${CMAKE_SOURCE_DIR}/third_party/sleigh/build )
 
+# libz3
+include_directories ( ${CMAKE_SOURCE_DIR}/third_party/z3/build/install/include )
+link_directories ( ${CMAKE_SOURCE_DIR}/third_party/z3/build/install/lib )
+
 # libpugixml
 include_directories ( ${CMAKE_SOURCE_DIR}/third_party/pugixml/src )
 link_directories ( ${CMAKE_SOURCE_DIR}/third_party/pugixml/build )
@@ -78,7 +82,8 @@ set ( naaz_linked_libs
     pugixml
     z3
     gmp
-    dl )
+    dl
+    pthread )
 
 add_library ( objLibNaaz OBJECT ${naaz_src} )
 

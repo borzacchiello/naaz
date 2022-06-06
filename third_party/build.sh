@@ -16,6 +16,25 @@ function build_sleigh {
     popd
 }
 
+function build_z3 {
+    if [ ! -f "$SCRIPTPATH/z3/LICENSE.txt" ]; then
+        git submodule update --init
+    fi
+
+    [ -d "$SCRIPTPATH/z3/build" ] \
+        || mkdir "$SCRIPTPATH/z3/build"
+
+    pushd "$SCRIPTPATH/z3/build" || exit 1
+    cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DZ3_BUILD_LIBZ3_SHARED=false \
+        -DCMAKE_INSTALL_PREFIX=`pwd`/install \
+        .. || exit 1
+    make -j`nproc` || exit 1
+    make install
+    popd
+}
+
 function build_pugixml {
     if [ ! -f "$SCRIPTPATH/pugixml/LICENSE.md" ]; then
         git submodule update --init
@@ -110,7 +129,8 @@ function fetch_json {
 }
 
 build_sleigh
-# build_pugixml
-# fetch_and_build_libbfd
-# fetch_and_build_libgmp
-# fetch_json
+build_z3
+build_pugixml
+fetch_and_build_libbfd
+fetch_and_build_libgmp
+fetch_json

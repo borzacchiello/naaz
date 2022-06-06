@@ -13,3 +13,6 @@
 [submodule "third_party/argparse"]
 	path = third_party/argparse
 	url = https://github.com/p-ranav/argparse
+[submodule "third_party/z3"]
+	path = third_party/z3
+	url = https://github.com/Z3Prover/z3
