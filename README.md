@@ -43,7 +43,7 @@ examples on how to use this tools can be found in [this](https://github.com/borz
 
 - [ ] Implement COW memory
 - [ ] Implement handlers for all P-Code statements
-- [ ] Syscalls support
+- [x] Syscalls support
 - [ ] Windows/PE support
 - [ ] More library models
 - [ ] Support more loaders (e.g., one based on rizin)
