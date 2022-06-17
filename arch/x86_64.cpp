@@ -1,6 +1,7 @@
 #include "x86_64.hpp"
 
 #include "../state/State.hpp"
+#include "../state/Platform.hpp"
 #include "../models/Linker.hpp"
 #include "../expr/ExprBuilder.hpp"
 #include "../util/ioutil.hpp"
@@ -98,6 +99,68 @@ const std::string& x86_64::get_stack_ptr_reg() const
 {
     static std::string r = "RSP";
     return r;
+}
+
+int x86_64::get_syscall_num(state::State& s) const
+{
+    if (s.platform()->name() == "linux_64") {
+        auto num_expr = s.reg_read("RAX");
+        if (num_expr->kind() != expr::Expr::Kind::CONST) {
+            err("arch::x86_64") << "handle_return(): FIXME, unhandled return "
+                                   "to symbolic address"
+                                << std::endl;
+            exit_fail();
+        }
+
+        return (int)std::static_pointer_cast<const expr::ConstExpr>(num_expr)
+            ->val()
+            .as_s64();
+    } else {
+        err("arch::x86_64") << "get_syscall_num(): unknown platform "
+                            << s.platform()->name() << std::endl;
+        exit_fail();
+    }
+}
+
+expr::BVExprPtr x86_64::get_syscall_param(state::State& s, uint32_t i) const
+{
+    if (s.platform()->name() == "linux_64") {
+        switch (i) {
+            case 0:
+                return s.reg_read("RDI");
+            case 1:
+                return s.reg_read("RSI");
+            case 2:
+                return s.reg_read("RDX");
+            case 3:
+                return s.reg_read("R10");
+            case 4:
+                return s.reg_read("R8");
+            case 5:
+                return s.reg_read("R9");
+            default:
+                err("arch::x86_64")
+                    << "get_syscall_param(): invalid parameter number " << i
+                    << std::endl;
+                exit_fail();
+        }
+    } else {
+        err("arch::x86_64") << "get_syscall_param(): unknown platform "
+                            << s.platform()->name() << std::endl;
+        exit_fail();
+    }
+}
+
+void x86_64::set_syscall_return_value(state::State&   s,
+                                      expr::BVExprPtr val) const
+{
+    if (s.platform()->name() == "linux_64") {
+        s.reg_write("RAX", val);
+    } else {
+        err("arch::x86_64") << "set_syscall_return_value(): unknown platform "
+                            << s.platform()->name() << std::endl;
+        exit_fail();
+    }
 }
 
 expr::BVExprPtr x86_64::get_int_param(CallConv cv, state::State& s,

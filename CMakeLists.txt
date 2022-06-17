@@ -49,6 +49,8 @@ set ( naaz_src
     state/File.cpp
     state/FileSystem.cpp
     state/PluginManager.cpp
+    state/Linux64Platform.cpp
+    state/UnknownPlatform.cpp
     models/Linker.cpp
     models/libc/libc_start_main.cpp
     models/libc/exit.cpp
@@ -59,6 +61,8 @@ set ( naaz_src
     models/libc/random.cpp
     models/libc/ptrace.cpp
     models/libc/alloc.cpp
+    models/linux_syscalls/open.cpp
+    models/linux_syscalls/read.cpp
     arch/Arch.cpp
     arch/x86_64.cpp
     arch/arm32LE.cpp

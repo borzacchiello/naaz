@@ -6,6 +6,7 @@
 #include "../expr/ExprBuilder.hpp"
 #include "../util/ioutil.hpp"
 #include "../util/config.hpp"
+#include "../state/Platform.hpp"
 
 #define DBG_OPS         0
 #define DBG_PRINT_BLOCK 0
@@ -95,9 +96,33 @@ void PCodeExecutor::handle_symbolic_ip(ExecutionContext& ctx,
     }
 }
 
+void PCodeExecutor::execute_syscall(ExecutionContext& ctx)
+{
+    auto  num     = ctx.state->arch().get_syscall_num(*ctx.state);
+    auto& syscall = ctx.state->platform()->syscall(num);
+    syscall.exec(ctx.state, ctx.successors);
+}
+
 void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
 {
     switch (op.opcode) {
+        case csleigh_CPUI_CALLOTHER: {
+            assert(op.output == nullptr && "CALLOTHER: output is not NULL");
+            assert(op.inputs_count == 1 && "CALLOTHER: inputs_count != 1");
+
+            uint64_t id = op.inputs[0].offset;
+            switch (id) {
+                case csleigh_CALLOTHER_SYSCALL:
+                    execute_syscall(ctx);
+                    break;
+                default:
+                    err("PCodeExecutor")
+                        << "execute_pcodeop(): unsupported CALLOTHER " << id
+                        << std::endl;
+                    exit_fail();
+            }
+            break;
+        }
         case csleigh_CPUI_INT_EQUAL: {
             assert(op.output != nullptr && "INT_EQUAL: output is NULL");
             assert(op.inputs_count == 2 && "INT_EQUAL: inputs_count != 2");
@@ -212,7 +237,7 @@ void PCodeExecutor::execute_pcodeop(ExecutionContext& ctx, csleigh_PcodeOp op)
             assert(op.inputs_count == 3 && "STORE: inputs_count != 3");
 
             csleigh_Address   addr = {.space  = op.inputs[0].space,
-                                    .offset = op.inputs[0].offset};
+                                      .offset = op.inputs[0].offset};
             csleigh_AddrSpace as   = csleigh_Addr_getSpaceFromConst(&addr);
             if (csleigh_AddrSpace_getId(as) != m_ram_space_id) {
                 err("PCodeExecutor")

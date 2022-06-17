@@ -1,5 +1,6 @@
 #include "BFDLoader.hpp"
 
+#include "../state/State.hpp"
 #include "../util/ioutil.hpp"
 #include "../arch/x86_64.hpp"
 #include "../arch/arm32LE.hpp"
@@ -65,6 +66,8 @@ BFDLoader::BFDLoader(const std::filesystem::path& filename)
     load_symtab();
     load_dyn_symtab();
     load_dyn_relocs();
+
+    deduce_syscall_abi();
 }
 
 void BFDLoader::load_sections()
@@ -96,6 +99,16 @@ void BFDLoader::load_sections()
         bfd_simple_get_relocated_section_contents(m_obj, bfd_sec, seg_data,
                                                   NULL);
     }
+}
+
+void BFDLoader::deduce_syscall_abi()
+{
+    if (m_bin_type == BinaryType::ELF && m_arch == &arch::x86_64::The())
+        m_syscall_abi = SyscallABI::LINUX_X86_64;
+    else if (m_bin_type == BinaryType::ELF && m_arch == &arch::x86_64::The())
+        m_syscall_abi = SyscallABI::LINUX_ARMv7;
+    else
+        m_syscall_abi = SyscallABI::UNKNOWN;
 }
 
 void BFDLoader::process_symtable(asymbol* symbol_table[],
@@ -226,12 +239,13 @@ std::shared_ptr<AddressSpace> BFDLoader::address_space()
 }
 const Arch& BFDLoader::arch() const { return *m_arch; }
 BinaryType  BFDLoader::bin_type() const { return m_bin_type; }
+SyscallABI  BFDLoader::syscall_abi() const { return m_syscall_abi; }
 uint64_t    BFDLoader::entrypoint() const { return m_entrypoint; }
 
 state::StatePtr BFDLoader::entry_state() const
 {
-    auto state =
-        std::make_shared<state::State>(m_address_space, m_lifter, m_entrypoint);
+    auto state = std::make_shared<state::State>(m_address_space, m_lifter,
+                                                m_entrypoint, m_syscall_abi);
     return state;
 }
 

@@ -36,6 +36,7 @@ class PCodeExecutor
         }
     };
 
+    void execute_syscall(ExecutionContext& ctx);
     void handle_symbolic_ip(ExecutionContext& ctx, expr::BVExprPtr ip);
     expr::BVExprPtr resolve_varnode(ExecutionContext& ctx,
                                     csleigh_Varnode   node);

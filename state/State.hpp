@@ -8,6 +8,7 @@
 #include "FileSystem.hpp"
 #include "PluginManager.hpp"
 #include "Solver.hpp"
+#include "../loader/Loader.hpp"
 #include "../loader/AddressSpace.hpp"
 #include "../lifter/PCodeLifter.hpp"
 #include "../solver/ConstraintManager.hpp"
@@ -17,6 +18,7 @@
 namespace naaz::state
 {
 
+class Platform;
 class State;
 typedef std::shared_ptr<State> StatePtr;
 class State
@@ -33,6 +35,7 @@ class State
     std::unique_ptr<FileSystem>    m_fs;
     std::unique_ptr<PluginManager> m_pm;
 
+    std::shared_ptr<Platform>                m_platform;
     std::shared_ptr<loader::AddressSpace>    m_as;
     std::shared_ptr<lifter::PCodeLifter>     m_lifter;
     std::shared_ptr<models::LinkedFunctions> m_linked_functions;
@@ -43,13 +46,16 @@ class State
 
   public:
     State(std::shared_ptr<loader::AddressSpace> as,
-          std::shared_ptr<lifter::PCodeLifter> lifter, uint64_t pc);
+          std::shared_ptr<lifter::PCodeLifter> lifter, uint64_t pc,
+          loader::SyscallABI abi = loader::SyscallABI::UNKNOWN);
     State(const State& other);
     ~State() {}
 
     void init_from_json(std::filesystem::path json);
 
-    const Arch& arch() const { return m_lifter->arch(); }
+    const Arch&               arch() const { return m_lifter->arch(); }
+    loader::SyscallABI        syscall_abi() const;
+    std::shared_ptr<Platform> platform() const { return m_platform; }
     std::shared_ptr<lifter::PCodeLifter>  lifter() { return m_lifter; }
     std::shared_ptr<loader::AddressSpace> address_space() { return m_as; }
 
@@ -70,6 +76,7 @@ class State
     void            reg_write(const std::string& name, expr::BVExprPtr data);
     void            reg_write(uint64_t offset, expr::BVExprPtr data);
 
+    expr::BVExprPtr get_syscall_param(uint64_t i);
     expr::BVExprPtr get_int_param(CallConv cv, uint64_t i);
 
     void register_linked_function(uint64_t addr, const models::Model* m);

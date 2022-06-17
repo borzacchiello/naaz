@@ -46,7 +46,12 @@ class Arch
     virtual void set_return(state::StatePtr s, expr::BVExprPtr addr) const = 0;
     virtual void set_return(state::StatePtr s, uint64_t addr) const;
 
-    virtual const std::string& get_stack_ptr_reg() const       = 0;
+    virtual const std::string& get_stack_ptr_reg() const              = 0;
+    virtual int                get_syscall_num(state::State& s) const = 0;
+    virtual expr::BVExprPtr    get_syscall_param(state::State& s,
+                                                 uint32_t      i) const    = 0;
+    virtual void               set_syscall_return_value(state::State&   s,
+                                                        expr::BVExprPtr val) const = 0;
     virtual expr::BVExprPtr    get_int_param(CallConv cv, state::State& s,
                                              uint32_t i) const = 0;
     virtual void               set_int_params(CallConv cv, state::State& s,

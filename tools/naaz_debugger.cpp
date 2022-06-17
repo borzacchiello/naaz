@@ -112,7 +112,7 @@ static void cmd_list_states(exec_context_t& ctx)
     if (ctx.deferred_states.size() > 0) {
         printf("\ndeferred:\n=========\n");
         for (const auto state : ctx.deferred_states)
-            printf(" [%d] 0x%08llx \n", i++, state->pc(),
+            printf(" [%d] 0x%08llx - %s \n", i++, state->pc(),
                    get_state_info(ctx.state).c_str());
     }
 

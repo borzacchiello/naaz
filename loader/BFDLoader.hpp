@@ -20,6 +20,7 @@ class BFDLoader : public Loader
     uint64_t                             m_entrypoint;
     const Arch*                          m_arch;
     BinaryType                           m_bin_type;
+    SyscallABI                           m_syscall_abi;
     std::shared_ptr<AddressSpace>        m_address_space;
     std::shared_ptr<lifter::PCodeLifter> m_lifter;
 
@@ -30,6 +31,7 @@ class BFDLoader : public Loader
     void load_dyn_symtab();
     void load_relocs();
     void load_dyn_relocs();
+    void deduce_syscall_abi();
 
   public:
     BFDLoader(const std::filesystem::path& filename);
@@ -38,6 +40,7 @@ class BFDLoader : public Loader
     virtual std::shared_ptr<AddressSpace> address_space();
     virtual const Arch&                   arch() const;
     virtual BinaryType                    bin_type() const;
+    virtual SyscallABI                    syscall_abi() const;
     virtual uint64_t                      entrypoint() const;
     virtual state::StatePtr               entry_state() const;
 };

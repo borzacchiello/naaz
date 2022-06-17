@@ -90,6 +90,26 @@ const std::string& arm32LE::get_stack_ptr_reg() const
     return r;
 }
 
+int arm32LE::get_syscall_num(state::State& s) const
+{
+    err("arch::arm32LE") << "get_syscall_param(): implement me" << std::endl;
+    exit_fail();
+}
+
+expr::BVExprPtr arm32LE::get_syscall_param(state::State& s, uint32_t i) const
+{
+    err("arch::arm32LE") << "get_syscall_param(): implement me" << std::endl;
+    exit_fail();
+}
+
+void arm32LE::set_syscall_return_value(state::State&   s,
+                                       expr::BVExprPtr val) const
+{
+    err("arch::arm32LE") << "set_syscall_return_value(): implement me"
+                         << std::endl;
+    exit_fail();
+}
+
 expr::BVExprPtr arm32LE::get_int_param(CallConv cv, state::State& s,
                                        uint32_t i) const
 {

@@ -3,7 +3,10 @@
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <fstream>
+#include <memory>
 
+#include "Linux64Platform.hpp"
+#include "UnknownPlatform.hpp"
 #include "../models/Linker.hpp"
 #include "../expr/ExprBuilder.hpp"
 #include "../util/ioutil.hpp"
@@ -14,7 +17,8 @@ namespace naaz::state
 {
 
 State::State(std::shared_ptr<loader::AddressSpace> as,
-             std::shared_ptr<lifter::PCodeLifter> lifter, uint64_t pc)
+             std::shared_ptr<lifter::PCodeLifter> lifter, uint64_t pc,
+             loader::SyscallABI abi)
     : m_as(as), m_lifter(lifter), m_pc(pc)
 {
     m_linked_functions = std::make_shared<models::LinkedFunctions>();
@@ -22,6 +26,16 @@ State::State(std::shared_ptr<loader::AddressSpace> as,
     m_ram = std::unique_ptr<MapMemory>(new MapMemory("ram", as.get()));
     m_fs  = std::unique_ptr<FileSystem>(new FileSystem());
     m_pm  = std::unique_ptr<PluginManager>(new PluginManager());
+
+    switch (abi) {
+        case loader::SyscallABI::LINUX_X86_64:
+        case loader::SyscallABI::LINUX_ARMv7:
+            m_platform = std::shared_ptr<Platform>(new Linux64Platform(abi));
+            break;
+        default:
+            m_platform = std::shared_ptr<Platform>(new UnknownPlatform());
+            break;
+    }
 
     m_ram->set_solver(&m_solver);
 
@@ -34,9 +48,9 @@ State::State(std::shared_ptr<loader::AddressSpace> as,
 
 State::State(const State& other)
     : m_as(other.m_as), m_lifter(other.m_lifter), m_pc(other.m_pc),
-      m_heap_ptr(other.m_heap_ptr), m_argv(other.m_argv),
-      m_linked_functions(other.m_linked_functions), m_solver(other.m_solver),
-      m_config_symbols(other.m_config_symbols)
+      m_platform(other.m_platform), m_heap_ptr(other.m_heap_ptr),
+      m_argv(other.m_argv), m_linked_functions(other.m_linked_functions),
+      m_solver(other.m_solver), m_config_symbols(other.m_config_symbols)
 {
     m_ram  = other.m_ram->clone();
     m_regs = other.m_regs->clone();
@@ -44,6 +58,8 @@ State::State(const State& other)
     m_pm   = other.m_pm->clone();
     m_ram->set_solver(&m_solver);
 }
+
+loader::SyscallABI State::syscall_abi() const { return m_platform->abi(); }
 
 bool State::get_code_at(uint64_t addr, uint8_t** o_data, uint64_t* o_size)
 {
@@ -111,6 +127,11 @@ void State::reg_write(const std::string& name, expr::BVExprPtr data)
 void State::reg_write(uint64_t offset, expr::BVExprPtr data)
 {
     m_regs->write(offset, data, Endianess::LITTLE);
+}
+
+expr::BVExprPtr State::get_syscall_param(uint64_t i)
+{
+    return arch().get_syscall_param(*this, i);
 }
 
 expr::BVExprPtr State::get_int_param(CallConv cv, uint64_t i)
