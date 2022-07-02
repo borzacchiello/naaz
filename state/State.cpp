@@ -29,9 +29,9 @@ State::State(std::shared_ptr<loader::AddressSpace> as,
 
     switch (abi) {
         case loader::SyscallABI::LINUX_X86_64:
-        case loader::SyscallABI::LINUX_ARMv7:
             m_platform = std::shared_ptr<Platform>(new Linux64Platform(abi));
             break;
+        case loader::SyscallABI::LINUX_ARMv7:
         default:
             m_platform = std::shared_ptr<Platform>(new UnknownPlatform());
             break;

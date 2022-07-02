@@ -105,7 +105,7 @@ void BFDLoader::deduce_syscall_abi()
 {
     if (m_bin_type == BinaryType::ELF && m_arch == &arch::x86_64::The())
         m_syscall_abi = SyscallABI::LINUX_X86_64;
-    else if (m_bin_type == BinaryType::ELF && m_arch == &arch::x86_64::The())
+    else if (m_bin_type == BinaryType::ELF && m_arch == &arch::arm32LE::The())
         m_syscall_abi = SyscallABI::LINUX_ARMv7;
     else
         m_syscall_abi = SyscallABI::UNKNOWN;
