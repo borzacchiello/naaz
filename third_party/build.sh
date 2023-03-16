@@ -50,7 +50,7 @@ function build_pugixml {
 }
 
 function fetch_and_build_libbfd {
-    version=2.38
+    version=2.40
     if [ ! -d "$SCRIPTPATH/binutils" ]; then
         pushd "$SCRIPTPATH" || exit 1
         if [ ! -f binutils-$version.tar.gz ]; then
@@ -62,19 +62,24 @@ function fetch_and_build_libbfd {
         popd
     fi
 
+    pushd "$SCRIPTPATH/binutils/libsframe" || exit 1
+    CFLAGS="-fPIC -O3" ./configure --enable-targets=all --without-zstd || exit 1
+    make -j`nproc` || exit 1
+    popd
+
     pushd "$SCRIPTPATH/binutils/libiberty" || exit 1
-    CFLAGS="-fPIC -O3" ./configure --enable-targets=all || exit 1
+    CFLAGS="-fPIC -O3" ./configure --enable-targets=all --without-zstd || exit 1
     make -j`nproc` || exit 1
     popd
 
     pushd "$SCRIPTPATH/binutils/zlib" || exit 1
-    CFLAGS="-fPIC -O3" ./configure --enable-targets=all || exit 1
+    CFLAGS="-fPIC -O3" ./configure --enable-targets=all --without-zstd || exit 1
     make -j`nproc` || exit 1
     popd
 
     pushd "$SCRIPTPATH/binutils/bfd" || exit 1
-    LD_LIBRARY_PATH="`pwd`/../libiberty:`pwd`/../zlib" CFLAGS="-fPIC -O3" \
-        ./configure --enable-shared --enable-targets=all || exit 1
+    LD_LIBRARY_PATH="`pwd`/../libiberty:`pwd`/../zlib:`pwd`/../libsframe" CFLAGS="-fPIC -O3" \
+        ./configure --enable-shared --enable-targets=all --without-zstd || exit 1
     make -j`nproc` || exit 1
     popd
 
@@ -84,6 +89,7 @@ function fetch_and_build_libbfd {
     cp "`pwd`/../bfd/.libs/libbfd.a" . || exit 1
     cp "`pwd`/../libiberty/libiberty.a" . || exit 1
     cp "`pwd`/../zlib/libz.a" . || exit 1
+    cp "`pwd`/../libsframe/.libs/libsframe.a" . || exit 1
     popd
 }
 
@@ -115,7 +121,7 @@ function fetch_and_build_libgmp {
 }
 
 function fetch_json {
-    version=3.10.5
+    version=3.11.2
     url=https://github.com/nlohmann/json/releases/download/v$version/json.hpp
 
     [ -d "$SCRIPTPATH/json" ] || \
